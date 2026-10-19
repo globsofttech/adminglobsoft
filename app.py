@@ -49,7 +49,15 @@ clerk_frontend_api = get_clerk_frontend_api(clerk_publishable_key)
 client = MongoClient(mongo_uri)
 
 app = Flask(__name__)
-app.secret_key=os.getenv("FLASK_SECRET_KEY")
+app.secret_key = os.getenv("FLASK_SECRET_KEY") or "GlobSoftAdminWebAppSecureKey2026Production"
+is_production = os.getenv("VERCEL") == "1" or os.getenv("FLASK_ENV") != "development"
+app.config.update(
+    SESSION_COOKIE_NAME="globsoft_session",
+    SESSION_COOKIE_HTTPONLY=True,
+    SESSION_COOKIE_SECURE=is_production,
+    SESSION_COOKIE_SAMESITE="Lax",
+    SESSION_COOKIE_PATH="/",
+)
 turnstile_secret_key = os.getenv("TURNSTILE_SECRET_KEY")
 
 cors_origins = [
@@ -1526,6 +1534,9 @@ def manage_products():
 def dashboard():
     if is_admin() or is_blog_author():
         return render_template('dashboard.html', is_admin=is_admin())
+
+    if session.get("pending_user"):
+        return redirect("/pending-approval")
 
     if request.method == "POST":
         username = (request.form.get("uname") or "").strip().lower()
