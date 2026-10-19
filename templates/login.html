@@ -3,325 +3,73 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <script src="https://kit.fontawesome.com/d288b4e251.js" crossorigin="anonymous"></script>
   <link rel="shortcut icon" type="image/svg+xml" href="{{ url_for('static', filename='images/globsoft.svg') }}">
-  <title>Globsoft Tech - Portal Sign In</title>
-  <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
+  <title>Sign In - Globsoft Tech</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+    body {
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      background: #0a0d18;
+      background-image: radial-gradient(circle at 50% 20%, rgba(121, 255, 247, 0.08) 0%, transparent 60%);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      padding: 24px;
+    }
+    .brand-header {
+      margin-bottom: 24px;
+      text-align: center;
+    }
+    .brand-header img {
+      width: 44px;
+      height: 44px;
+      margin-bottom: 8px;
+    }
+    .brand-header h1 {
+      font-size: 1.35rem;
+      font-weight: 700;
+      color: #ffffff;
+      letter-spacing: -0.5px;
+    }
+    #clerk-sign-in {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 460px;
+    }
+  </style>
+
   {% if clerk_publishable_key %}
-  <!-- Clerk Frontend SDK loaded with full UI components and proxy support -->
+  <!-- Official Clerk JS SDK -->
   <script
     async
     crossorigin="anonymous"
     data-clerk-publishable-key="{{ clerk_publishable_key }}"
-    {% if clerk_proxy_url %}data-clerk-proxy-url="{{ clerk_proxy_url }}"{% endif %}
     src="https://cdn.jsdelivr.net/npm/@clerk/clerk-js@5/dist/clerk.browser.js"
     type="text/javascript">
   </script>
   {% endif %}
-  <style>
-    .google-signin-wrapper {
-      width: 100%;
-      max-width: 380px;
-      margin-bottom: 12px;
-    }
-    .btn-google {
-      width: 100%;
-      background: #ffffff;
-      color: #1f2937;
-      border: 1px solid #d1d5db;
-      border-radius: 49px;
-      padding: 12px 18px;
-      font-size: .95rem;
-      font-weight: 600;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 12px;
-      cursor: pointer;
-      transition: background-color .2s, box-shadow .2s, transform .1s;
-      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
-      font-family: inherit;
-    }
-    .btn-google:hover {
-      background: #f9fafb;
-      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
-      transform: translateY(-1px);
-    }
-    .btn-google:active {
-      transform: translateY(0);
-    }
-    .btn-google svg {
-      flex-shrink: 0;
-    }
-    .btn-google.loading {
-      opacity: 0.75;
-      cursor: wait;
-    }
-    .login-divider {
-      width: 100%;
-      max-width: 380px;
-      display: flex;
-      align-items: center;
-      margin: 16px 0;
-      color: #9ca3af;
-      font-size: .8rem;
-    }
-    .login-divider::before,
-    .login-divider::after {
-      content: "";
-      flex: 1;
-      height: 1px;
-      background: #e5e7eb;
-    }
-    .login-divider span {
-      padding: 0 12px;
-    }
-    .login-flash {
-      width: 100%;
-      max-width: 380px;
-      background: #fef2f2;
-      border: 1px solid #fecaca;
-      color: #dc2626;
-      padding: 10px 14px;
-      border-radius: 10px;
-      font-size: .85rem;
-      margin-bottom: 14px;
-      display: flex;
-      align-items: center;
-      gap: 8px;
-    }
-    .admin-note-pill {
-      font-size: .75rem;
-      color: #00BFA6;
-      margin-top: 10px;
-      text-align: center;
-      line-height: 1.4;
-    }
-  </style>
 </head>
 <body>
-  <div class="container">
-    <div class="forms-container">
-      <div class="signin-signup">
-        <!-- Sign In Form -->
-        <form class="sign-in-form" action="/" method="post">
-          <h2 class="title">Globsoft Portal</h2>
-
-          {% with messages = get_flashed_messages(with_categories=true) %}
-            {% for category, message in messages %}
-              <div class="login-flash">
-                <i class="fas fa-circle-exclamation"></i>
-                <span>{{ message }}</span>
-              </div>
-            {% endfor %}
-          {% endwith %}
-
-          <!-- GOOGLE SIGN-IN VIA CLERK -->
-          <div class="google-signin-wrapper">
-            <button type="button" class="btn-google" id="googleSignInBtn" onclick="handleGoogleSignIn()">
-              <svg viewBox="0 0 48 48" width="20" height="20">
-                <path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/>
-                <path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/>
-                <path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.79l7.97-6.2z"/>
-                <path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/>
-              </svg>
-              <span id="googleBtnText">Continue with Google</span>
-            </button>
-            <p class="admin-note-pill">
-              Sign in/up with any Google account to write blogs.
-            </p>
-          </div>
-
-          <div class="login-divider">
-            <span>or pre-approved authors</span>
-          </div>
-
-          <div class="input-field">
-            <i class="fas fa-user"></i>
-            <input type="text" placeholder="Username / Email" name="uname" autocomplete="username">
-          </div>
-          <div class="input-field">
-            <i class="fas fa-lock"></i>
-            <input type="password" placeholder="Password" name="password" autocomplete="current-password">
-          </div>
-          <input type="submit" value="Sign In" class="btn solid">
-        </form>
-      </div>
-    </div>
-
-    <div class="panels-container">
-      <div class="panel left-panel">
-        <div class="content">
-          <h3 style="color:#fff;font-size:1.8rem;margin-bottom:8px;">Globsoft Tech</h3>
-          <p>Secure workspace for administrators and approved authors.</p>
-        </div>
-        <img src="{{ url_for('static', filename='images/log.svg') }}" class="image" alt="Globsoft Tech">
-      </div>
-    </div>
+  <div class="brand-header">
+    <img src="{{ url_for('static', filename='images/globsoft.svg') }}" alt="Globsoft Tech">
+    <h1>Globsoft Tech Admin Portal</h1>
   </div>
 
+  <!-- Official Default Clerk Sign-In Component Container -->
+  <div id="clerk-sign-in"></div>
+
   <script>
-    // Clerk development instances strictly require 'localhost' rather than '127.0.0.1'
-    if (window.location.hostname === '127.0.0.1') {
-      window.location.replace(window.location.href.replace('127.0.0.1', 'localhost'));
-    }
+    const isLoggedOut = new URLSearchParams(window.location.search).has('logged_out');
 
-    const CLERK_PUBLISHABLE_KEY = "{{ clerk_publishable_key or '' }}";
-    const urlParams = new URLSearchParams(window.location.search);
-    const isLoggedOut = urlParams.has('logged_out');
-
-    async function getClerkInstance() {
-      if (!CLERK_PUBLISHABLE_KEY) return null;
-      for (let i = 0; i < 30; i++) {
-        if (window.Clerk) {
-          try {
-            if (!window.Clerk.loaded) {
-              const loadOpts = {};
-              {% if clerk_proxy_url %}
-              loadOpts.proxyUrl = "{{ clerk_proxy_url }}";
-              {% endif %}
-              await window.Clerk.load(loadOpts);
-            }
-            return window.Clerk;
-          } catch (e) {
-            console.error("Clerk.load() error:", e);
-            return window.Clerk;
-          }
-        }
-        await new Promise(r => setTimeout(r, 150));
-      }
-      return window.Clerk || null;
-    }
-
-    window.addEventListener('load', async () => {
-      if (!CLERK_PUBLISHABLE_KEY) {
-        return;
-      }
-
-      try {
-        const clerk = await getClerkInstance();
-        if (!clerk) return;
-
-        // If the user just clicked Logout, clear Clerk token so they don't immediately re-login
-        if (isLoggedOut) {
-          try {
-            if (typeof clerk.signOut === 'function') {
-              await clerk.signOut();
-            }
-          } catch (soErr) {
-            console.warn("Sign out error:", soErr);
-          }
-          if (window.history && window.history.replaceState) {
-            window.history.replaceState({}, document.title, window.location.pathname);
-          }
-          return;
-        }
-
-        // Handle return from external OAuth redirect
-        if (window.location.search.includes('__clerk') || window.location.hash.includes('__clerk')) {
-          try {
-            if (typeof clerk.handleRedirectCallback === 'function') {
-              await clerk.handleRedirectCallback(
-                {},
-                async (to) => {
-                  if (window.history && window.history.replaceState) {
-                    window.history.replaceState({}, document.title, window.location.pathname);
-                  }
-                }
-              );
-            }
-          } catch (cbErr) {
-            console.warn("handleRedirectCallback error:", cbErr);
-          }
-        }
-
-        // If user session is already established
-        if (clerk.user && !isLoggedOut) {
-          await syncClerkUser(clerk.user);
-          return;
-        }
-
-        // Listen for successful sign-in
-        if (typeof clerk.addListener === 'function') {
-          clerk.addListener(({ user }) => {
-            if (user && !isLoggedOut) {
-              syncClerkUser(user);
-            }
-          });
-        }
-      } catch (err) {
-        console.error("Clerk setup error:", err);
-      }
-    });
-
-    async function handleGoogleSignIn() {
-      if (!CLERK_PUBLISHABLE_KEY) {
-        alert("Clerk Publishable Key is missing. Please set CLERK_PUBLISHABLE_KEY in AdminPortal/.env");
-        return;
-      }
-
-      const btn = document.getElementById('googleSignInBtn');
-      const text = document.getElementById('googleBtnText');
-      if (btn) btn.classList.add('loading');
-      if (text) text.textContent = 'Connecting to Google...';
-
-      try {
-        const clerk = await getClerkInstance();
-        if (!clerk) {
-          throw new Error("Clerk authentication library could not load. Check network connection.");
-        }
-
-        const origin = window.location.origin.replace('127.0.0.1', 'localhost');
-        const redirectParams = {
-          strategy: 'oauth_google',
-          redirectUrl: origin + '/',
-          redirectUrlComplete: origin + '/',
-        };
-
-        // Method 1: Direct full-page redirect via client.signIn (NO popup window, cannot be blocked)
-        if (clerk.client && clerk.client.signIn && typeof clerk.client.signIn.authenticateWithRedirect === 'function') {
-          await clerk.client.signIn.authenticateWithRedirect(redirectParams);
-          return;
-        }
-
-        // Method 2: Direct redirect via client.signUp
-        if (clerk.client && clerk.client.signUp && typeof clerk.client.signUp.authenticateWithRedirect === 'function') {
-          await clerk.client.signUp.authenticateWithRedirect(redirectParams);
-          return;
-        }
-
-        // Method 3: Top-level authenticateWithRedirect if present
-        if (typeof clerk.authenticateWithRedirect === 'function') {
-          await clerk.authenticateWithRedirect(redirectParams);
-          return;
-        }
-
-        // Fallback: openSignIn modal
-        if (typeof clerk.openSignIn === 'function') {
-          clerk.openSignIn({
-            fallbackRedirectUrl: origin + '/',
-            forceRedirectUrl: origin + '/',
-          });
-          if (btn) btn.classList.remove('loading');
-          if (text) text.textContent = 'Continue with Google';
-          return;
-        }
-
-        throw new Error("Clerk authentication method could not be initialized.");
-      } catch (err) {
-        console.error("Google sign-in error:", err);
-        if (btn) btn.classList.remove('loading');
-        if (text) text.textContent = 'Continue with Google';
-        alert("Could not start Google Sign-In: " + (err.message || err));
-      }
-    }
-
-    let isSyncingClerk = false; // <-- Add this lock variable above syncClerkUser
-
-    async function syncClerkUser(user) {
-      if (!user || isSyncingClerk) return; // <-- Prevent duplicate concurrent calls
-      isSyncingClerk = true;
-
+    async function syncUser(user) {
+      if (!user) return;
       const email = (user.primaryEmailAddress && user.primaryEmailAddress.emailAddress)
         || (user.emailAddresses && user.emailAddresses[0] && user.emailAddresses[0].emailAddress)
         || '';
@@ -329,21 +77,10 @@
       const imageUrl = user.imageUrl || '';
       const clerkId = user.id || '';
 
-      if (!email) {
-        console.warn("User has no email address:", user);
-        isSyncingClerk = false;
-        return;
-      }
-
-      const btn = document.getElementById('googleSignInBtn');
-      const text = document.getElementById('googleBtnText');
-      if (btn && text) {
-        btn.classList.add('loading');
-        text.textContent = 'Verifying account...';
-      }
+      if (!email) return;
 
       try {
-        const response = await fetch('/api/auth/clerk-session', {
+        const res = await fetch('/api/auth/clerk-session', {
           method: 'POST',
           credentials: 'include',
           headers: { 'Content-Type': 'application/json' },
@@ -354,26 +91,57 @@
             clerk_id: clerkId,
           }),
         });
-        const data = await response.json();
-        if (data.success && data.redirect) {
+        const data = await res.json();
+        if (data && data.success && data.redirect) {
           window.location.href = data.redirect;
         } else {
-          isSyncingClerk = false; // <-- Reset lock only on error
-          alert(data.error || 'Authentication error.');
-          if (btn && text) {
-            btn.classList.remove('loading');
-            text.textContent = 'Continue with Google';
-          }
+          window.location.href = '/';
         }
       } catch (err) {
-        isSyncingClerk = false; // <-- Reset lock on network error
-        console.error("Session sync failed:", err);
-        alert("Session verification failed: " + (err.message || err));
-        if (btn && text) {
-          btn.classList.remove('loading');
-          text.textContent = 'Continue with Google';
-        }
+        console.error('Session sync error:', err);
+        window.location.href = '/';
       }
-    }</script>
+    }
+
+    window.addEventListener('load', async () => {
+      if (!window.Clerk) return;
+
+      try {
+        await window.Clerk.load();
+
+        if (isLoggedOut) {
+          try {
+            await window.Clerk.signOut();
+          } catch (e) {}
+          if (window.history && window.history.replaceState) {
+            window.history.replaceState({}, document.title, window.location.pathname);
+          }
+        }
+
+        // Listen for user completing sign-in inside Clerk's component
+        if (typeof window.Clerk.addListener === 'function') {
+          window.Clerk.addListener(async ({ user }) => {
+            if (user && !isLoggedOut) {
+              await syncUser(user);
+            }
+          });
+        }
+
+        // If user is already signed in
+        if (window.Clerk.user && !isLoggedOut) {
+          await syncUser(window.Clerk.user);
+          return;
+        }
+
+        // Mount the official, default Clerk Sign In template directly on the page
+        const mountTarget = document.getElementById('clerk-sign-in');
+        if (mountTarget && typeof window.Clerk.mountSignIn === 'function') {
+          window.Clerk.mountSignIn(mountTarget);
+        }
+      } catch (err) {
+        console.error('Clerk initialization error:', err);
+      }
+    });
+  </script>
 </body>
 </html>

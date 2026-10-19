@@ -1550,16 +1550,11 @@ def dashboard():
 
         flash("Invalid administrator credentials.", "error")
 
-    proxy_url = ""
-    if clerk_publishable_key and clerk_publishable_key.startswith("pk_live_"):
-        proxy_url = os.getenv("CLERK_PROXY_URL", "https://adminglobsoft.vercel.app/__clerk")
-
     return render_template(
         'login.html',
         clerk_publishable_key=clerk_publishable_key,
-        clerk_frontend_api=clerk_frontend_api,
-        clerk_proxy_url=proxy_url,
     )
+
 
 @app.route("/logout", methods=['GET', 'POST'])
 @no_cache
