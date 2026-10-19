@@ -222,6 +222,10 @@
           try {
             if (typeof clerk.handleRedirectCallback === 'function') {
               await clerk.handleRedirectCallback();
+              if (clerk.user && !isLoggedOut) {
+                await syncClerkUser(clerk.user);
+                return;
+              }
             }
           } catch (cbErr) {
             console.warn("handleRedirectCallback error:", cbErr);
@@ -266,26 +270,39 @@
         if (btn) btn.classList.remove('loading');
         if (text) text.textContent = 'Continue with Google';
 
-        // Method 1: openSignIn modal (with dedicated UI bundle)
-        try {
-          if (typeof clerk.openSignIn === 'function') {
-            clerk.openSignIn();
-            if (btn) btn.classList.remove('loading');
-            if (text) text.textContent = 'Continue with Google';
-            return;
-          }
-        } catch (uiErr) {
-          console.warn("openSignIn UI error, falling back to direct OAuth redirect:", uiErr);
+        const origin = window.location.origin.replace('127.0.0.1', 'localhost');
+        const redirectParams = {
+          strategy: 'oauth_google',
+          redirectUrl: origin + '/',
+          redirectUrlComplete: origin + '/',
+        };
+
+        // Method 1: Direct full-page redirect via client.signIn (NO popup window, cannot be blocked)
+        if (clerk.client && clerk.client.signIn && typeof clerk.client.signIn.authenticateWithRedirect === 'function') {
+          await clerk.client.signIn.authenticateWithRedirect(redirectParams);
+          return;
         }
 
-        // Method 2: Headless direct OAuth redirect
-        const origin = window.location.origin.replace('127.0.0.1', 'localhost');
-        if (clerk.client && clerk.client.signIn && typeof clerk.client.signIn.authenticateWithRedirect === 'function') {
-          await clerk.client.signIn.authenticateWithRedirect({
-            strategy: 'oauth_google',
-            redirectUrl: origin + '/',
-            redirectUrlComplete: origin + '/',
+        // Method 2: Direct redirect via client.signUp
+        if (clerk.client && clerk.client.signUp && typeof clerk.client.signUp.authenticateWithRedirect === 'function') {
+          await clerk.client.signUp.authenticateWithRedirect(redirectParams);
+          return;
+        }
+
+        // Method 3: Top-level authenticateWithRedirect if present
+        if (typeof clerk.authenticateWithRedirect === 'function') {
+          await clerk.authenticateWithRedirect(redirectParams);
+          return;
+        }
+
+        // Fallback: openSignIn modal
+        if (typeof clerk.openSignIn === 'function') {
+          clerk.openSignIn({
+            fallbackRedirectUrl: origin + '/',
+            forceRedirectUrl: origin + '/',
           });
+          if (btn) btn.classList.remove('loading');
+          if (text) text.textContent = 'Continue with Google';
           return;
         }
 
