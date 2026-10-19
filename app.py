@@ -15,7 +15,10 @@ from urllib.request import Request, urlopen
 from flask_cors import CORS
 from werkzeug.security import generate_password_hash, check_password_hash
 import base64
-import requests
+try:
+    import requests
+except ImportError:
+    requests = None
 
 load_dotenv()
 
@@ -1835,6 +1838,54 @@ def get_social_settings():
     }
 
 
+def _meta_http_post(url, data=None, files=None, timeout=30):
+    """POST helper with requests or urllib fallback."""
+    if requests is not None:
+        resp = requests.post(url, data=data, files=files, timeout=timeout)
+        try:
+            return resp.status_code, resp.json()
+        except Exception:
+            return resp.status_code, {"error": {"message": resp.text}}
+    
+    if files:
+        return 400, {"error": {"message": "Binary image file upload requires the 'requests' package."}}
+    
+    encoded = urlencode(data or {}).encode("utf-8")
+    req = Request(url, data=encoded, headers={"User-Agent": "GlobsoftAdmin/1.0"})
+    try:
+        with urlopen(req, timeout=timeout) as r:
+            return r.getcode(), json.loads(r.read().decode("utf-8"))
+    except Exception as exc:
+        if hasattr(exc, "read"):
+            try:
+                return getattr(exc, "code", 400), json.loads(exc.read().decode("utf-8"))
+            except Exception:
+                pass
+        return 500, {"error": {"message": str(exc)}}
+
+
+def _meta_http_get(url, timeout=15):
+    """GET helper with requests or urllib fallback."""
+    if requests is not None:
+        resp = requests.get(url, timeout=timeout)
+        try:
+            return resp.status_code, resp.json()
+        except Exception:
+            return resp.status_code, {"error": {"message": resp.text}}
+    
+    req = Request(url, headers={"User-Agent": "GlobsoftAdmin/1.0"})
+    try:
+        with urlopen(req, timeout=timeout) as r:
+            return r.getcode(), json.loads(r.read().decode("utf-8"))
+    except Exception as exc:
+        if hasattr(exc, "read"):
+            try:
+                return getattr(exc, "code", 400), json.loads(exc.read().decode("utf-8"))
+            except Exception:
+                pass
+        return 500, {"error": {"message": str(exc)}}
+
+
 def post_to_facebook_page(caption, image_bytes=None, image_mime=None, image_url=None, link_url=None, settings=None):
     """
     Publish a post to Facebook Page via Meta Graph API.
@@ -1862,9 +1913,8 @@ def post_to_facebook_page(caption, image_bytes=None, image_mime=None, image_url=
                 "caption": caption,
                 "access_token": access_token
             }
-            resp = requests.post(url, data=data, files=files, timeout=30)
-            res_json = resp.json()
-            if resp.status_code == 200 and ("id" in res_json or "post_id" in res_json):
+            status_code, res_json = _meta_http_post(url, data=data, files=files, timeout=30)
+            if status_code == 200 and ("id" in res_json or "post_id" in res_json):
                 post_id = res_json.get("post_id") or res_json.get("id")
                 return {
                     "success": True,
@@ -1872,7 +1922,7 @@ def post_to_facebook_page(caption, image_bytes=None, image_mime=None, image_url=
                     "url": f"https://www.facebook.com/{post_id}"
                 }
             else:
-                err_msg = res_json.get("error", {}).get("message", resp.text)
+                err_msg = res_json.get("error", {}).get("message", str(res_json))
                 return {"success": False, "error": f"Facebook Error: {err_msg}"}
         
         elif image_url and (image_url.startswith("http://") or image_url.startswith("https://")):
@@ -1883,9 +1933,8 @@ def post_to_facebook_page(caption, image_bytes=None, image_mime=None, image_url=
                 "caption": caption,
                 "access_token": access_token
             }
-            resp = requests.post(url, data=data, timeout=30)
-            res_json = resp.json()
-            if resp.status_code == 200 and ("id" in res_json or "post_id" in res_json):
+            status_code, res_json = _meta_http_post(url, data=data, timeout=30)
+            if status_code == 200 and ("id" in res_json or "post_id" in res_json):
                 post_id = res_json.get("post_id") or res_json.get("id")
                 return {
                     "success": True,
@@ -1893,7 +1942,7 @@ def post_to_facebook_page(caption, image_bytes=None, image_mime=None, image_url=
                     "url": f"https://www.facebook.com/{post_id}"
                 }
             else:
-                err_msg = res_json.get("error", {}).get("message", resp.text)
+                err_msg = res_json.get("error", {}).get("message", str(res_json))
                 return {"success": False, "error": f"Facebook Error: {err_msg}"}
         
         else:
@@ -1905,9 +1954,8 @@ def post_to_facebook_page(caption, image_bytes=None, image_mime=None, image_url=
             }
             if link_url:
                 data["link"] = link_url
-            resp = requests.post(url, data=data, timeout=30)
-            res_json = resp.json()
-            if resp.status_code == 200 and "id" in res_json:
+            status_code, res_json = _meta_http_post(url, data=data, timeout=30)
+            if status_code == 200 and "id" in res_json:
                 post_id = res_json["id"]
                 return {
                     "success": True,
@@ -1915,7 +1963,7 @@ def post_to_facebook_page(caption, image_bytes=None, image_mime=None, image_url=
                     "url": f"https://www.facebook.com/{post_id}"
                 }
             else:
-                err_msg = res_json.get("error", {}).get("message", resp.text)
+                err_msg = res_json.get("error", {}).get("message", str(res_json))
                 return {"success": False, "error": f"Facebook Error: {err_msg}"}
     except Exception as e:
         return {"success": False, "error": f"Facebook API Connection Error: {str(e)}"}
@@ -1949,11 +1997,10 @@ def post_to_instagram_business(caption, image_url, settings=None):
             "caption": caption,
             "access_token": access_token
         }
-        c_resp = requests.post(container_url, data=c_data, timeout=30)
-        c_json = c_resp.json()
+        c_status, c_json = _meta_http_post(container_url, data=c_data, timeout=30)
         
-        if c_resp.status_code != 200 or "id" not in c_json:
-            err_msg = c_json.get("error", {}).get("message", c_resp.text)
+        if c_status != 200 or "id" not in c_json:
+            err_msg = c_json.get("error", {}).get("message", str(c_json))
             return {"success": False, "error": f"Instagram Container Error: {err_msg}"}
         
         creation_id = c_json["id"]
@@ -1967,10 +2014,9 @@ def post_to_instagram_business(caption, image_url, settings=None):
             "creation_id": creation_id,
             "access_token": access_token
         }
-        p_resp = requests.post(pub_url, data=p_data, timeout=30)
-        p_json = p_resp.json()
+        p_status, p_json = _meta_http_post(pub_url, data=p_data, timeout=30)
         
-        if p_resp.status_code == 200 and "id" in p_json:
+        if p_status == 200 and "id" in p_json:
             media_id = p_json["id"]
             return {
                 "success": True,
@@ -1978,10 +2024,11 @@ def post_to_instagram_business(caption, image_url, settings=None):
                 "url": "https://www.instagram.com"
             }
         else:
-            err_msg = p_json.get("error", {}).get("message", p_resp.text)
+            err_msg = p_json.get("error", {}).get("message", str(p_json))
             return {"success": False, "error": f"Instagram Publish Error: {err_msg}"}
     except Exception as e:
         return {"success": False, "error": f"Instagram API Connection Error: {str(e)}"}
+
 
 
 @app.route("/social-media", methods=["GET"])
@@ -2258,10 +2305,9 @@ def test_social_connection():
         # 1. Query Facebook Page details
         target = fb_page_id if fb_page_id else "me"
         url = f"https://graph.facebook.com/v19.0/{target}?fields=id,name,category,followers_count,instagram_business_account&access_token={fb_token}"
-        resp = requests.get(url, timeout=15)
-        res = resp.json()
+        status_code, res = _meta_http_get(url, timeout=15)
         
-        if resp.status_code != 200 or "error" in res:
+        if status_code != 200 or "error" in res:
             err = res.get("error", {})
             return jsonify({
                 "success": False,
@@ -2276,9 +2322,8 @@ def test_social_connection():
         ig_target = ig_account_id or connected_ig_id
         if ig_target:
             ig_url = f"https://graph.facebook.com/v19.0/{ig_target}?fields=id,username,followers_count,name&access_token={fb_token}"
-            ig_resp = requests.get(ig_url, timeout=15)
-            ig_res = ig_resp.json()
-            if "username" in ig_res:
+            ig_status, ig_res = _meta_http_get(ig_url, timeout=15)
+            if ig_status == 200 and "username" in ig_res:
                 ig_info = {
                     "id": ig_res.get("id"),
                     "username": ig_res.get("username"),
