@@ -1355,42 +1355,78 @@ def clerk_proxy(subpath):
     Enables Clerk on *.vercel.app production domain without custom DNS records.
     """
     if request.method == "OPTIONS":
-        return Response("", status=200)
+        return Response("", status=200, headers={
+            "Access-Control-Allow-Origin": request.headers.get("Origin", "*"),
+            "Access-Control-Allow-Methods": "GET, POST, PUT, PATCH, DELETE, OPTIONS",
+            "Access-Control-Allow-Headers": "Content-Type, Authorization, Clerk-Secret-Key, Clerk-Proxy-Url",
+            "Access-Control-Allow-Credentials": "true",
+        })
 
     target_url = f"https://frontend-api.clerk.dev/{subpath}"
     if request.query_string:
         target_url += f"?{request.query_string.decode('utf-8')}"
     
-    headers = {k: v for k, v in request.headers if k.lower() not in {"host", "content-length"}}
-    headers["Host"] = "frontend-api.clerk.dev"
+    # Exclude headers that cause upstream encoding conflicts
+    fwd_headers = {k: v for k, v in request.headers if k.lower() not in {"host", "content-length", "accept-encoding"}}
+    fwd_headers["Host"] = "frontend-api.clerk.dev"
     proxy_url = os.getenv("CLERK_PROXY_URL", "https://adminglobsoft.vercel.app/__clerk")
-    headers["Clerk-Proxy-Url"] = proxy_url
+    fwd_headers["Clerk-Proxy-Url"] = proxy_url
     if clerk_secret_key:
-        headers["Clerk-Secret-Key"] = clerk_secret_key
-    headers["X-Forwarded-Host"] = request.host
-    headers["X-Forwarded-Proto"] = request.scheme
+        fwd_headers["Clerk-Secret-Key"] = clerk_secret_key
+    fwd_headers["X-Forwarded-Host"] = request.host
+    fwd_headers["X-Forwarded-Proto"] = request.scheme
     if request.remote_addr:
-        headers["X-Forwarded-For"] = request.remote_addr
+        fwd_headers["X-Forwarded-For"] = request.remote_addr
 
+    if requests is not None:
+        try:
+            upstream_resp = requests.request(
+                method=request.method,
+                url=target_url,
+                headers=fwd_headers,
+                data=request.get_data() if request.method not in {"GET", "HEAD"} else None,
+                allow_redirects=False,
+                timeout=15,
+            )
+            excluded = {"content-encoding", "content-length", "transfer-encoding", "connection"}
+            resp_headers = [(k, v) for k, v in upstream_resp.headers.items() if k.lower() not in excluded]
+            return Response(upstream_resp.content, status=upstream_resp.status_code, headers=resp_headers)
+        except Exception as e:
+            return jsonify({"error": str(e)}), 500
+
+    # Fallback to urllib with gzip decompression if requests is absent
+    import gzip
     req = Request(
         target_url,
         data=request.get_data() if request.method not in {"GET", "HEAD", "OPTIONS"} else None,
-        headers=headers,
+        headers=fwd_headers,
         method=request.method,
     )
     try:
         with urlopen(req, timeout=15) as resp:
+            data = resp.read()
+            if resp.getheader("Content-Encoding") == "gzip":
+                try:
+                    data = gzip.decompress(data)
+                except Exception:
+                    pass
             excluded_headers = {"content-encoding", "content-length", "transfer-encoding", "connection"}
             resp_headers = [(name, value) for name, value in resp.getheaders() if name.lower() not in excluded_headers]
-            return Response(resp.read(), status=resp.getcode(), headers=resp_headers)
+            return Response(data, status=resp.getcode(), headers=resp_headers)
     except Exception as e:
         if hasattr(e, "read"):
             try:
                 err_data = e.read()
+                if getattr(e, "headers", None) and e.headers.get("Content-Encoding") == "gzip":
+                    try:
+                        err_data = gzip.decompress(err_data)
+                    except Exception:
+                        pass
                 return Response(err_data, status=getattr(e, "code", 500), content_type="application/json")
             except Exception:
                 pass
         return jsonify({"error": str(e)}), 500
+
 
 
 
