@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request ,session,redirect,jsonify,make_response
+from flask import Flask, flash, render_template, request, session, redirect, jsonify, make_response
 from pymongo import MongoClient
 from datetime import datetime, timedelta
 from bson.objectid import ObjectId
@@ -43,6 +43,7 @@ CORS(app, resources={r"/api/*": {
 _status_cache = {"data": None, "timestamp": None}
 _products_cache = {"data": None, "timestamp": None}
 _subscribe_attempts = {}
+_site_content_cache = {"data": None, "timestamp": None}
 
 def no_cache(f):
     def decorated_function(*args, **kwargs):
@@ -104,6 +105,92 @@ def is_rate_limited(ip_address):
     attempts.append(now)
     _subscribe_attempts[ip_address] = attempts
     return False
+
+
+DEFAULT_SITE_CONTENT = {
+    "pricing": [
+        {
+            "id": "0",
+            "title": "Starter Website",
+            "description": "Perfect for small businesses getting online",
+            "original_price": None,
+            "price": "9999",
+            "offer": "",
+            "features": [
+                "Responsive single-page design",
+                "Basic animations & interactions",
+                "Free business email (1 account)",
+                "Social media integration (3 platforms)",
+                "Hosting on domain (1 year)",
+                "Basic SEO setup",
+            ],
+        },
+        {
+            "id": "1",
+            "title": "Business Website",
+            "description": "For growing businesses needing more impact",
+            "original_price": None,
+            "price": "24999",
+            "offer": "",
+            "features": [
+                "Custom multi-page website",
+                "Advanced animations & micro-interactions",
+                "Business emails (5 accounts)",
+                "Full social media integration (5 platforms)",
+                "Custom domain (2 year included)",
+                "Advanced SEO optimization",
+                "Basic analytics dashboard",
+            ],
+        },
+        {
+            "id": "2",
+            "title": "Enterprise Digital Suite",
+            "description": "End-to-end digital transformation",
+            "original_price": None,
+            "price": None,
+            "offer": "",
+            "features": [
+                "Custom mobile app (iOS/Android)",
+                "Monthly social media management",
+                "Complete branding package (logo, banners)",
+                "Tech solutions",
+                "Priority 24/7 support",
+                "Advanced analytics portal",
+            ],
+        },
+    ],
+    "clients": [
+        {"id": "0", "name": "Samira Homestay", "logo": "/src/assets/notification/image-5.png", "url": "https://samirahomestay.com/"},
+        {"id": "1", "name": "News Arpan", "logo": "/src/assets/notification/image-4.png", "url": "https://newsarpan.rf.gd/"},
+        {"id": "2", "name": "Everest Auto Repair", "logo": "/src/assets/notification/image-3.png", "url": "https://globsofttech.github.io/EverestAutoRepair/"},
+        {"id": "3", "name": "Our Bakery", "logo": "/src/assets/notification/image-2.png", "url": "https://our-bakery.github.io/"},
+    ],
+}
+
+
+def get_site_content():
+    global _site_content_cache
+    if (
+        _site_content_cache["data"]
+        and _site_content_cache["timestamp"]
+        and datetime.now() - _site_content_cache["timestamp"] < timedelta(minutes=5)
+    ):
+        return _site_content_cache["data"]
+
+    content = client["globsoft_db"]["site_content"].find_one({"_id": "homepage"})
+    data = {
+        "pricing": content.get("pricing", DEFAULT_SITE_CONTENT["pricing"]) if content else DEFAULT_SITE_CONTENT["pricing"],
+        "clients": content.get("clients", DEFAULT_SITE_CONTENT["clients"]) if content else DEFAULT_SITE_CONTENT["clients"],
+    }
+    _site_content_cache = {"data": data, "timestamp": datetime.now()}
+    return data
+
+
+@app.route("/api/site-content", methods=["GET"])
+def site_content():
+    response = jsonify(get_site_content())
+    response.headers["Cache-Control"] = "public, max-age=300"
+    return response
 
 
 @app.route("/api/subscribe", methods=['POST'])
@@ -197,8 +284,11 @@ def manage_system_status():
         collection = db["system_status"]
         
         if request.method == 'POST':
-            status = request.form.get("status")
+            status = request.form.get("status", "").strip().lower()
             message = request.form.get("message")
+            if status not in {"running", "maintenance", "offline"}:
+                flash("Invalid system status.", "error")
+                return redirect("/system-status")
             
             status_data = {
                 "status": status,
@@ -210,7 +300,6 @@ def manage_system_status():
             collection.insert_one(status_data)
             _status_cache = {"data": None, "timestamp": None}
             
-            from flask import flash
             flash('System status updated successfully!', 'success')
             return redirect('/system-status')
         
@@ -222,6 +311,46 @@ def manage_system_status():
                              history=history)
     else:
         return redirect("/")
+
+
+@app.route("/site-content", methods=["GET", "POST"])
+@no_cache
+def manage_site_content():
+    global _site_content_cache
+
+    if "user" not in session or session["user"] != usr_name:
+        return redirect("/")
+
+    collection = client["globsoft_db"]["site_content"]
+    if request.method == "POST":
+        try:
+            pricing = json.loads(request.form.get("pricing_json", "[]"))
+            clients = json.loads(request.form.get("clients_json", "[]"))
+            if not isinstance(pricing, list) or not isinstance(clients, list):
+                raise ValueError("Content must be arrays.")
+            collection.replace_one(
+                {"_id": "homepage"},
+                {
+                    "_id": "homepage",
+                    "pricing": pricing,
+                    "clients": clients,
+                    "updated_at": datetime.now(),
+                    "updated_by": session["user"],
+                },
+                upsert=True,
+            )
+            _site_content_cache = {"data": None, "timestamp": None}
+            flash("Homepage content updated successfully.", "success")
+        except (TypeError, ValueError, json.JSONDecodeError):
+            flash("Could not save content. Check that both JSON fields are valid arrays.", "error")
+        return redirect("/site-content")
+
+    content = get_site_content()
+    return render_template(
+        "site_content.html",
+        pricing_json=json.dumps(content["pricing"], indent=2, ensure_ascii=False),
+        clients_json=json.dumps(content["clients"], indent=2, ensure_ascii=False),
+    )
 
 
 # ==================== PRODUCTS ====================

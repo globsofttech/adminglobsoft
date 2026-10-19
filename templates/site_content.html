@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="shortcut icon" type="image/svg+xml" href="{{ url_for('static', filename='images/globsoft.svg') }}">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/admin.css') }}">
+  <title>Homepage Content - Globsoft Tech</title>
+</head>
+<body class="admin-page">
+  {% include '_admin_shell_start.html' %}
+  <header class="topbar">
+    <p class="eyebrow">GLOBSoft Tech / Homepage Content</p>
+    <h1>Manage pricing and client showcase</h1>
+    <p class="topbar-subtitle">Use valid JSON arrays to update the public website without editing frontend code.</p>
+  </header>
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% for category, message in messages %}
+      <div class="flash {{ category }}">{{ message }}</div>
+    {% endfor %}
+  {% endwith %}
+  <form method="POST" class="content-editor">
+    <section class="card">
+      <div class="section-heading"><div><p class="eyebrow">Pricing cards</p><h2>Prices, discounts and offers</h2></div></div>
+      <p class="editor-help">Each item supports <code>original_price</code>, <code>price</code>, and <code>offer</code>. Set <code>original_price</code> to the old price and <code>price</code> to the discounted price. Use <code>null</code> for contact-only pricing.</p>
+      <textarea name="pricing_json" rows="24" spellcheck="false" required>{{ pricing_json }}</textarea>
+    </section>
+    <section class="card">
+      <div class="section-heading"><div><p class="eyebrow">Client showcase</p><h2>Logos and website links</h2></div></div>
+      <p class="editor-help">Add as many clients as needed. Every item needs an <code>id</code>, <code>name</code>, <code>logo</code> URL/path, and website <code>url</code>.</p>
+      <textarea name="clients_json" rows="18" spellcheck="false" required>{{ clients_json }}</textarea>
+    </section>
+    <button class="btn-submit" type="submit"><i class="fa-solid fa-floppy-disk"></i> Save homepage content</button>
+  </form>
+  {% include '_admin_shell_end.html' %}
+</body>
+</html>
