@@ -144,11 +144,13 @@
             window.Clerk.mountSignUp(mountTarget, {
               routing: 'hash',
               signInUrl: '#/sign-in',
+              afterSignUpUrl: '/',
             });
           } else if (typeof window.Clerk.mountSignIn === 'function') {
             window.Clerk.mountSignIn(mountTarget, {
               routing: 'hash',
               signUpUrl: '#/sign-up',
+              afterSignInUrl: '/',
             });
           }
         }
