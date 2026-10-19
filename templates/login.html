@@ -133,11 +133,28 @@
           return;
         }
 
-        // Mount the official, default Clerk Sign In template directly on the page
-        const mountTarget = document.getElementById('clerk-sign-in');
-        if (mountTarget && typeof window.Clerk.mountSignIn === 'function') {
-          window.Clerk.mountSignIn(mountTarget);
+        function mountAuth() {
+          const mountTarget = document.getElementById('clerk-sign-in');
+          if (!mountTarget) return;
+
+          mountTarget.innerHTML = '';
+          const isSignUp = window.location.hash.includes('sign-up');
+
+          if (isSignUp && typeof window.Clerk.mountSignUp === 'function') {
+            window.Clerk.mountSignUp(mountTarget, {
+              routing: 'hash',
+              signInUrl: '#/sign-in',
+            });
+          } else if (typeof window.Clerk.mountSignIn === 'function') {
+            window.Clerk.mountSignIn(mountTarget, {
+              routing: 'hash',
+              signUpUrl: '#/sign-up',
+            });
+          }
         }
+
+        mountAuth();
+        window.addEventListener('hashchange', mountAuth);
       } catch (err) {
         console.error('Clerk initialization error:', err);
       }

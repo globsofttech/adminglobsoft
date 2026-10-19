@@ -1356,6 +1356,16 @@ def author_login():
     return redirect("/")
 
 
+@app.route("/sign-in", methods=["GET"])
+def sign_in_redirect():
+    return redirect("/#/sign-in")
+
+
+@app.route("/sign-up", methods=["GET"])
+def sign_up_redirect():
+    return redirect("/#/sign-up")
+
+
 @app.route("/__clerk/<path:subpath>", methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"])
 def clerk_proxy(subpath):
     """
