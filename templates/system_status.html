@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="shortcut icon" type="image/svg+xml" href="{{ url_for('static', filename='images/globsoft.svg') }}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/admin.css') }}">
+    <title>System Status - GlobSoft Inc.</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        
+        .card {
+            background: white;
+            border-radius: 12px;
+            padding: 30px;
+            margin-bottom: 20px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        }
+        
+        h1 {
+            color: #333;
+            margin-bottom: 10px;
+        }
+        
+        .current-status {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 30px;
+        }
+        
+        .status-badge {
+            display: inline-block;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+        
+        .status-running {
+            background: #d4edda;
+            color: #155724;
+        }
+        
+        .status-maintenance {
+            background: #fff3cd;
+            color: #856404;
+        }
+        
+        .status-offline {
+            background: #f8d7da;
+            color: #721c24;
+        }
+        
+        .form-group {
+            margin-bottom: 20px;
+        }
+        
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #333;
+        }
+        
+        select, input, textarea {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 16px;
+            transition: border-color 0.3s;
+        }
+        
+        select:focus, input:focus, textarea:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+        
+        button {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 12px 30px;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+        
+        button:hover {
+            transform: translateY(-2px);
+        }
+        
+        .history {
+            margin-top: 30px;
+        }
+        
+        .history-item {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 10px;
+            border-left: 4px solid #667eea;
+        }
+        
+        .history-item small {
+            color: #666;
+        }
+        
+        .back-btn {
+            background: #6c757d;
+            margin-bottom: 20px;
+            display: inline-block;
+            text-decoration: none;
+            color: white;
+        }
+        
+        .flash {
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+        
+        .flash.success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+    </style>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/admin.css') }}">
+</head>
+<body class="admin-page">
+    {% include '_admin_shell_start.html' %}
+    <div class="container">
+        <div class="card">
+            <h1>🔧 System Status Manager</h1>
+            <p style="color: #666; margin-bottom: 20px;">Manage your website's system status</p>
+            
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                    {% for category, message in messages %}
+                        <div class="flash {{ category }}">{{ message }}</div>
+                    {% endfor %}
+                {% endif %}
+            {% endwith %}
+            
+            {% if current_status %}
+            <div class="current-status">
+                <h3>Current Status</h3>
+                <span class="status-badge status-{{ current_status.status }}">
+                    {% if current_status.status == 'running' %}🟢{% elif current_status.status == 'maintenance' %}🟡{% else %}🔴{% endif %}
+                    {{ current_status.status|upper }}
+                </span>
+                <p style="margin: 10px 0;"><strong>Message:</strong> {{ current_status.message }}</p>
+                <small style="color: #666;">Last updated: {{ current_status.updated_at.strftime('%Y-%m-%d %H:%M:%S') }} by {{ current_status.updated_by }}</small>
+            </div>
+            {% endif %}
+            
+            <form method="POST">
+                <div class="form-group">
+                    <label for="status">Status:</label>
+                    <select name="status" id="status" required>
+                        <option value="running">🟢 Running - All Systems Operational</option>
+                        <option value="maintenance">🟡 Maintenance - Under Maintenance</option>
+                        <option value="offline">🔴 Offline - System Down</option>
+                    </select>
+                </div>
+                
+                <div class="form-group">
+                    <label for="message">Status Message:</label>
+                    <input type="text" name="message" id="message" 
+                           placeholder="e.g., All Systems Operational" 
+                           value="All Systems Operational" required>
+                </div>
+                
+                <button type="submit">Update Status</button>
+            </form>
+            
+            {% if history %}
+            <div class="history">
+                <h3>Status History</h3>
+                {% for item in history %}
+                <div class="history-item">
+                    <span class="status-badge status-{{ item.status }}" style="font-size: 12px; padding: 4px 12px;">
+                        {{ item.status|upper }}
+                    </span>
+                    <p style="margin: 8px 0;">{{ item.message }}</p>
+                    <small>{{ item.updated_at.strftime('%Y-%m-%d %H:%M:%S') }} by {{ item.updated_by }}</small>
+                </div>
+                {% endfor %}
+            </div>
+            {% endif %}
+        </div>
+    </div>
+    {% include '_admin_shell_end.html' %}
+    
+    <script>
+        // Pre-fill form with current status
+        {% if current_status %}
+        document.getElementById('status').value = '{{ current_status.status }}';
+        document.getElementById('message').value = '{{ current_status.message }}';
+        {% endif %}
+    </script>
+</body>
+</html>

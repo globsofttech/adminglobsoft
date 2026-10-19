@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="shortcut icon" type="image/svg+xml" href="{{ url_for('static', filename='images/globsoft.svg') }}">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Sora:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}" />
+    <title>Globsoft Tech Admin Portal</title>
+  </head>
+  <body class="admin-body">
+    <div class="admin-layout">
+      <aside class="admin-sidebar">
+        <a class="brand" href="/">
+          <img src="{{ url_for('static', filename='images/globsoft.svg') }}" alt="Globsoft Tech">
+          <span><strong>Globsoft</strong><small>TECH ADMIN</small></span>
+        </a>
+
+        <div class="sidebar-label">Workspace</div>
+        <nav class="sidebar-nav" aria-label="Admin tools">
+          <a class="nav-item active" href="/"><i class="fa-solid fa-table-cells-large"></i><span>Overview</span></a>
+          <a class="nav-item" href="/customer"><i class="fa-solid fa-users"></i><span>Customer Management</span></a>
+          <a class="nav-item" href="/newsletter"><i class="fa-solid fa-envelope-open-text"></i><span>Newsletter</span></a>
+          <a class="nav-item" href="/system-status"><i class="fa-solid fa-signal"></i><span>System Status</span></a>
+        </nav>
+        <button type="button" class="dashboard-sidebar-toggle" id="dashboardSidebarToggle" aria-label="Collapse navigation" aria-expanded="true">
+          <i class="fa-solid fa-bars"></i>
+        </button>
+
+        <div class="sidebar-footer">
+          <span class="status-indicator"><i></i> Admin workspace</span>
+          <form action="/logout" method="POST">
+            <button type="submit" class="logout-link"><i class="fa-solid fa-arrow-right-from-bracket"></i> Logout</button>
+          </form>
+        </div>
+      </aside>
+
+      <main class="admin-main">
+        <header class="topbar">
+          <div>
+            <p class="eyebrow">GLOBSoft Tech / Workspace</p>
+            <h1>Good to see you, Admin.</h1>
+            <p class="topbar-subtitle">Manage your website operations from one secure workspace.</p>
+          </div>
+          <div class="topbar-badge"><i class="fa-solid fa-shield-halved"></i> Protected workspace</div>
+        </header>
+
+        <section class="welcome-panel">
+          <div>
+            <span class="panel-kicker">Command center</span>
+            <h2>Everything your business needs, in one place.</h2>
+            <p>Keep customer records, newsletter subscribers, and system communications organized.</p>
+          </div>
+          <img src="{{ url_for('static', filename='images/globsoft.svg') }}" alt="" aria-hidden="true">
+        </section>
+
+        <section class="section-heading">
+          <div>
+            <p class="eyebrow">Quick access</p>
+            <h2>Management tools</h2>
+          </div>
+          <span class="tool-count">3 active tools</span>
+        </section>
+
+        <section class="tool-grid">
+          <a class="tool-card cyan" href="/customer">
+            <span class="tool-icon"><i class="fa-solid fa-users"></i></span>
+            <span class="tool-card-content"><strong>Customer Management</strong><small>Track customers, follow-ups, and communication status.</small><b>Open tool <i class="fa-solid fa-arrow-up-right-from-square"></i></b></span>
+          </a>
+          <a class="tool-card purple" href="/newsletter">
+            <span class="tool-icon"><i class="fa-solid fa-envelope-open-text"></i></span>
+            <span class="tool-card-content"><strong>Newsletter</strong><small>Review and manage your Globsoft Tech subscribers.</small><b>Open tool <i class="fa-solid fa-arrow-up-right-from-square"></i></b></span>
+          </a>
+          <a class="tool-card blue" href="/system-status">
+            <span class="tool-icon"><i class="fa-solid fa-signal"></i></span>
+            <span class="tool-card-content"><strong>System Status</strong><small>Publish availability updates for your main website.</small><b>Open tool <i class="fa-solid fa-arrow-up-right-from-square"></i></b></span>
+          </a>
+        </section>
+      </main>
+    </div>
+    <script>
+      const dashboardLayout = document.querySelector(".admin-layout");
+      const dashboardToggle = document.getElementById("dashboardSidebarToggle");
+      dashboardToggle.addEventListener("click", () => {
+        const collapsed = dashboardLayout.classList.toggle("sidebar-collapsed");
+        dashboardToggle.setAttribute("aria-expanded", String(!collapsed));
+      });
+    </script>
+  </body>
+</html>

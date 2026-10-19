@@ -1,0 +1,591 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Guruji Instructors - Admin Dashboard</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+            background: #0a0a0f;
+            color: #fff;
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 2rem;
+            flex-wrap: wrap;
+            gap: 1rem;
+        }
+
+        .header h1 {
+            font-size: 1.75rem;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .header h1 i {
+            color: #e94560;
+        }
+
+        .back-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.5rem 1rem;
+            background: #1a1a2e;
+            border: 1px solid #333;
+            border-radius: 8px;
+            color: #fff;
+            text-decoration: none;
+            transition: all 0.3s;
+        }
+
+        .back-btn:hover {
+            background: #252542;
+            border-color: #e94560;
+        }
+
+        .stats-row {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+            margin-bottom: 2rem;
+        }
+
+        .stat-card {
+            background: #1a1a2e;
+            border: 1px solid #333;
+            border-radius: 12px;
+            padding: 1.5rem;
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .stat-icon {
+            width: 50px;
+            height: 50px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.25rem;
+        }
+
+        .stat-icon.pending { background: rgba(255, 193, 7, 0.15); color: #ffc107; }
+        .stat-icon.approved { background: rgba(0, 200, 83, 0.15); color: #00c853; }
+        .stat-icon.rejected { background: rgba(233, 69, 96, 0.15); color: #e94560; }
+
+        .stat-info .stat-value {
+            font-size: 1.5rem;
+            font-weight: 700;
+        }
+
+        .stat-info .stat-label {
+            color: #888;
+            font-size: 0.9rem;
+        }
+
+        .tabs {
+            display: flex;
+            gap: 0.5rem;
+            margin-bottom: 1.5rem;
+            flex-wrap: wrap;
+        }
+
+        .tab-btn {
+            padding: 0.75rem 1.5rem;
+            background: #1a1a2e;
+            border: 1px solid #333;
+            border-radius: 8px;
+            color: #888;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-size: 0.95rem;
+        }
+
+        .tab-btn:hover {
+            border-color: #e94560;
+            color: #fff;
+        }
+
+        .tab-btn.active {
+            background: #e94560;
+            border-color: #e94560;
+            color: #fff;
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        .instructors-table {
+            background: #1a1a2e;
+            border: 1px solid #333;
+            border-radius: 12px;
+            overflow: hidden;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        th, td {
+            padding: 1rem;
+            text-align: left;
+            border-bottom: 1px solid #333;
+        }
+
+        th {
+            background: #0f0f1a;
+            color: #888;
+            font-weight: 600;
+            text-transform: uppercase;
+            font-size: 0.8rem;
+            letter-spacing: 0.5px;
+        }
+
+        tr:last-child td {
+            border-bottom: none;
+        }
+
+        tr:hover {
+            background: rgba(233, 69, 96, 0.05);
+        }
+
+        .user-info {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .user-avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: rgba(233, 69, 96, 0.15);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #e94560;
+            overflow: hidden;
+        }
+
+        .user-avatar img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .user-details .name {
+            font-weight: 600;
+        }
+
+        .user-details .email {
+            color: #888;
+            font-size: 0.85rem;
+        }
+
+        .date {
+            color: #888;
+            font-size: 0.9rem;
+        }
+
+        .status-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.35rem;
+            padding: 0.35rem 0.75rem;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: 500;
+        }
+
+        .status-badge.pending {
+            background: rgba(255, 193, 7, 0.15);
+            color: #ffc107;
+        }
+
+        .status-badge.approved {
+            background: rgba(0, 200, 83, 0.15);
+            color: #00c853;
+        }
+
+        .status-badge.rejected {
+            background: rgba(233, 69, 96, 0.15);
+            color: #e94560;
+        }
+
+        .actions {
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        .btn {
+            padding: 0.5rem 1rem;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.85rem;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.35rem;
+            transition: all 0.3s;
+        }
+
+        .btn-approve {
+            background: rgba(0, 200, 83, 0.15);
+            color: #00c853;
+            border: 1px solid rgba(0, 200, 83, 0.3);
+        }
+
+        .btn-approve:hover {
+            background: #00c853;
+            color: #fff;
+        }
+
+        .btn-reject {
+            background: rgba(233, 69, 96, 0.15);
+            color: #e94560;
+            border: 1px solid rgba(233, 69, 96, 0.3);
+        }
+
+        .btn-reject:hover {
+            background: #e94560;
+            color: #fff;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 3rem;
+            color: #888;
+        }
+
+        .empty-state i {
+            font-size: 3rem;
+            margin-bottom: 1rem;
+            opacity: 0.5;
+        }
+
+        .flash-message {
+            padding: 1rem;
+            border-radius: 8px;
+            margin-bottom: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .flash-message.success {
+            background: rgba(0, 200, 83, 0.15);
+            border: 1px solid rgba(0, 200, 83, 0.3);
+            color: #00c853;
+        }
+
+        .flash-message.info {
+            background: rgba(33, 150, 243, 0.15);
+            border: 1px solid rgba(33, 150, 243, 0.3);
+            color: #2196f3;
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                padding: 1rem;
+            }
+
+            th, td {
+                padding: 0.75rem 0.5rem;
+            }
+
+            .user-info {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 0.5rem;
+            }
+
+            .user-avatar {
+                display: none;
+            }
+
+            .actions {
+                flex-direction: column;
+            }
+
+            .btn {
+                width: 100%;
+                justify-content: center;
+            }
+
+            table {
+                font-size: 0.85rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1><i class="fas fa-user-shield"></i> Guruji Instructors</h1>
+            <a href="/" class="back-btn"><i class="fas fa-arrow-left"></i> Back to Dashboard</a>
+        </div>
+
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="flash-message {{ category }}">
+                        <i class="fas fa-{% if category == 'success' %}check-circle{% else %}info-circle{% endif %}"></i>
+                        {{ message }}
+                    </div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+
+        <div class="stats-row">
+            <div class="stat-card">
+                <div class="stat-icon pending"><i class="fas fa-hourglass-half"></i></div>
+                <div class="stat-info">
+                    <div class="stat-value">{{ pending|length }}</div>
+                    <div class="stat-label">Pending Requests</div>
+                </div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon approved"><i class="fas fa-check-circle"></i></div>
+                <div class="stat-info">
+                    <div class="stat-value">{{ approved|length }}</div>
+                    <div class="stat-label">Approved Instructors</div>
+                </div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon rejected"><i class="fas fa-times-circle"></i></div>
+                <div class="stat-info">
+                    <div class="stat-value">{{ rejected|length }}</div>
+                    <div class="stat-label">Rejected</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="tabs">
+            <button class="tab-btn active" onclick="showTab('pending')">
+                <i class="fas fa-hourglass-half"></i> Pending ({{ pending|length }})
+            </button>
+            <button class="tab-btn" onclick="showTab('approved')">
+                <i class="fas fa-check-circle"></i> Approved ({{ approved|length }})
+            </button>
+            <button class="tab-btn" onclick="showTab('rejected')">
+                <i class="fas fa-times-circle"></i> Rejected ({{ rejected|length }})
+            </button>
+        </div>
+
+        <!-- Pending Tab -->
+        <div id="pending-tab" class="tab-content active">
+            <div class="instructors-table">
+                {% if pending %}
+                <table>
+                    <thead>
+                        <tr>
+                            <th>User</th>
+                            <th>Applied On</th>
+                            <th>Status</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for user in pending %}
+                        <tr>
+                            <td>
+                                <div class="user-info">
+                                    <div class="user-avatar">
+                                        {% if user.profile_image %}
+                                            <img src="{{ user.profile_image }}" alt="{{ user.name }}">
+                                        {% else %}
+                                            <i class="fas fa-user"></i>
+                                        {% endif %}
+                                    </div>
+                                    <div class="user-details">
+                                        <div class="name">{{ user.name }}</div>
+                                        <div class="email">{{ user.email }}</div>
+                                    </div>
+                                </div>
+                            </td>
+                            <td class="date">
+                                {{ user.created_at.strftime('%b %d, %Y') if user.created_at else 'N/A' }}
+                            </td>
+                            <td>
+                                <span class="status-badge pending">
+                                    <i class="fas fa-hourglass-half"></i> Pending
+                                </span>
+                            </td>
+                            <td>
+                                <div class="actions">
+                                    <form method="POST" style="display: inline;">
+                                        <input type="hidden" name="action" value="approve">
+                                        <input type="hidden" name="user_id" value="{{ user._id }}">
+                                        <button type="submit" class="btn btn-approve">
+                                            <i class="fas fa-check"></i> Approve
+                                        </button>
+                                    </form>
+                                    <form method="POST" style="display: inline;">
+                                        <input type="hidden" name="action" value="reject">
+                                        <input type="hidden" name="user_id" value="{{ user._id }}">
+                                        <button type="submit" class="btn btn-reject">
+                                            <i class="fas fa-times"></i> Reject
+                                        </button>
+                                    </form>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+                {% else %}
+                <div class="empty-state">
+                    <i class="fas fa-inbox"></i>
+                    <p>No pending instructor requests</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Approved Tab -->
+        <div id="approved-tab" class="tab-content">
+            <div class="instructors-table">
+                {% if approved %}
+                <table>
+                    <thead>
+                        <tr>
+                            <th>User</th>
+                            <th>Joined On</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for user in approved %}
+                        <tr>
+                            <td>
+                                <div class="user-info">
+                                    <div class="user-avatar">
+                                        {% if user.profile_image %}
+                                            <img src="{{ user.profile_image }}" alt="{{ user.name }}">
+                                        {% else %}
+                                            <i class="fas fa-user"></i>
+                                        {% endif %}
+                                    </div>
+                                    <div class="user-details">
+                                        <div class="name">{{ user.name }}</div>
+                                        <div class="email">{{ user.email }}</div>
+                                    </div>
+                                </div>
+                            </td>
+                            <td class="date">
+                                {{ user.created_at.strftime('%b %d, %Y') if user.created_at else 'N/A' }}
+                            </td>
+                            <td>
+                                <span class="status-badge approved">
+                                    <i class="fas fa-check-circle"></i> Approved
+                                </span>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+                {% else %}
+                <div class="empty-state">
+                    <i class="fas fa-user-check"></i>
+                    <p>No approved instructors yet</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Rejected Tab -->
+        <div id="rejected-tab" class="tab-content">
+            <div class="instructors-table">
+                {% if rejected %}
+                <table>
+                    <thead>
+                        <tr>
+                            <th>User</th>
+                            <th>Applied On</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for user in rejected %}
+                        <tr>
+                            <td>
+                                <div class="user-info">
+                                    <div class="user-avatar">
+                                        {% if user.profile_image %}
+                                            <img src="{{ user.profile_image }}" alt="{{ user.name }}">
+                                        {% else %}
+                                            <i class="fas fa-user"></i>
+                                        {% endif %}
+                                    </div>
+                                    <div class="user-details">
+                                        <div class="name">{{ user.name }}</div>
+                                        <div class="email">{{ user.email }}</div>
+                                    </div>
+                                </div>
+                            </td>
+                            <td class="date">
+                                {{ user.created_at.strftime('%b %d, %Y') if user.created_at else 'N/A' }}
+                            </td>
+                            <td>
+                                <span class="status-badge rejected">
+                                    <i class="fas fa-times-circle"></i> Rejected
+                                </span>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+                {% else %}
+                <div class="empty-state">
+                    <i class="fas fa-ban"></i>
+                    <p>No rejected requests</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function showTab(tabName) {
+            // Hide all tabs
+            document.querySelectorAll('.tab-content').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            document.querySelectorAll('.tab-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+
+            // Show selected tab
+            document.getElementById(tabName + '-tab').classList.add('active');
+            event.target.classList.add('active');
+        }
+    </script>
+</body>
+</html>

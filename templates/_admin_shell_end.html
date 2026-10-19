@@ -1,0 +1,13 @@
+  </main>
+</div>
+<script>
+  (() => {
+    const layout = document.querySelector(".admin-layout");
+    const toggle = document.getElementById("sidebarToggle");
+    if (!layout || !toggle) return;
+    toggle.addEventListener("click", () => {
+      const collapsed = layout.classList.toggle("sidebar-collapsed");
+      toggle.setAttribute("aria-expanded", String(!collapsed));
+    });
+  })();
+</script>

@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="shortcut icon" type="image/svg+xml" href="{{ url_for('static', filename='images/globsoft.svg') }}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/admin.css') }}">
+    <title>Edit Customer - Globsoft Tech Admin</title>
+    <style>
+        .edit-card { max-width: 760px; margin: 0 auto; padding: 34px; border: 1px solid var(--admin-line); border-radius: 18px; background: var(--admin-panel); }
+        .edit-heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 20px; padding-bottom: 24px; border-bottom: 1px solid var(--admin-line); }
+        .edit-heading h1 { margin: 0; font-size: clamp(1.45rem, 3vw, 2rem); letter-spacing: -.04em; }
+        .edit-heading p { margin: 8px 0 0; color: var(--admin-muted); font-size: .76rem; }
+        .edit-heading i { color: var(--admin-cyan); font-size: 1.5rem; }
+        .customer-info { margin: 24px 0; padding: 15px 17px; border: 1px solid var(--admin-line); border-radius: 11px; background: var(--admin-panel-2); }
+        .customer-info p { margin: 6px 0; color: var(--admin-muted); font-size: .7rem; }
+        .customer-info strong { color: var(--admin-text); }
+        .edit-form .form-group { margin-bottom: 20px; }
+        .edit-form label { display: block; margin-bottom: 8px; color: var(--admin-text); font-size: .73rem; font-weight: 600; }
+        .edit-form .required { color: #ff98e2; }
+        .edit-form input, .edit-form textarea { width: 100%; padding: 12px 14px; border: 1px solid var(--admin-line); border-radius: 9px; color: var(--admin-text); background: var(--admin-panel-2); font: .78rem "Sora", sans-serif; }
+        .edit-form textarea { min-height: 115px; resize: vertical; }
+        .edit-form input:focus, .edit-form textarea:focus { outline: none; border-color: var(--admin-cyan); box-shadow: 0 0 0 3px rgba(121,255,247,.08); }
+        .edit-actions { display: flex; justify-content: flex-end; gap: 12px; margin-top: 28px; padding-top: 22px; border-top: 1px solid var(--admin-line); }
+        .edit-actions a, .edit-actions button { display: inline-flex; align-items: center; justify-content: center; min-height: 42px; padding: 0 20px; border-radius: 9px; font: 600 .7rem "Sora", sans-serif; text-decoration: none; cursor: pointer; }
+        .edit-actions a { border: 1px solid var(--admin-line); color: var(--admin-muted); background: transparent; }
+        .edit-actions button { border: 0; color: var(--admin-bg); background: linear-gradient(100deg, var(--admin-cyan), var(--admin-purple)); }
+        .edit-actions a:hover { color: var(--admin-text); background: var(--admin-panel-2); }
+        .not-found { padding: 42px 0; color: var(--admin-muted); text-align: center; }
+        @media (max-width: 600px) { .edit-card { padding: 24px 18px; } .edit-heading { padding-right: 45px; } .edit-actions { flex-direction: column-reverse; } .edit-actions a, .edit-actions button { width: 100%; } }
+    </style>
+</head>
+<body class="admin-page">
+    {% include '_admin_shell_start.html' %}
+    <section class="edit-card">
+        <header class="edit-heading">
+            <div>
+                <p class="eyebrow">Customer Management / Edit</p>
+                <h1>Edit customer record</h1>
+                <p>Update the customer details and keep your records current.</p>
+            </div>
+            <i class="fa-solid fa-user-pen" aria-hidden="true"></i>
+        </header>
+
+        {% if customer %}
+        <div class="customer-info">
+            <p><strong>Customer ID:</strong> {{ customer._id }}</p>
+            <p><strong>Added on:</strong> {{ customer.date_added.strftime('%Y-%m-%d %H:%M:%S') if customer.date_added else 'N/A' }}</p>
+            {% if customer.date_updated %}
+            <p><strong>Last Updated:</strong> {{ customer.date_updated.strftime('%Y-%m-%d %H:%M:%S') }}</p>
+            {% endif %}
+        </div>
+
+        <form class="edit-form" method="POST" action="/customer/edit/{{ customer._id }}">
+            <div class="form-group">
+                <label for="customerName">Customer Name <span class="required">*</span></label>
+                <input type="text" id="customerName" name="customer_name" value="{{ customer.name }}" required>
+            </div>
+            <div class="form-group">
+                <label for="customerLocation">Location <span class="required">*</span></label>
+                <input type="text" id="customerLocation" name="customer_location" value="{{ customer.location }}" required>
+            </div>
+            <div class="form-group">
+                <label for="customerPhone">Phone Number <span class="required">*</span></label>
+                <input type="tel" id="customerPhone" name="customer_phone" value="{{ customer.phone }}" required>
+            </div>
+            <div class="form-group">
+                <label for="customerRemark">Remark</label>
+                <textarea id="customerRemark" name="customer_remark" rows="5">{{ customer.remark }}</textarea>
+            </div>
+            <div class="edit-actions">
+                <a href="/customer">Cancel</a>
+                <button type="submit"><i class="fa-solid fa-check"></i>&nbsp; Update Customer</button>
+            </div>
+        </form>
+        {% else %}
+        <div class="not-found">
+            <p>Customer not found.</p>
+            <a href="/customer">Return to Customer Management</a>
+        </div>
+        {% endif %}
+    </section>
+    {% include '_admin_shell_end.html' %}
+</body>
+</html>

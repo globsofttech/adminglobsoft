@@ -1,0 +1,469 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SanoURL Management - Admin Portal</title>
+    <link rel="shortcut icon" type="image/x-icon" href="{{ url_for('static', filename='images/sanourl.png') }}">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            padding: 30px;
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 30px;
+            padding-bottom: 20px;
+            border-bottom: 2px solid #f0f0f0;
+        }
+
+        .header h1 {
+            font-size: 28px;
+            color: #333;
+            font-weight: 600;
+        }
+
+        .header-info {
+            display: flex;
+            gap: 20px;
+            align-items: center;
+        }
+
+        .total-urls {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 10px 20px;
+            border-radius: 8px;
+            font-weight: 600;
+            font-size: 16px;
+        }
+
+        .delete-section {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+
+        .delete-btn {
+            background-color: #dc3545;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 14px;
+            transition: all 0.3s ease;
+        }
+
+        .delete-btn:hover {
+            background-color: #c82333;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(220, 53, 69, 0.3);
+        }
+
+        .delete-btn:disabled {
+            background-color: #ccc;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .select-all-section {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 20px;
+            padding: 12px 15px;
+            background: #f8f9fa;
+            border-radius: 8px;
+        }
+
+        .select-all-section input[type="checkbox"] {
+            width: 18px;
+            height: 18px;
+            cursor: pointer;
+        }
+
+        .select-all-section label {
+            cursor: pointer;
+            font-weight: 500;
+            color: #333;
+        }
+
+        .table-wrapper {
+            overflow-x: auto;
+            margin-bottom: 30px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 14px;
+        }
+
+        thead {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        thead th {
+            padding: 16px;
+            text-align: left;
+            font-weight: 600;
+        }
+
+        tbody tr {
+            border-bottom: 1px solid #e0e0e0;
+            transition: background-color 0.2s ease;
+        }
+
+        tbody tr:hover {
+            background-color: #f8f9fa;
+        }
+
+        tbody td {
+            padding: 16px;
+        }
+
+        .checkbox-cell {
+            text-align: center;
+        }
+
+        .checkbox-cell input[type="checkbox"] {
+            width: 18px;
+            height: 18px;
+            cursor: pointer;
+        }
+
+        .url-cell {
+            max-width: 400px;
+            word-break: break-all;
+        }
+
+        .short-code {
+            background: #e7f3ff;
+            color: #0066cc;
+            padding: 4px 12px;
+            border-radius: 4px;
+            font-weight: 600;
+            font-family: 'Courier New', monospace;
+        }
+
+        .date-cell {
+            color: #666;
+            font-size: 13px;
+        }
+
+        .clicks-badge {
+            background: #d4edda;
+            color: #155724;
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-weight: 600;
+            display: inline-block;
+        }
+
+        .ip-cell {
+            font-family: 'Courier New', monospace;
+            color: #666;
+            font-size: 13px;
+        }
+
+        .no-data {
+            text-align: center;
+            padding: 60px 20px;
+            color: #999;
+        }
+
+        .no-data-icon {
+            font-size: 48px;
+            margin-bottom: 20px;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 20px;
+            color: #667eea;
+            font-weight: 600;
+        }
+
+        .success-message {
+            background: #d4edda;
+            border: 1px solid #c3e6cb;
+            color: #155724;
+            padding: 12px 16px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            display: none;
+        }
+
+        .error-message {
+            background: #f8d7da;
+            border: 1px solid #f5c6cb;
+            color: #721c24;
+            padding: 12px 16px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            display: none;
+        }
+
+        .badge-no-data {
+            color: #999;
+            font-size: 12px;
+            font-weight: 400;
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                padding: 15px;
+            }
+
+            .header {
+                flex-direction: column;
+                gap: 15px;
+                align-items: flex-start;
+            }
+
+            .header-info {
+                width: 100%;
+                justify-content: space-between;
+            }
+
+            table {
+                font-size: 12px;
+            }
+
+            thead th,
+            tbody td {
+                padding: 10px;
+            }
+
+            .url-cell {
+                max-width: 200px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>SanoURL Management Portal</h1>
+            <div class="header-info">
+                <div class="total-urls">
+                    Total URLs: <span id="totalCount">{{ total_urls }}</span>
+                </div>
+                <div class="delete-section">
+                    <button class="delete-btn" id="deleteBtn" onclick="deleteSelected()" disabled>
+                        🗑️ Delete Selected
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <div id="successMessage" class="success-message">
+            ✓ URLs deleted successfully!
+        </div>
+        <div id="errorMessage" class="error-message">
+            ✗ Error deleting URLs. Please try again.
+        </div>
+
+        <div class="select-all-section">
+            <input type="checkbox" id="selectAllCheckbox" onchange="toggleSelectAll()">
+            <label for="selectAllCheckbox">Select All URLs</label>
+            <span id="selectedCount" style="margin-left: auto; color: #666; font-weight: 500;">0 selected</span>
+        </div>
+
+        {% if urls %}
+        <div class="table-wrapper">
+            <table>
+                <thead>
+                    <tr>
+                        <th style="width: 50px;">
+                            <input type="checkbox" id="headerCheckbox" onchange="toggleSelectAll()">
+                        </th>
+                        <th>Short Code</th>
+                        <th>Original URL</th>
+                        <th>Created At</th>
+                        <th>Created By IP</th>
+                        <th>Clicks</th>
+                        <th>Last Accessed</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for url in urls %}
+                    <tr>
+                        <td class="checkbox-cell">
+                            <input type="checkbox" class="url-checkbox" value="{{ url._id }}" onchange="updateDeleteBtn()">
+                        </td>
+                        <td>
+                            <span class="short-code">{{ url.short_code }}</span>
+                        </td>
+                        <td class="url-cell">
+                            <a href="{{ url.original_url }}" target="_blank" title="{{ url.original_url }}" style="color: #0066cc; text-decoration: none;">
+                                {{ url.original_url[:60] }}{% if url.original_url|length > 60 %}...{% endif %}
+                            </a>
+                        </td>
+                        <td class="date-cell">
+                            {% if url.created_at %}
+                                {{ url.created_at.strftime('%Y-%m-%d %H:%M:%S') if url.created_at else 'N/A' }}
+                            {% else %}
+                                <span class="badge-no-data">N/A</span>
+                            {% endif %}
+                        </td>
+                        <td class="ip-cell">
+                            {{ url.created_by_ip if url.created_by_ip else 'N/A' }}
+                        </td>
+                        <td>
+                            {% if url.get('clicks') %}
+                                <span class="clicks-badge">{{ url.clicks }}</span>
+                            {% else %}
+                                <span class="badge-no-data">0</span>
+                            {% endif %}
+                        </td>
+                        <td class="date-cell">
+                            {% if url.get('last_accessed') %}
+                                {{ url.last_accessed.strftime('%Y-%m-%d %H:%M:%S') }}
+                            {% else %}
+                                <span class="badge-no-data">Never</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="no-data">
+            <div class="no-data-icon">📭</div>
+            <h2>No URLs Found</h2>
+            <p>There are no short URLs in the database yet.</p>
+        </div>
+        {% endif %}
+    </div>
+
+    <script>
+        // Toggle Select All functionality
+        function toggleSelectAll() {
+            const selectAllCheckbox = document.getElementById('selectAllCheckbox');
+            const headerCheckbox = document.getElementById('headerCheckbox');
+            const checkboxes = document.querySelectorAll('.url-checkbox');
+
+            const isChecked = selectAllCheckbox.checked || headerCheckbox.checked;
+
+            checkboxes.forEach(checkbox => {
+                checkbox.checked = isChecked;
+            });
+
+            // Sync both checkboxes
+            selectAllCheckbox.checked = isChecked;
+            headerCheckbox.checked = isChecked;
+
+            updateDeleteBtn();
+        }
+
+        // Update delete button state and selected count
+        function updateDeleteBtn() {
+            const checkboxes = document.querySelectorAll('.url-checkbox');
+            const selectedCheckboxes = Array.from(checkboxes).filter(cb => cb.checked);
+            const deleteBtn = document.getElementById('deleteBtn');
+            const selectedCount = document.getElementById('selectedCount');
+            const selectAllCheckbox = document.getElementById('selectAllCheckbox');
+            const headerCheckbox = document.getElementById('headerCheckbox');
+
+            deleteBtn.disabled = selectedCheckboxes.length === 0;
+            selectedCount.textContent = `${selectedCheckboxes.length} selected`;
+
+            // Update select all checkbox if all are selected
+            const allChecked = selectedCheckboxes.length === checkboxes.length && checkboxes.length > 0;
+            selectAllCheckbox.checked = allChecked;
+            headerCheckbox.checked = allChecked;
+        }
+
+        // Delete selected URLs
+        async function deleteSelected() {
+            const checkboxes = document.querySelectorAll('.url-checkbox:checked');
+            const ids = Array.from(checkboxes).map(cb => cb.value);
+
+            if (ids.length === 0) {
+                alert('Please select at least one URL to delete.');
+                return;
+            }
+
+            if (!confirm(`Are you sure you want to delete ${ids.length} URL(s)? This action cannot be undone.`)) {
+                return;
+            }
+
+            try {
+                const response = await fetch(window.location.href, {
+                    method: 'DELETE',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ ids: ids })
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    showMessage('successMessage', `Successfully deleted ${data.deleted} URL(s)!`);
+                    // Refresh the page after 1.5 seconds
+                    setTimeout(() => {
+                        location.reload();
+                    }, 1500);
+                } else {
+                    showMessage('errorMessage', 'Error deleting URLs. Please try again.');
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                showMessage('errorMessage', 'An error occurred. Please try again.');
+            }
+        }
+
+        // Show message helper
+        function showMessage(elementId, message) {
+            const messageEl = document.getElementById(elementId);
+            messageEl.textContent = message;
+            messageEl.style.display = 'block';
+
+            setTimeout(() => {
+                messageEl.style.display = 'none';
+            }, 5000);
+        }
+
+        // Initialize on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            updateDeleteBtn();
+        });
+
+        // Keyboard shortcuts
+        document.addEventListener('keydown', function(e) {
+            // Ctrl+A or Cmd+A to select all
+            if ((e.ctrlKey || e.metaKey) && e.key === 'a') {
+                e.preventDefault();
+                document.getElementById('selectAllCheckbox').checked = true;
+                toggleSelectAll();
+            }
+        });
+    </script>
+</body>
+</html>

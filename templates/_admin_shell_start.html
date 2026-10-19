@@ -1,0 +1,24 @@
+<div class="admin-layout">
+  <aside class="admin-sidebar" id="adminSidebar">
+    <a class="brand" href="/">
+      <img src="{{ url_for('static', filename='images/globsoft.svg') }}" alt="Globsoft Tech">
+      <span><strong>Globsoft</strong><small>TECH ADMIN</small></span>
+    </a>
+    <div class="sidebar-label">Workspace</div>
+    <nav class="sidebar-nav" aria-label="Admin tools">
+      <a class="nav-item {% if request.path == '/' %}active{% endif %}" href="/"><i class="fa-solid fa-table-cells-large"></i><span>Overview</span></a>
+      <a class="nav-item {% if request.path == '/customer' %}active{% endif %}" href="/customer"><i class="fa-solid fa-users"></i><span>Customer Management</span></a>
+      <a class="nav-item {% if request.path == '/newsletter' %}active{% endif %}" href="/newsletter"><i class="fa-solid fa-envelope-open-text"></i><span>Newsletter</span></a>
+      <a class="nav-item {% if request.path == '/system-status' %}active{% endif %}" href="/system-status"><i class="fa-solid fa-signal"></i><span>System Status</span></a>
+    </nav>
+    <button type="button" class="sidebar-toggle" id="sidebarToggle" aria-label="Collapse navigation" aria-expanded="true">
+      <i class="fa-solid fa-bars"></i>
+    </button>
+    <div class="sidebar-footer">
+      <span class="status-indicator"><i></i> Admin workspace</span>
+      <form action="/logout" method="POST">
+        <button type="submit" class="logout-link"><i class="fa-solid fa-arrow-right-from-bracket"></i> Logout</button>
+      </form>
+    </div>
+  </aside>
+  <main class="admin-main admin-content">
