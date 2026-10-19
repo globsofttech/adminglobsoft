@@ -1359,8 +1359,8 @@ def author_login():
 @app.route("/__clerk/<path:subpath>", methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"])
 def clerk_proxy(subpath):
     """
-    Reverse proxy for Clerk Frontend API on adminglobsoft.vercel.app/__clerk.
-    Enables Clerk on *.vercel.app production domain without custom DNS records.
+    Reverse proxy for Clerk Frontend API on production domains.
+    Preserves multiple Set-Cookie headers and dynamically matches origin.
     """
     if request.method == "OPTIONS":
         return Response("", status=200, headers={
@@ -1373,18 +1373,24 @@ def clerk_proxy(subpath):
     target_url = f"https://frontend-api.clerk.dev/{subpath}"
     if request.query_string:
         target_url += f"?{request.query_string.decode('utf-8')}"
-    
-    # Exclude headers that cause upstream encoding conflicts
-    fwd_headers = {k: v for k, v in request.headers if k.lower() not in {"host", "content-length", "accept-encoding"}}
+
+    # Dynamically determine protocol and host (handles Vercel edge proxy headers)
+    proto = request.headers.get("X-Forwarded-Proto", request.scheme)
+    host = request.headers.get("X-Forwarded-Host", request.host)
+    dynamic_proxy_url = os.getenv("CLERK_PROXY_URL") or f"{proto}://{host}/__clerk"
+
+    # Exclude hop-by-hop headers that conflict with upstream
+    excluded_req_headers = {"host", "content-length", "accept-encoding", "connection"}
+    fwd_headers = {k: v for k, v in request.headers if k.lower() not in excluded_req_headers}
     fwd_headers["Host"] = "frontend-api.clerk.dev"
-    proxy_url = os.getenv("CLERK_PROXY_URL", "https://adminglobsoft.vercel.app/__clerk")
-    fwd_headers["Clerk-Proxy-Url"] = proxy_url
+    fwd_headers["Clerk-Proxy-Url"] = dynamic_proxy_url
     if clerk_secret_key:
         fwd_headers["Clerk-Secret-Key"] = clerk_secret_key
-    fwd_headers["X-Forwarded-Host"] = request.host
-    fwd_headers["X-Forwarded-Proto"] = request.scheme
-    if request.remote_addr:
-        fwd_headers["X-Forwarded-For"] = request.remote_addr
+    fwd_headers["X-Forwarded-Host"] = host
+    fwd_headers["X-Forwarded-Proto"] = proto
+    fwd_headers["X-Forwarded-For"] = get_client_ip()
+
+    excluded_resp_headers = {"content-encoding", "content-length", "transfer-encoding", "connection", "set-cookie"}
 
     if requests is not None:
         try:
@@ -1392,50 +1398,30 @@ def clerk_proxy(subpath):
                 method=request.method,
                 url=target_url,
                 headers=fwd_headers,
-                data=request.get_data() if request.method not in {"GET", "HEAD"} else None,
+                data=request.get_data() if request.method not in {"GET", "HEAD", "OPTIONS"} else None,
                 allow_redirects=False,
                 timeout=15,
             )
-            excluded = {"content-encoding", "content-length", "transfer-encoding", "connection"}
-            resp_headers = [(k, v) for k, v in upstream_resp.headers.items() if k.lower() not in excluded]
-            return Response(upstream_resp.content, status=upstream_resp.status_code, headers=resp_headers)
+            resp = Response(upstream_resp.content, status=upstream_resp.status_code)
+            for k, v in upstream_resp.headers.items():
+                if k.lower() not in excluded_resp_headers:
+                    resp.headers[k] = v
+
+            # Preserve all individual Set-Cookie headers from urllib3 raw response
+            if hasattr(upstream_resp, "raw") and getattr(upstream_resp.raw, "headers", None):
+                raw_headers = upstream_resp.raw.headers
+                cookies = raw_headers.getlist("Set-Cookie") if hasattr(raw_headers, "getlist") else []
+                for cookie in cookies:
+                    resp.headers.add("Set-Cookie", cookie)
+            elif "Set-Cookie" in upstream_resp.headers:
+                resp.headers.add("Set-Cookie", upstream_resp.headers["Set-Cookie"])
+
+            return resp
         except Exception as e:
+            app.logger.exception("Clerk proxy error")
             return jsonify({"error": str(e)}), 500
 
-    # Fallback to urllib with gzip decompression if requests is absent
-    import gzip
-    req = Request(
-        target_url,
-        data=request.get_data() if request.method not in {"GET", "HEAD", "OPTIONS"} else None,
-        headers=fwd_headers,
-        method=request.method,
-    )
-    try:
-        with urlopen(req, timeout=15) as resp:
-            data = resp.read()
-            if resp.getheader("Content-Encoding") == "gzip":
-                try:
-                    data = gzip.decompress(data)
-                except Exception:
-                    pass
-            excluded_headers = {"content-encoding", "content-length", "transfer-encoding", "connection"}
-            resp_headers = [(name, value) for name, value in resp.getheaders() if name.lower() not in excluded_headers]
-            return Response(data, status=resp.getcode(), headers=resp_headers)
-    except Exception as e:
-        if hasattr(e, "read"):
-            try:
-                err_data = e.read()
-                if getattr(e, "headers", None) and e.headers.get("Content-Encoding") == "gzip":
-                    try:
-                        err_data = gzip.decompress(err_data)
-                    except Exception:
-                        pass
-                return Response(err_data, status=getattr(e, "code", 500), content_type="application/json")
-            except Exception:
-                pass
-        return jsonify({"error": str(e)}), 500
-
-
+    return jsonify({"error": "The 'requests' library is required for Clerk proxy."}), 500
 
 
 # ==================== PRODUCTS ====================
@@ -1550,10 +1536,12 @@ def dashboard():
 
         flash("Invalid administrator credentials.", "error")
 
-    proxy_url = ""
+   proxy_url = ""
     if clerk_publishable_key and clerk_publishable_key.startswith("pk_live_"):
-        proxy_url = os.getenv("CLERK_PROXY_URL", "https://adminglobsoft.vercel.app/__clerk")
-
+        proto = request.headers.get("X-Forwarded-Proto", request.scheme)
+        host = request.headers.get("X-Forwarded-Host", request.host)
+        proxy_url = os.getenv("CLERK_PROXY_URL") or f"{proto}://{host}/__clerk"
+        
     return render_template(
         'login.html',
         clerk_publishable_key=clerk_publishable_key,

@@ -193,19 +193,18 @@
       return window.Clerk || null;
     }
 
-    window.addEventListener('load', async () => {
+  window.addEventListener('load', async () => {
       if (!CLERK_PUBLISHABLE_KEY) {
         return;
       }
-
       try {
         const clerk = await getClerkInstance();
         if (!clerk) return;
 
-        // If the user just clicked Logout, clear Clerk token so they don't immediately re-login
+        // 1. If the user just clicked Logout, clear Clerk token so they don't immediately re-login
         if (isLoggedOut) {
           try {
-            if (typeof clerk.signOut === 'function') {
+            if (clerk.user && typeof clerk.signOut === 'function') {
               await clerk.signOut();
             }
           } catch (soErr) {
@@ -217,31 +216,38 @@
           return;
         }
 
-        // Handle return from external OAuth redirect
-        if (window.location.search.includes('__clerk') || window.location.hash.includes('__clerk')) {
+        // 2. Complete OAuth Sign-In / Sign-Up Transfer (Step 2 fix)
+        if (!clerk.user && clerk.client) {
           try {
-            if (typeof clerk.handleRedirectCallback === 'function') {
-              await clerk.handleRedirectCallback(
-                {},
-                async (to) => {
-                  if (window.history && window.history.replaceState) {
-                    window.history.replaceState({}, document.title, window.location.pathname);
-                  }
-                }
-              );
+            const si = clerk.client.signIn;
+            const su = clerk.client.signUp;
+            if (si && si.firstFactorVerification && si.firstFactorVerification.status === 'transferable') {
+              const res = await su.create({ transfer: true });
+              if (res.status === 'complete') {
+                await clerk.setActive({ session: res.createdSessionId });
+              }
+            } else if (si && si.status === 'complete') {
+              await clerk.setActive({ session: si.createdSessionId });
+            } else if (su && su.status === 'complete') {
+              await clerk.setActive({ session: su.createdSessionId });
             }
-          } catch (cbErr) {
-            console.warn("handleRedirectCallback error:", cbErr);
+          } catch (transferErr) {
+            console.warn("Clerk transfer/session activation error:", transferErr);
           }
         }
 
-        // If user session is already established
-        if (clerk.user && !isLoggedOut) {
+        // 3. Clean up __clerk query params only AFTER session is active
+        if (window.location.search.includes('__clerk') && window.history && window.history.replaceState) {
+          window.history.replaceState({}, document.title, window.location.pathname);
+        }
+
+        // 4. If user session is established, sync with Flask backend
+        if (clerk.user) {
           await syncClerkUser(clerk.user);
           return;
         }
 
-        // Listen for successful sign-in
+        // 5. Listen for successful sign-in
         if (typeof clerk.addListener === 'function') {
           clerk.addListener(({ user }) => {
             if (user && !isLoggedOut) {
@@ -253,7 +259,6 @@
         console.error("Clerk setup error:", err);
       }
     });
-
     async function handleGoogleSignIn() {
       if (!CLERK_PUBLISHABLE_KEY) {
         alert("Clerk Publishable Key is missing. Please set CLERK_PUBLISHABLE_KEY in AdminPortal/.env");
