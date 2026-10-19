@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="shortcut icon" type="image/svg+xml" href="{{ url_for('static', filename='images/globsoft.svg') }}">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/admin.css') }}">
+  <title>Author Profile - Globsoft Tech</title>
+  <style>
+    .profile-container {
+      max-width: 900px;
+      margin: 0 auto 40px;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 24px;
+    }
+    @media (max-width: 820px) {
+      .profile-container {
+        grid-template-columns: 1fr;
+      }
+    }
+    .profile-card {
+      background: var(--admin-panel);
+      border: 1px solid var(--admin-line);
+      border-radius: 16px;
+      padding: 26px;
+    }
+    .profile-header-badge {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      padding-bottom: 20px;
+      border-bottom: 1px solid var(--admin-line);
+      margin-bottom: 22px;
+    }
+    .profile-avatar-big {
+      width: 72px;
+      height: 72px;
+      border-radius: 50%;
+      object-fit: cover;
+      border: 2.5px solid var(--admin-cyan);
+      box-shadow: 0 0 16px rgba(121, 255, 247, 0.25);
+    }
+    .profile-avatar-fallback {
+      width: 72px;
+      height: 72px;
+      border-radius: 50%;
+      background: rgba(121, 255, 247, 0.14);
+      color: var(--admin-cyan);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 700;
+      font-size: 1.8rem;
+      border: 2.5px solid var(--admin-cyan);
+    }
+    .profile-account-meta h2 {
+      margin: 0 0 4px;
+      font-size: 1.2rem;
+      color: var(--admin-text);
+    }
+    .profile-account-meta p {
+      margin: 0;
+      font-size: .8rem;
+      color: var(--admin-muted);
+    }
+    .google-connected-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: .72rem;
+      color: #7adb78;
+      background: rgba(122, 219, 120, 0.12);
+      border: 1px solid rgba(122, 219, 120, 0.25);
+      border-radius: 999px;
+      padding: 3px 10px;
+      margin-top: 6px;
+    }
+
+    /* Live Preview Card */
+    .preview-card-wrapper {
+      background: var(--admin-panel-2);
+      border: 1px dashed var(--admin-line);
+      border-radius: 14px;
+      padding: 20px;
+      margin-top: 14px;
+    }
+    .preview-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid var(--admin-line);
+      padding: 6px 14px;
+      border-radius: 999px;
+    }
+    .preview-chip img {
+      width: 24px;
+      height: 24px;
+      border-radius: 50%;
+      object-fit: cover;
+    }
+  </style>
+</head>
+<body class="admin-page">
+  {% include '_admin_shell_start.html' %}
+
+  <header class="topbar">
+    <p class="eyebrow">Author Workspace / Profile</p>
+    <h1>Author Profile Settings</h1>
+    <p class="topbar-subtitle">Customize how your name and author attribution appear on published Globsoft Tech articles.</p>
+  </header>
+
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% for category, message in messages %}
+      <div class="flash {{ category }}">
+        <i class="fa-solid {{ 'fa-circle-check' if category == 'success' else 'fa-circle-exclamation' }}"></i>
+        <span>{{ message }}</span>
+      </div>
+    {% endfor %}
+  {% endwith %}
+
+  <div class="profile-container">
+    <!-- LEFT: EDIT PROFILE FORM -->
+    <div class="profile-card">
+      <div class="profile-header-badge">
+        {% if author.avatar_url %}
+          <img src="{{ author.avatar_url }}" alt="{{ author.name }}" class="profile-avatar-big" id="avatarImg">
+        {% else %}
+          <div class="profile-avatar-fallback">
+            {{ (author.name or 'A')[:1]|upper }}
+          </div>
+        {% endif %}
+        <div class="profile-account-meta">
+          <h2>{{ author.name }}</h2>
+          <p>{{ author.email }}</p>
+          <span class="google-connected-pill">
+            <i class="fa-brands fa-google"></i> Google OAuth Linked
+          </span>
+        </div>
+      </div>
+
+      <form method="POST">
+        <div style="display:flex;flex-direction:column;gap:18px;">
+          <div>
+            <label class="field-label" for="displayNameInput">
+              Public Display Name
+              <span class="field-hint" style="color:var(--admin-muted);font-size:.72rem;">(Shown to readers)</span>
+            </label>
+            <input type="text" name="name" id="displayNameInput" required maxlength="60"
+                   value="{{ author.name }}"
+                   placeholder="Your Pen Name or Full Name"
+                   oninput="updatePreviewName(this.value)"
+                   style="width:100%;padding:12px 14px;border:1px solid var(--admin-line);border-radius:10px;background:var(--admin-panel-2);color:var(--admin-text);font-size:.9rem;">
+            <p style="margin:6px 0 0;font-size:.72rem;color:var(--admin-muted);">
+              You can choose any pen name or professional title. Your Google account name (<strong>{{ author.google_name or author.name }}</strong>) will not be forced.
+            </p>
+          </div>
+
+          <div>
+            <label class="field-label" for="authorBioInput">
+              Short Author Bio
+              <span class="field-hint" style="color:var(--admin-muted);font-size:.72rem;">(Optional)</span>
+            </label>
+            <textarea name="bio" id="authorBioInput" rows="3" maxlength="280"
+                      placeholder="Tech lead & software engineer sharing insights on high-scale systems."
+                      oninput="updatePreviewBio(this.value)"
+                      style="width:100%;padding:12px 14px;border:1px solid var(--admin-line);border-radius:10px;background:var(--admin-panel-2);color:var(--admin-text);font-size:.85rem;resize:vertical;">{{ author.bio or '' }}</textarea>
+          </div>
+
+          <div>
+            <label class="field-label">Google Account Email</label>
+            <input type="text" value="{{ author.email }}" readonly
+                   style="width:100%;padding:10px 14px;border:1px solid var(--admin-line);border-radius:10px;background:rgba(255,255,255,0.03);color:var(--admin-muted);font-size:.85rem;cursor:not-allowed;">
+            <p style="margin:4px 0 0;font-size:.7rem;color:var(--admin-muted);">Primary login identity managed through Google Sign-In.</p>
+          </div>
+
+          <div style="display:flex;gap:12px;align-items:center;margin-top:10px;">
+            <button type="submit" class="btn-submit">
+              <i class="fa-solid fa-floppy-disk"></i> Update Profile
+            </button>
+            <a href="/blogs" class="secondary-action">
+              <i class="fa-solid fa-arrow-left"></i> My Articles
+            </a>
+          </div>
+        </div>
+      </form>
+    </div>
+
+    <!-- RIGHT: LIVE PUBLIC PREVIEW -->
+    <div class="profile-card">
+      <h3 style="margin:0 0 8px;font-size:1.1rem;color:var(--admin-text);">
+        <i class="fa-solid fa-eye" style="color:var(--admin-cyan);margin-right:8px;"></i>Live Reader Preview
+      </h3>
+      <p style="margin:0 0 18px;font-size:.78rem;color:var(--admin-muted);">
+        Here is how your avatar and display name look on the live Globsoft Tech website:
+      </p>
+
+      <!-- 1. Article Card Chip Preview -->
+      <label style="font-size:.75rem;color:var(--admin-cyan);font-weight:700;text-transform:uppercase;letter-spacing:1px;display:block;margin-bottom:8px;">
+        1. On Article Cards (/blog)
+      </label>
+      <div class="preview-card-wrapper">
+        <div class="preview-chip">
+          {% if author.avatar_url %}
+            <img src="{{ author.avatar_url }}" alt="" id="previewChipAvatar">
+          {% else %}
+            <i class="fa-solid fa-circle-user" style="color:var(--admin-cyan);"></i>
+          {% endif %}
+          <span style="font-size:.8rem;color:var(--admin-text);" id="previewChipName">{{ author.name }}</span>
+        </div>
+      </div>
+
+      <!-- 2. Inside Full Blog Post Preview -->
+      <label style="font-size:.75rem;color:var(--admin-cyan);font-weight:700;text-transform:uppercase;letter-spacing:1px;display:block;margin:22px 0 8px;">
+        2. Article Header &amp; Bio Banner
+      </label>
+      <div class="preview-card-wrapper" style="display:flex;gap:14px;align-items:center;">
+        {% if author.avatar_url %}
+          <img src="{{ author.avatar_url }}" alt="" id="previewBigAvatar" style="width:48px;height:48px;border-radius:50%;object-fit:cover;border:2px solid var(--admin-cyan);">
+        {% else %}
+          <div style="width:48px;height:48px;border-radius:50%;background:rgba(121,255,247,0.15);color:var(--admin-cyan);display:flex;align-items:center;justify-content:center;font-weight:700;">
+            {{ (author.name or 'A')[:1]|upper }}
+          </div>
+        {% endif %}
+        <div>
+          <strong style="color:var(--admin-text);font-size:.95rem;display:block;" id="previewBannerName">{{ author.name }}</strong>
+          <p style="margin:2px 0 0;color:var(--admin-muted);font-size:.75rem;line-height:1.4;" id="previewBannerBio">
+            {{ author.bio or 'Contributing author at Globsoft Tech' }}
+          </p>
+        </div>
+      </div>
+
+      <div style="margin-top:24px;padding:14px;border-radius:10px;background:rgba(121,255,247,0.05);border:1px solid rgba(121,255,247,0.15);">
+        <p style="margin:0;font-size:.75rem;color:var(--admin-cyan);line-height:1.5;">
+          <i class="fa-solid fa-circle-info" style="margin-right:6px;"></i>
+          When you update your name, all of your existing published and draft articles will automatically reflect your new name across the platform.
+        </p>
+      </div>
+    </div>
+  </div>
+
+  {% include '_admin_shell_end.html' %}
+
+  <script>
+    function updatePreviewName(val) {
+      const name = val.trim() || 'Author Name';
+      document.getElementById('previewChipName').textContent = name;
+      document.getElementById('previewBannerName').textContent = name;
+    }
+
+    function updatePreviewBio(val) {
+      const bio = val.trim() || 'Contributing author at Globsoft Tech';
+      document.getElementById('previewBannerBio').textContent = bio;
+    }
+  </script>
+</body>
+</html>

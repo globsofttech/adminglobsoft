@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="shortcut icon" type="image/svg+xml" href="{{ url_for('static', filename='images/globsoft.svg') }}">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/admin.css') }}">
+  <title>Pricing Cards - Globsoft Tech</title>
+</head>
+<body class="admin-page">
+  {% include '_admin_shell_start.html' %}
+  <header class="topbar">
+    <a class="back-link" href="/site-content"><i class="fa-solid fa-arrow-left"></i> Homepage Content</a>
+    <p class="eyebrow">Pricing section</p>
+    <h1>Pricing Cards</h1>
+    <p class="topbar-subtitle">Update one pricing JSON array. The public cards and top offer banner use this data.</p>
+  </header>
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% for category, message in messages %}
+      <div class="flash {{ category }}">{{ message }}</div>
+    {% endfor %}
+  {% endwith %}
+  <form method="POST" class="content-editor">
+    <section class="card">
+      <div class="section-heading"><div><p class="eyebrow">Editable fields</p><h2>Plans, prices and offers</h2></div></div>
+      <p class="editor-help">Use <code>original_price</code> for the crossed-out price and <code>price</code> for the current price. Discounts are calculated automatically. Use <code>null</code> for a contact-only price.</p>
+      <textarea name="pricing_json" rows="30" spellcheck="false" required>{{ pricing_json }}</textarea>
+    </section>
+    <button class="btn-submit" type="submit"><i class="fa-solid fa-floppy-disk"></i> Save pricing cards</button>
+  </form>
+  {% include '_admin_shell_end.html' %}
+</body>
+</html>

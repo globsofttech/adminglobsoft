@@ -9,30 +9,55 @@
     <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Sora:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}" />
-    <title>Globsoft Tech Admin Portal</title>
+    <title>Globsoft Tech {% if session.get('role') == 'author' %}Author{% else %}Admin{% endif %} Portal</title>
   </head>
   <body class="admin-body">
+    {% set is_author = (session.get('role') == 'author') %}
+    {% set display_name = (session.get('author_name') or 'Author') if is_author else (session.get('admin_name') or 'Admin') %}
+
     <div class="admin-layout">
       <aside class="admin-sidebar">
         <a class="brand" href="/">
           <img src="{{ url_for('static', filename='images/globsoft.svg') }}" alt="Globsoft Tech">
-          <span><strong>Globsoft</strong><small>TECH ADMIN</small></span>
+          <span><strong>Globsoft</strong><small>{% if is_author %}AUTHOR STUDIO{% else %}TECH ADMIN{% endif %}</small></span>
         </a>
-
         <div class="sidebar-label">Workspace</div>
-        <nav class="sidebar-nav" aria-label="Admin tools">
+        <nav class="sidebar-nav" aria-label="Workspace tools">
           <a class="nav-item active" href="/"><i class="fa-solid fa-table-cells-large"></i><span>Overview</span></a>
-          <a class="nav-item" href="/customer"><i class="fa-solid fa-users"></i><span>Customer Management</span></a>
-          <a class="nav-item" href="/newsletter"><i class="fa-solid fa-envelope-open-text"></i><span>Newsletter</span></a>
-          <a class="nav-item" href="/site-content"><i class="fa-solid fa-pen-to-square"></i><span>Homepage Content</span></a>
-          <a class="nav-item" href="/system-status"><i class="fa-solid fa-signal"></i><span>System Status</span></a>
+          {% if is_author %}
+            <a class="nav-item" href="/blogs"><i class="fa-solid fa-file-pen"></i><span>My Articles</span></a>
+            <a class="nav-item" href="/author/profile"><i class="fa-solid fa-user-gear"></i><span>My Profile</span></a>
+          {% else %}
+            <a class="nav-item" href="/customer"><i class="fa-solid fa-users"></i><span>Customer Management</span></a>
+            <a class="nav-item" href="/newsletter"><i class="fa-solid fa-envelope-open-text"></i><span>Newsletter</span></a>
+            <a class="nav-item" href="/blogs"><i class="fa-solid fa-blog"></i><span>Blogs</span></a>
+            <a class="nav-item" href="/authors"><i class="fa-solid fa-user-pen"></i><span>Authors</span></a>
+            <a class="nav-item" href="/social-media"><i class="fa-brands fa-meta"></i><span>Social Media</span></a>
+            <a class="nav-item" href="/site-content"><i class="fa-solid fa-pen-to-square"></i><span>Homepage Content</span></a>
+            <a class="nav-item" href="/system-status"><i class="fa-solid fa-signal"></i><span>System Status</span></a>
+          {% endif %}
         </nav>
         <button type="button" class="dashboard-sidebar-toggle" id="dashboardSidebarToggle" aria-label="Collapse navigation" aria-expanded="true">
           <i class="fa-solid fa-bars"></i>
         </button>
-
         <div class="sidebar-footer">
-          <span class="status-indicator"><i></i> Admin workspace</span>
+          {% if is_author %}
+            <div class="sidebar-user-info" style="display:flex;align-items:center;gap:10px;padding:8px 0;margin-bottom:8px;border-bottom:1px solid rgba(255,255,255,0.08);">
+              {% if session.get('avatar') %}
+                <img src="{{ session.get('avatar') }}" alt="" style="width:34px;height:34px;border-radius:50%;object-fit:cover;border:1.5px solid #79fff7;">
+              {% else %}
+                <div style="width:34px;height:34px;border-radius:50%;background:rgba(121,255,247,0.15);color:#79fff7;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:.85rem;">
+                  {{ display_name[:1]|upper }}
+                </div>
+              {% endif %}
+              <div style="overflow:hidden;line-height:1.2;">
+                <strong style="display:block;font-size:.8rem;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">{{ display_name }}</strong>
+                <span style="font-size:.67rem;color:#79fff7;font-weight:600;"><i class="fa-solid fa-circle" style="font-size:.45rem;vertical-align:middle;margin-right:3px;"></i>Author</span>
+              </div>
+            </div>
+          {% else %}
+            <span class="status-indicator"><i></i> Admin workspace</span>
+          {% endif %}
           <form action="/logout" method="POST">
             <button type="submit" class="logout-link"><i class="fa-solid fa-arrow-right-from-bracket"></i> Logout</button>
           </form>
@@ -42,30 +67,51 @@
       <main class="admin-main">
         <header class="topbar">
           <div>
-            <p class="eyebrow">GLOBSoft Tech / Workspace</p>
-            <h1>Good to see you, Admin.</h1>
-            <p class="topbar-subtitle">Manage your website operations from one secure workspace.</p>
+            <p class="eyebrow">GLOBSoft Tech / {% if is_author %}Author Workspace{% else %}Workspace{% endif %}</p>
+            <h1>Good to see you, {{ display_name }}.</h1>
+            <p class="topbar-subtitle">
+              {% if is_author %}
+                Write, manage, and publish your articles from one secure workspace.
+              {% else %}
+                Manage your website operations from one secure workspace.
+              {% endif %}
+            </p>
           </div>
-          <div class="topbar-badge"><i class="fa-solid fa-shield-halved"></i> Protected workspace</div>
+          <div class="topbar-badge">
+            <i class="fa-solid {% if is_author %}fa-feather-pointed{% else %}fa-shield-halved{% endif %}"></i>
+            {% if is_author %}Author workspace{% else %}Protected workspace{% endif %}
+          </div>
         </header>
 
         <section class="welcome-panel">
           <div>
-            <span class="panel-kicker">Command center</span>
-            <h2>Everything your business needs, in one place.</h2>
-            <p>Keep customer records, newsletter subscribers, and system communications organized.</p>
+            <span class="panel-kicker">{% if is_author %}Creator hub{% else %}Command center{% endif %}</span>
+            <h2>
+              {% if is_author %}
+                Everything you need to publish great stories, in one place.
+              {% else %}
+                Everything your business needs, in one place.
+              {% endif %}
+            </h2>
+            <p>
+              {% if is_author %}
+                Draft new blog posts, track article views and reader comments, and customize your public author profile.
+              {% else %}
+                Keep customer records, newsletter subscribers, and system communications organized.
+              {% endif %}
+            </p>
           </div>
           <img src="{{ url_for('static', filename='images/globsoft.svg') }}" alt="" aria-hidden="true">
         </section>
 
+        {% if not is_author %}
         <section class="section-heading">
           <div>
             <p class="eyebrow">Quick access</p>
             <h2>Management tools</h2>
           </div>
-          <span class="tool-count">4 active tools</span>
+          <span class="tool-count">7 active tools</span>
         </section>
-
         <section class="tool-grid">
           <a class="tool-card cyan" href="/customer">
             <span class="tool-icon"><i class="fa-solid fa-users"></i></span>
@@ -75,7 +121,19 @@
             <span class="tool-icon"><i class="fa-solid fa-envelope-open-text"></i></span>
             <span class="tool-card-content"><strong>Newsletter</strong><small>Review and manage your Globsoft Tech subscribers.</small><b>Open tool <i class="fa-solid fa-arrow-up-right-from-square"></i></b></span>
           </a>
-          <a class="tool-card cyan" href="/site-content">
+          <a class="tool-card cyan" href="/blogs">
+            <span class="tool-icon"><i class="fa-solid fa-blog"></i></span>
+            <span class="tool-card-content"><strong>Blog Studio</strong><small>Write, edit, and publish SEO-friendly blog posts with images.</small><b>Open tool <i class="fa-solid fa-arrow-up-right-from-square"></i></b></span>
+          </a>
+          <a class="tool-card purple" href="/authors">
+            <span class="tool-icon"><i class="fa-solid fa-user-pen"></i></span>
+            <span class="tool-card-content"><strong>Authors</strong><small>Create writer accounts that can access only the Blog Studio.</small><b>Open tool <i class="fa-solid fa-arrow-up-right-from-square"></i></b></span>
+          </a>
+          <a class="tool-card cyan" href="/social-media">
+            <span class="tool-icon"><i class="fa-brands fa-meta"></i></span>
+            <span class="tool-card-content"><strong>Social Media Hub</strong><small>Post directly to Facebook Page and Instagram at once.</small><b>Open tool <i class="fa-solid fa-arrow-up-right-from-square"></i></b></span>
+          </a>
+          <a class="tool-card purple" href="/site-content">
             <span class="tool-icon"><i class="fa-solid fa-pen-to-square"></i></span>
             <span class="tool-card-content"><strong>Homepage Content</strong><small>Edit pricing, seasonal offers, and client links.</small><b>Open tool <i class="fa-solid fa-arrow-up-right-from-square"></i></b></span>
           </a>
@@ -84,6 +142,7 @@
             <span class="tool-card-content"><strong>System Status</strong><small>Publish availability updates for your main website.</small><b>Open tool <i class="fa-solid fa-arrow-up-right-from-square"></i></b></span>
           </a>
         </section>
+        {% endif %}
       </main>
     </div>
     <script>

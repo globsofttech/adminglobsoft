@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="shortcut icon" type="image/svg+xml" href="{{ url_for('static', filename='images/globsoft.svg') }}">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/admin.css') }}">
+  <title>Client Showcase - Globsoft Tech</title>
+</head>
+<body class="admin-page">
+  {% include '_admin_shell_start.html' %}
+  <header class="topbar">
+    <a class="back-link" href="/site-content"><i class="fa-solid fa-arrow-left"></i> Homepage Content</a>
+    <p class="eyebrow">Client section</p>
+    <h1>Client Showcase</h1>
+    <p class="topbar-subtitle">Update the companies displayed in the continuously scrolling homepage showcase.</p>
+  </header>
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% for category, message in messages %}
+      <div class="flash {{ category }}">{{ message }}</div>
+    {% endfor %}
+  {% endwith %}
+  <form method="POST" class="content-editor">
+    <section class="card">
+      <div class="section-heading"><div><p class="eyebrow">Editable fields</p><h2>Company logos and links</h2></div></div>
+      <p class="editor-help">Each item needs an <code>id</code>, company <code>name</code>, logo URL/path, and website <code>url</code>. Add or remove array items as your client list changes.</p>
+      <textarea name="clients_json" rows="28" spellcheck="false" required>{{ clients_json }}</textarea>
+    </section>
+    <button class="btn-submit" type="submit"><i class="fa-solid fa-floppy-disk"></i> Save client showcase</button>
+  </form>
+  {% include '_admin_shell_end.html' %}
+</body>
+</html>

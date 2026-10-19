@@ -12,27 +12,30 @@
   {% include '_admin_shell_start.html' %}
   <header class="topbar">
     <p class="eyebrow">GLOBSoft Tech / Homepage Content</p>
-    <h1>Manage pricing and client showcase</h1>
-    <p class="topbar-subtitle">Use valid JSON arrays to update the public website without editing frontend code.</p>
+    <h1>Choose what you want to update</h1>
+    <p class="topbar-subtitle">Manage each public homepage section independently. Your changes are saved to the live content database.</p>
   </header>
   {% with messages = get_flashed_messages(with_categories=true) %}
     {% for category, message in messages %}
       <div class="flash {{ category }}">{{ message }}</div>
     {% endfor %}
   {% endwith %}
-  <form method="POST" class="content-editor">
-    <section class="card">
-      <div class="section-heading"><div><p class="eyebrow">Pricing cards</p><h2>Prices, discounts and offers</h2></div></div>
-      <p class="editor-help">Each item supports <code>original_price</code>, <code>price</code>, and <code>offer</code>. Set <code>original_price</code> to the old price and <code>price</code> to the discounted price. Use <code>null</code> for contact-only pricing.</p>
-      <textarea name="pricing_json" rows="24" spellcheck="false" required>{{ pricing_json }}</textarea>
-    </section>
-    <section class="card">
-      <div class="section-heading"><div><p class="eyebrow">Client showcase</p><h2>Logos and website links</h2></div></div>
-      <p class="editor-help">Add as many clients as needed. Every item needs an <code>id</code>, <code>name</code>, <code>logo</code> URL/path, and website <code>url</code>.</p>
-      <textarea name="clients_json" rows="18" spellcheck="false" required>{{ clients_json }}</textarea>
-    </section>
-    <button class="btn-submit" type="submit"><i class="fa-solid fa-floppy-disk"></i> Save homepage content</button>
-  </form>
+  <section class="content-choice-grid" aria-label="Homepage content tools">
+    <a class="content-choice-card" href="/site-content/pricing">
+      <span class="content-choice-icon"><i class="fa-solid fa-tags"></i></span>
+      <span class="eyebrow">Pricing section</span>
+      <h2>Pricing Cards</h2>
+      <p>Edit plans, prices, discounts, seasonal offers, and features.</p>
+      <strong>Manage pricing <i class="fa-solid fa-arrow-right"></i></strong>
+    </a>
+    <a class="content-choice-card" href="/site-content/clients">
+      <span class="content-choice-icon"><i class="fa-solid fa-building"></i></span>
+      <span class="eyebrow">Client section</span>
+      <h2>Client Showcase</h2>
+      <p>Edit company names, logos, and the website links shown on the homepage.</p>
+      <strong>Manage clients <i class="fa-solid fa-arrow-right"></i></strong>
+    </a>
+  </section>
   {% include '_admin_shell_end.html' %}
 </body>
 </html>

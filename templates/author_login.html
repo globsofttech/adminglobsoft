@@ -1,0 +1,12 @@
+<!DOCTYPE html>
+<html lang="en">
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}"><title>Author Login - Globsoft Tech</title></head>
+<body class="login-page">
+  <main class="login-card">
+    <p class="eyebrow">GLOBSoft Tech / Blog Studio</p><h1>Author login</h1><p>Sign in to write and manage blog posts.</p>
+    {% with messages = get_flashed_messages(with_categories=true) %}{% for category, message in messages %}<div class="flash {{ category }}">{{ message }}</div>{% endfor %}{% endwith %}
+    <form method="POST"><label>Email<input type="email" name="email" required></label><label>Password<input type="password" name="password" required></label><button type="submit">Sign in</button></form>
+    <a href="/">Admin login</a>
+  </main>
+</body>
+</html>

@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="shortcut icon" type="image/svg+xml" href="{{ url_for('static', filename='images/globsoft.svg') }}">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/admin.css') }}">
+  <title>Pending Approval - Globsoft Tech</title>
+  <style>
+    body.pending-page {
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: #080a16;
+      font-family: 'Sora', sans-serif;
+      padding: 20px;
+      margin: 0;
+      color: #e2e5f5;
+    }
+    .pending-card {
+      max-width: 520px;
+      width: 100%;
+      background: #111426;
+      border: 1px solid rgba(255, 186, 73, 0.4);
+      border-radius: 20px;
+      padding: 40px 32px;
+      text-align: center;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.6), 0 0 40px rgba(255, 186, 73, 0.08);
+      position: relative;
+      overflow: hidden;
+    }
+    .pending-card::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 4px;
+      background: linear-gradient(90deg, #ffba49, #79fff7, #9b73ff);
+    }
+    .pending-avatar-box {
+      position: relative;
+      width: 80px;
+      height: 80px;
+      margin: 0 auto 20px;
+    }
+    .pending-avatar-img {
+      width: 80px;
+      height: 80px;
+      border-radius: 50%;
+      object-fit: cover;
+      border: 3px solid #ffba49;
+    }
+    .pending-avatar-fallback {
+      width: 80px;
+      height: 80px;
+      border-radius: 50%;
+      background: rgba(255, 186, 73, 0.15);
+      color: #ffba49;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 2rem;
+      font-weight: 700;
+      border: 3px solid #ffba49;
+    }
+    .status-clock-badge {
+      position: absolute;
+      bottom: -2px;
+      right: -2px;
+      width: 28px;
+      height: 28px;
+      background: #ffba49;
+      color: #080a16;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: .85rem;
+      border: 2px solid #111426;
+    }
+    .pending-title {
+      font-size: 1.5rem;
+      margin: 0 0 8px;
+      color: #ffffff;
+      font-weight: 700;
+    }
+    .pending-email-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: .8rem;
+      color: #ffba49;
+      background: rgba(255, 186, 73, 0.12);
+      border: 1px solid rgba(255, 186, 73, 0.25);
+      border-radius: 999px;
+      padding: 4px 14px;
+      margin-bottom: 20px;
+    }
+    .pending-body-text {
+      font-size: .88rem;
+      color: #9aa1bc;
+      line-height: 1.6;
+      margin: 0 0 28px;
+    }
+    .pending-info-box {
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 12px;
+      padding: 14px 18px;
+      text-align: left;
+      font-size: .78rem;
+      color: #79fff7;
+      margin-bottom: 28px;
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+    }
+    .pending-info-box i {
+      font-size: 1rem;
+      margin-top: 2px;
+      flex-shrink: 0;
+    }
+    .btn-check-status {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      width: 100%;
+      padding: 14px;
+      border-radius: 12px;
+      background: #79fff7;
+      color: #080a16;
+      font-size: .95rem;
+      font-weight: 700;
+      text-decoration: none;
+      cursor: pointer;
+      border: 0;
+      transition: .2s ease;
+      box-shadow: 0 0 20px rgba(121, 255, 247, 0.25);
+    }
+    .btn-check-status:hover {
+      background: #92fffa;
+      transform: translateY(-1px);
+    }
+    .logout-row {
+      margin-top: 20px;
+    }
+    .logout-row a {
+      color: #9aa1bc;
+      font-size: .82rem;
+      text-decoration: none;
+      transition: color .2s;
+    }
+    .logout-row a:hover {
+      color: #ff6b6b;
+    }
+    .pulse-dot {
+      display: inline-block;
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: #ffba49;
+      animation: pulse 1.6s infinite ease-in-out;
+      margin-right: 6px;
+    }
+    @keyframes pulse {
+      0%, 100% { opacity: 0.4; transform: scale(0.9); }
+      50% { opacity: 1; transform: scale(1.15); }
+    }
+  </style>
+</head>
+<body class="pending-page">
+  <div class="pending-card">
+    <div class="pending-avatar-box">
+      {% if avatar %}
+        <img src="{{ avatar }}" alt="{{ name }}" class="pending-avatar-img">
+      {% else %}
+        <div class="pending-avatar-fallback">{{ (name or 'A')[:1]|upper }}</div>
+      {% endif %}
+      <div class="status-clock-badge"><i class="fa-solid fa-clock"></i></div>
+    </div>
+
+    <h1 class="pending-title">Account Awaiting Approval</h1>
+    <div class="pending-email-badge">
+      <span class="pulse-dot"></span>
+      {{ email }}
+    </div>
+
+    <p class="pending-body-text">
+      Welcome, <strong>{{ name }}</strong>! Your Google sign-in was successful. Because Globsoft Tech is a production platform, new author accounts must be approved by the administrator before you can write and publish blogs.
+    </p>
+
+    <div class="pending-info-box">
+      <i class="fa-solid fa-shield-halved"></i>
+      <div>
+        <strong>Administrator Notification Sent</strong>
+        <p style="margin:2px 0 0;color:#9aa1bc;">The admin (info.globsoft@gmail.com) has received your request. Once approved in the Authors workspace, your account will be activated immediately.</p>
+      </div>
+    </div>
+
+    <button type="button" class="btn-check-status" onclick="window.location.reload();">
+      <i class="fa-solid fa-arrows-rotate"></i> Check Approval Status
+    </button>
+
+    <div class="logout-row">
+      <a href="/logout"><i class="fa-solid fa-arrow-right-from-bracket"></i> Sign out and return home</a>
+    </div>
+  </div>
+
+ <script>
+    // Silently check every 8 seconds if the admin has approved this author
+    setInterval(() => {
+      fetch('/pending-approval')
+        .then(response => {
+          // If approved, the backend redirects to "/" (so response.url won't have /pending-approval anymore)
+          if (response.redirected && !response.url.includes('/pending-approval')) {
+            window.location.href = '/';
+          }
+        })
+        .catch(() => {});
+    }, 8000);
+  </script>
+</body>
+</html>

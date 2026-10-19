@@ -1,0 +1,509 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="shortcut icon" type="image/svg+xml" href="{{ url_for('static', filename='images/globsoft.svg') }}">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/admin.css') }}">
+  <title>Author Management - Globsoft Tech</title>
+  <style>
+    /* ---- Authors Grid & Cards ---- */
+    .author-stats-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 16px;
+      max-width: 1200px;
+      margin: 0 auto 24px;
+    }
+    .author-stat-card {
+      padding: 18px 20px;
+      border: 1px solid var(--admin-line);
+      border-radius: 14px;
+      background: var(--admin-panel);
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+    .author-stat-icon {
+      width: 44px;
+      height: 44px;
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.15rem;
+      flex-shrink: 0;
+    }
+    .author-stat-icon.cyan   { background: rgba(121, 255, 247, 0.12); color: var(--admin-cyan); }
+    .author-stat-icon.green  { background: rgba(122, 219, 120, 0.12); color: #7adb78; }
+    .author-stat-icon.amber  { background: rgba(255, 186, 73, 0.14); color: #ffba49; }
+    .author-stat-val { font-size: 1.45rem; font-weight: 700; color: var(--admin-text); line-height: 1.1; margin: 0; }
+    .author-stat-lbl { font-size: .72rem; color: var(--admin-muted); margin-top: 3px; }
+
+    /* ---- Controls bar ---- */
+    .author-toolbar {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      align-items: center;
+      justify-content: space-between;
+      max-width: 1200px;
+      margin: 0 auto 20px;
+    }
+    .author-search-box {
+      position: relative;
+      min-width: 260px;
+      flex: 1;
+      max-width: 380px;
+    }
+    .author-search-box i {
+      position: absolute;
+      left: 14px;
+      top: 50%;
+      transform: translateY(-50%);
+      color: var(--admin-muted);
+      font-size: .85rem;
+    }
+    .author-search-box input {
+      width: 100%;
+      padding: 10px 14px 10px 38px;
+      border: 1px solid var(--admin-line);
+      border-radius: 10px;
+      background: var(--admin-panel-2);
+      color: var(--admin-text);
+      font-size: .85rem;
+    }
+    .filter-tabs { display: flex; gap: 6px; }
+    .filter-tab {
+      padding: 8px 14px;
+      border-radius: 8px;
+      border: 1px solid var(--admin-line);
+      background: var(--admin-panel);
+      color: var(--admin-muted);
+      font-size: .75rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: .18s;
+    }
+    .filter-tab.active, .filter-tab:hover {
+      border-color: var(--admin-cyan);
+      color: var(--admin-cyan);
+      background: rgba(121, 255, 247, 0.08);
+    }
+    .filter-tab .badge-count {
+      display: inline-block;
+      padding: 1px 6px;
+      border-radius: 999px;
+      font-size: .65rem;
+      margin-left: 4px;
+      background: var(--admin-line);
+      color: var(--admin-text);
+    }
+    .filter-tab.active .badge-count {
+      background: var(--admin-cyan);
+      color: #080a16;
+    }
+
+    /* ---- Author Card Row ---- */
+    .author-card-list {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      max-width: 1200px;
+      margin: 0 auto 30px;
+    }
+    .author-card-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      padding: 18px 22px;
+      background: var(--admin-panel);
+      border: 1px solid var(--admin-line);
+      border-radius: 14px;
+      transition: border-color .2s ease, transform .2s ease;
+    }
+    .author-card-item:hover {
+      border-color: rgba(121, 255, 247, 0.35);
+    }
+    .author-card-item.is-pending {
+      border-color: rgba(255, 186, 73, 0.4);
+      background: linear-gradient(90deg, rgba(255, 186, 73, 0.04) 0%, var(--admin-panel) 50%);
+    }
+    .author-left {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      min-width: 0;
+      flex: 1;
+    }
+    .author-avatar-wrapper {
+      position: relative;
+      width: 48px;
+      height: 48px;
+      flex-shrink: 0;
+    }
+    .author-avatar-img {
+      width: 48px;
+      height: 48px;
+      border-radius: 50%;
+      object-fit: cover;
+      border: 2px solid var(--admin-line);
+    }
+    .author-avatar-placeholder {
+      width: 48px;
+      height: 48px;
+      border-radius: 50%;
+      background: rgba(121, 255, 247, 0.12);
+      color: var(--admin-cyan);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 700;
+      font-size: 1.1rem;
+      border: 2px solid var(--admin-line);
+    }
+    .author-details {
+      min-width: 0;
+    }
+    .author-name-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin-bottom: 3px;
+    }
+    .author-name-row h3 {
+      margin: 0;
+      font-size: 1.05rem;
+      color: var(--admin-text);
+      font-weight: 600;
+    }
+    .badge-google {
+      font-size: .68rem;
+      padding: 2px 8px;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.06);
+      color: var(--admin-muted);
+      border: 1px solid var(--admin-line);
+    }
+    .badge-status {
+      font-size: .68rem;
+      padding: 3px 9px;
+      border-radius: 999px;
+      font-weight: 700;
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+    }
+    .badge-status.approved {
+      background: rgba(122, 219, 120, 0.14);
+      color: #7adb78;
+      border: 1px solid rgba(122, 219, 120, 0.3);
+    }
+    .badge-status.pending {
+      background: rgba(255, 186, 73, 0.16);
+      color: #ffba49;
+      border: 1px solid rgba(255, 186, 73, 0.35);
+    }
+    .author-meta-sub {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      font-size: .78rem;
+      color: var(--admin-muted);
+      flex-wrap: wrap;
+    }
+    .author-meta-sub span {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+    }
+
+    /* ---- Actions on Right ---- */
+    .author-actions {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-shrink: 0;
+    }
+    .btn-approve {
+      background: #7adb78;
+      color: #080a16;
+      border: 0;
+      padding: 8px 16px;
+      border-radius: 10px;
+      font-size: .8rem;
+      font-weight: 700;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      transition: .2s;
+    }
+    .btn-approve:hover {
+      background: #8cf08a;
+      box-shadow: 0 0 12px rgba(122, 219, 120, 0.4);
+    }
+    .btn-toggle-suspend {
+      background: rgba(255, 107, 107, 0.12);
+      color: #ff8585;
+      border: 1px solid rgba(255, 107, 107, 0.3);
+      padding: 7px 14px;
+      border-radius: 10px;
+      font-size: .78rem;
+      font-weight: 600;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      transition: .2s;
+    }
+    .btn-toggle-suspend:hover {
+      background: rgba(255, 107, 107, 0.22);
+      color: #ff9b9b;
+    }
+    .btn-toggle-activate {
+      background: rgba(121, 255, 247, 0.12);
+      color: var(--admin-cyan);
+      border: 1px solid rgba(121, 255, 247, 0.3);
+      padding: 7px 14px;
+      border-radius: 10px;
+      font-size: .78rem;
+      font-weight: 600;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      transition: .2s;
+    }
+    .btn-toggle-activate:hover {
+      background: rgba(121, 255, 247, 0.22);
+    }
+    .btn-delete-author {
+      background: transparent;
+      color: var(--admin-muted);
+      border: 1px solid var(--admin-line);
+      width: 36px;
+      height: 36px;
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: .2s;
+    }
+    .btn-delete-author:hover {
+      color: #ff6b6b;
+      border-color: #ff6b6b;
+      background: rgba(255, 107, 107, 0.1);
+    }
+
+    /* ---- Manual Add Accordion ---- */
+    .manual-add-section {
+      max-width: 1200px;
+      margin: 20px auto 40px;
+      padding: 22px;
+      border: 1px solid var(--admin-line);
+      border-radius: 14px;
+      background: var(--admin-panel-2);
+    }
+  </style>
+</head>
+<body class="admin-page">
+  {% include '_admin_shell_start.html' %}
+
+  <header class="topbar">
+    <p class="eyebrow">Blog Studio / Access Control</p>
+    <h1>Author Management</h1>
+    <p class="topbar-subtitle">Review incoming Google sign-in accounts, grant author permissions, and manage article publishing privileges.</p>
+  </header>
+
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% for category, message in messages %}
+      <div class="flash {{ category }}">
+        <i class="fa-solid {{ 'fa-circle-check' if category == 'success' else 'fa-circle-exclamation' }}"></i>
+        <span>{{ message }}</span>
+      </div>
+    {% endfor %}
+  {% endwith %}
+
+  <!-- STATS OVERVIEW -->
+  {% if stats %}
+  <section class="author-stats-grid">
+    <div class="author-stat-card">
+      <div class="author-stat-icon cyan"><i class="fa-solid fa-users"></i></div>
+      <div>
+        <p class="author-stat-val">{{ stats.total }}</p>
+        <div class="author-stat-lbl">Registered Writers</div>
+      </div>
+    </div>
+    <div class="author-stat-card">
+      <div class="author-stat-icon green"><i class="fa-solid fa-user-check"></i></div>
+      <div>
+        <p class="author-stat-val">{{ stats.active }}</p>
+        <div class="author-stat-lbl">Active &amp; Approved</div>
+      </div>
+    </div>
+    <div class="author-stat-card" style="border-color:{% if stats.pending > 0 %}rgba(255, 186, 73, 0.5){% else %}var(--admin-line){% endif %};">
+      <div class="author-stat-icon amber"><i class="fa-solid fa-user-clock"></i></div>
+      <div>
+        <p class="author-stat-val" style="color:{% if stats.pending > 0 %}#ffba49{% else %}inherit{% endif %};">{{ stats.pending }}</p>
+        <div class="author-stat-lbl">Pending Review</div>
+      </div>
+    </div>
+  </section>
+  {% endif %}
+
+  <!-- FILTER & SEARCH -->
+  <div class="author-toolbar">
+    <div class="author-search-box">
+      <i class="fa-solid fa-magnifying-glass"></i>
+      <input type="text" id="authorSearch" placeholder="Filter by name or email..." oninput="filterAuthorCards()">
+    </div>
+    <div class="filter-tabs">
+      <button type="button" class="filter-tab active" data-filter="all" onclick="setAuthorFilter('all')">
+        All <span class="badge-count">{{ stats.total if stats else authors|length }}</span>
+      </button>
+      <button type="button" class="filter-tab" data-filter="pending" onclick="setAuthorFilter('pending')">
+        Pending <span class="badge-count" style="background:#ffba49;color:#080a16;">{{ stats.pending if stats else 0 }}</span>
+      </button>
+      <button type="button" class="filter-tab" data-filter="approved" onclick="setAuthorFilter('approved')">
+        Approved <span class="badge-count">{{ stats.active if stats else 0 }}</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- AUTHOR CARDS LIST -->
+  <section class="author-card-list" id="authorList">
+    {% for author in authors %}
+    <article class="author-card-item {% if not author.active %}is-pending{% endif %}"
+             data-name="{{ (author.name or '')|lower }}"
+             data-google-name="{{ (author.google_name or '')|lower }}"
+             data-email="{{ (author.email or '')|lower }}"
+             data-status="{{ 'approved' if author.active else 'pending' }}">
+      <div class="author-left">
+        <div class="author-avatar-wrapper">
+          {% if author.avatar_url %}
+            <img src="{{ author.avatar_url }}" alt="{{ author.name }}" class="author-avatar-img">
+          {% else %}
+            <div class="author-avatar-placeholder">
+              {{ (author.name or 'A')[:1]|upper }}
+            </div>
+          {% endif %}
+        </div>
+        <div class="author-details">
+          <div class="author-name-row">
+            <h3>{{ author.name }}</h3>
+            {% if author.google_name and author.google_name != author.name %}
+              <span class="badge-google" title="Google account name"><i class="fa-brands fa-google"></i> {{ author.google_name }}</span>
+            {% endif %}
+            {% if author.active %}
+              <span class="badge-status approved"><i class="fa-solid fa-circle-check"></i> Approved</span>
+            {% else %}
+              <span class="badge-status pending"><i class="fa-solid fa-clock"></i> Pending Approval</span>
+            {% endif %}
+          </div>
+          <div class="author-meta-sub">
+            <span style="color:var(--admin-cyan);font-weight:500;"><i class="fa-regular fa-envelope"></i> {{ author.email }}</span>
+            <span><i class="fa-solid fa-file-lines"></i> <strong>{{ author.post_count or 0 }}</strong> articles</span>
+            {% if author.created_at %}
+              <span><i class="fa-regular fa-calendar"></i> Joined {{ author.created_at.strftime('%b %d, %Y') if author.created_at.strftime is defined else 'Recently' }}</span>
+            {% endif %}
+          </div>
+        </div>
+      </div>
+
+      <div class="author-actions">
+        {% if not author.active %}
+          <form method="POST" action="/authors/{{ author._id }}/approve" style="display:inline;">
+            <button type="submit" class="btn-approve">
+              <i class="fa-solid fa-check"></i> Approve
+            </button>
+          </form>
+        {% else %}
+          <form method="POST" action="/authors/{{ author._id }}/toggle" style="display:inline;">
+            <button type="submit" class="btn-toggle-suspend" title="Temporarily disable this author">
+              <i class="fa-solid fa-user-slash"></i> Suspend
+            </button>
+          </form>
+        {% endif %}
+        <form method="POST" action="/authors/{{ author._id }}/delete" onsubmit="return confirm('Remove author account for {{ author.name }}? Their posts will remain intact.');" style="display:inline;">
+          <button type="submit" class="btn-delete-author" title="Delete author">
+            <i class="fa-regular fa-trash-can"></i>
+          </button>
+        </form>
+      </div>
+    </article>
+    {% else %}
+    <div class="empty-state">
+      <i class="fa-solid fa-users" style="font-size:2.4rem;color:var(--admin-cyan);margin-bottom:12px;"></i>
+      <h2>No author accounts yet</h2>
+      <p>When writers log in via Google/Clerk, they will appear here awaiting your approval.</p>
+    </div>
+    {% endfor %}
+    <div id="noAuthorsMatch" class="empty-state" style="display:none;">
+      <i class="fa-solid fa-filter-circle-xmark" style="font-size:2.4rem;color:var(--admin-muted);margin-bottom:12px;"></i>
+      <h2>No authors match your filter</h2>
+      <p>Try clearing your search query or switching tabs.</p>
+    </div>
+  </section>
+
+  <!-- MANUAL INVITE / FALLBACK REGISTRATION -->
+  <section class="manual-add-section">
+    <h3 style="margin:0 0 6px;font-size:1.05rem;color:var(--admin-text);"><i class="fa-solid fa-user-plus" style="color:var(--admin-cyan);margin-right:8px;"></i>Manually register author</h3>
+    <p style="margin:0 0 16px;font-size:.8rem;color:var(--admin-muted);">Authors can sign in directly with Google. You can also manually create pre-approved credentials below.</p>
+    <form method="POST" class="form-grid">
+      <label>Display Name<input name="name" required placeholder="Jane Doe"></label>
+      <label>Email<input name="email" type="email" required placeholder="jane@example.com"></label>
+      <label>Temporary Password<input name="password" type="password" minlength="8" required placeholder="Minimum 8 characters"></label>
+      <div class="form-submit-align">
+        <button class="btn-submit" type="submit"><i class="fa-solid fa-plus"></i> Add Pre-Approved Author</button>
+      </div>
+    </form>
+  </section>
+
+  {% include '_admin_shell_end.html' %}
+
+  <script>
+    let currentAuthorFilter = 'all';
+
+    function setAuthorFilter(status) {
+      currentAuthorFilter = status;
+      document.querySelectorAll('.filter-tab').forEach(t => {
+        t.classList.toggle('active', t.getAttribute('data-filter') === status);
+      });
+      filterAuthorCards();
+    }
+
+    function filterAuthorCards() {
+      const q = (document.getElementById('authorSearch').value || '').trim().toLowerCase();
+      const cards = document.querySelectorAll('.author-card-item');
+      let visibleCount = 0;
+
+      cards.forEach(card => {
+        const name = card.getAttribute('data-name') || '';
+        const googleName = card.getAttribute('data-google-name') || '';
+        const email = card.getAttribute('data-email') || '';
+        const status = card.getAttribute('data-status') || '';
+
+        const matchesQuery = !q || name.includes(q) || googleName.includes(q) || email.includes(q);
+        const matchesStatus = currentAuthorFilter === 'all' || status === currentAuthorFilter;
+
+        if (matchesQuery && matchesStatus) {
+          card.style.display = 'flex';
+          visibleCount++;
+        } else {
+          card.style.display = 'none';
+        }
+      });
+
+      const emptyMsg = document.getElementById('noAuthorsMatch');
+      if (emptyMsg) {
+        emptyMsg.style.display = (visibleCount === 0 && cards.length > 0) ? 'block' : 'none';
+      }
+    }
+  </script>
+</body>
+</html>

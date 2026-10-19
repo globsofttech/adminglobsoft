@@ -1,0 +1,877 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="shortcut icon" type="image/svg+xml" href="{{ url_for('static', filename='images/globsoft.svg') }}">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+  <!-- Quill rich-text editor -->
+  <link rel="stylesheet" href="https://cdn.quilljs.com/1.3.7/quill.snow.css">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/admin.css') }}">
+  <title>{{ 'Edit' if blog else 'Write' }} Blog - Globsoft Tech</title>
+  <style>
+    /* ---- Topbar & Action bar ---- */
+    .editor-topbar {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      margin-bottom: 24px;
+      padding-bottom: 20px;
+      border-bottom: 1px solid var(--admin-line);
+      max-width: 1200px;
+      margin-left: auto;
+      margin-right: auto;
+    }
+    .editor-top-left { display: flex; flex-direction: column; gap: 4px; }
+    .editor-top-actions { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+    .btn-view-live {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      padding: 10px 16px;
+      border-radius: 10px;
+      border: 1px solid rgba(121, 255, 247, 0.4);
+      background: rgba(121, 255, 247, 0.08);
+      color: var(--admin-cyan);
+      font: 600 .78rem "Sora", sans-serif;
+      text-decoration: none;
+      transition: .2s ease;
+    }
+    .btn-view-live:hover {
+      background: rgba(121, 255, 247, 0.18);
+      color: #fff;
+      border-color: var(--admin-cyan);
+    }
+    .btn-cancel {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      padding: 10px 16px;
+      border-radius: 10px;
+      border: 1px solid var(--admin-line);
+      background: var(--admin-panel-2);
+      color: var(--admin-muted);
+      font: 600 .78rem "Sora", sans-serif;
+      text-decoration: none;
+      transition: .2s ease;
+    }
+    .btn-cancel:hover { color: var(--admin-text); border-color: rgba(166,177,221,.3); }
+
+    /* ---- Form group styles ---- */
+    .form-group { display: flex; flex-direction: column; gap: 8px; margin-bottom: 18px; }
+    .field-label { font-size: .8rem; font-weight: 600; color: var(--admin-text); display: flex; align-items: center; justify-content: space-between; }
+    .field-counter { font-size: .68rem; color: var(--admin-muted); font-weight: 400; }
+    .field-hint { font-size: .7rem; color: var(--admin-muted); font-weight: 400; margin-left: 6px; }
+
+    /* ---- Quill Editor Overrides ---- */
+    .quill-wrapper {
+      border-radius: 12px;
+      overflow: hidden;
+      border: 1px solid var(--admin-line);
+      background: var(--admin-panel-2);
+      transition: border-color .2s ease;
+    }
+    .quill-wrapper:focus-within {
+      border-color: var(--admin-cyan);
+      box-shadow: 0 0 0 1px rgba(121, 255, 247, 0.25);
+    }
+    .ql-toolbar.ql-snow {
+      border: 0 !important;
+      border-bottom: 1px solid var(--admin-line) !important;
+      background: var(--admin-bg) !important;
+      padding: 12px 14px !important;
+    }
+    .ql-container.ql-snow {
+      border: 0 !important;
+      background: var(--admin-panel-2) !important;
+      min-height: 360px;
+      font: 400 .95rem/1.75 "Sora", sans-serif;
+      color: var(--admin-text);
+    }
+    .ql-editor {
+      min-height: 360px;
+      padding: 20px !important;
+      color: #e2e5f5;
+    }
+    .ql-editor.ql-blank::before {
+      color: var(--admin-muted) !important;
+      font-style: normal;
+      left: 20px;
+      right: 20px;
+    }
+    .ql-toolbar .ql-stroke { stroke: var(--admin-muted) !important; }
+    .ql-toolbar .ql-fill { fill: var(--admin-muted) !important; }
+    .ql-toolbar .ql-picker-label { color: var(--admin-muted) !important; }
+    .ql-toolbar button:hover .ql-stroke,
+    .ql-toolbar button.ql-active .ql-stroke { stroke: var(--admin-cyan) !important; }
+    .ql-toolbar button:hover .ql-fill,
+    .ql-toolbar button.ql-active .ql-fill { fill: var(--admin-cyan) !important; }
+    .ql-toolbar button:hover .ql-picker-label,
+    .ql-toolbar .ql-picker-label:hover { color: var(--admin-cyan) !important; }
+    .ql-picker-options {
+      background: var(--admin-panel) !important;
+      border: 1px solid var(--admin-line) !important;
+      border-radius: 8px !important;
+      padding: 6px !important;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.5) !important;
+    }
+    .ql-picker-item { color: var(--admin-muted) !important; }
+    .ql-picker-item:hover, .ql-picker-item.ql-selected { color: var(--admin-cyan) !important; }
+    .ql-tooltip {
+      background: var(--admin-panel) !important;
+      border: 1px solid var(--admin-line) !important;
+      border-radius: 8px !important;
+      color: var(--admin-text) !important;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.5) !important;
+    }
+    .ql-tooltip input[type=text] {
+      background: var(--admin-panel-2) !important;
+      color: var(--admin-text) !important;
+      border: 1px solid var(--admin-line) !important;
+      border-radius: 6px !important;
+    }
+
+    /* Quill Typography inside editor */
+    .ql-snow .ql-editor h1 { font-size: 1.6rem; font-weight: 700; color: #fff; margin: 1.2rem 0 .6rem; }
+    .ql-snow .ql-editor h2 { font-size: 1.3rem; font-weight: 700; color: var(--admin-cyan); margin: 1rem 0 .5rem; }
+    .ql-snow .ql-editor h3 { font-size: 1.1rem; font-weight: 600; color: #bca0ff; margin: .8rem 0 .4rem; }
+    .ql-snow .ql-editor p { margin: 0 0 1rem; line-height: 1.8; }
+    .ql-snow .ql-editor a { color: var(--admin-cyan); text-decoration: underline; }
+    .ql-snow .ql-editor blockquote {
+      border-left: 3px solid var(--admin-cyan);
+      padding: 10px 18px;
+      margin: 1.2rem 0;
+      color: #a4abd1;
+      background: rgba(121, 255, 247, 0.04);
+      border-radius: 0 8px 8px 0;
+    }
+    .ql-snow .ql-editor pre.ql-syntax, .ql-snow .ql-editor code {
+      background: #060813 !important;
+      color: var(--admin-cyan) !important;
+      border-radius: 8px;
+      border: 1px solid rgba(121, 255, 247, 0.15);
+      padding: 14px 18px;
+      font-family: "Source Code Pro", monospace;
+    }
+    .ql-snow .ql-editor img {
+      max-width: 100%;
+      height: auto;
+      border-radius: 10px;
+      margin: 1rem 0;
+      border: 1px solid var(--admin-line);
+      box-shadow: 0 8px 24px rgba(0,0,0,0.3);
+    }
+
+    /* ---- Cover Dropzone ---- */
+    .cover-dropzone-container {
+      border: 2px dashed var(--admin-line);
+      border-radius: 14px;
+      padding: 24px;
+      text-align: center;
+      background: var(--admin-panel-2);
+      transition: border-color .2s ease, background .2s ease;
+    }
+    .cover-dropzone-container.dragover {
+      border-color: var(--admin-cyan);
+      background: rgba(121, 255, 247, 0.05);
+    }
+    .cover-dropzone-prompt {
+      cursor: pointer;
+      padding: 20px 10px;
+      border-radius: 10px;
+    }
+    .cover-dropzone-prompt:hover {
+      background: rgba(121, 255, 247, 0.03);
+    }
+    .cover-image-preview {
+      max-width: 420px;
+      max-height: 220px;
+      border-radius: 12px;
+      object-fit: cover;
+      border: 1px solid var(--admin-line);
+      margin: 0 auto;
+      display: block;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+    }
+
+    /* ---- SEO Preview Card ---- */
+    .seo-preview-card {
+      margin-top: 18px;
+      padding: 18px 22px;
+      border: 1px solid var(--admin-line);
+      border-radius: 14px;
+      background: var(--admin-panel-2);
+    }
+    .seo-preview-card .seo-domain { font-size: .72rem; color: #7adb78; margin-bottom: 5px; font-weight: 500; }
+    .seo-preview-card .seo-ptitle { font-size: 1.05rem; font-weight: 700; color: #79fff7; margin: 0 0 6px; }
+    .seo-preview-card .seo-pdesc { font-size: .82rem; color: var(--admin-muted); margin: 0; line-height: 1.6; }
+    .seo-section-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
+    .social-badge { font-size: .65rem; padding: 3px 8px; border-radius: 999px; font-weight: 700; }
+    .social-badge.fb { background: #1877f2; color: #fff; }
+    .social-badge.tw { background: #1d9bf0; color: #fff; }
+    .social-badge.li { background: #0a66c2; color: #fff; }
+
+    /* ---- Comments moderation list ---- */
+    .comment-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 16px;
+      padding: 16px 20px;
+      border: 1px solid var(--admin-line);
+      border-radius: 12px;
+      background: var(--admin-panel-2);
+      transition: opacity .3s ease, transform .3s ease;
+    }
+    .comment-item.deleting {
+      opacity: 0;
+      transform: scale(0.96);
+    }
+    .comment-delete-btn {
+      background: rgba(255, 152, 226, 0.08);
+      border: 1px solid rgba(255, 152, 226, 0.3);
+      color: #ff98e2;
+      border-radius: 8px;
+      font: 600 .72rem "Sora", sans-serif;
+      cursor: pointer;
+      padding: 6px 12px;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      transition: .2s ease;
+    }
+    .comment-delete-btn:hover {
+      background: rgba(255, 152, 226, 0.2);
+      border-color: #ff98e2;
+      color: #fff;
+    }
+
+    /* ---- Bottom sticky save bar ---- */
+    .form-bottom-bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      padding-top: 10px;
+      margin-top: 10px;
+    }
+  </style>
+</head>
+<body class="admin-page">
+  {% include '_admin_shell_start.html' %}
+
+  <!-- TOP HEADER / ACTION BAR -->
+  <div class="editor-topbar">
+    <div class="editor-top-left">
+      <a class="back-link" href="/blogs" style="margin-bottom:4px;"><i class="fa-solid fa-arrow-left"></i> Back to Blog Studio</a>
+      <h1 style="margin:0; font-size:1.6rem;">{{ 'Edit blog post' if blog else 'Write a new blog post' }}</h1>
+      <p style="margin:4px 0 0; color:var(--admin-muted); font-size:.8rem;">
+        {{ 'Update article content, media, SEO tags, or manage reader comments.' if blog else 'Create a search-friendly, engaging post with rich formatting and MongoDB media.' }}
+      </p>
+    </div>
+    <div class="editor-top-actions">
+      {% if blog and blog.status == 'published' %}
+        <span class="status-pill published"><i class="fa-solid fa-circle" style="font-size:.5rem;margin-right:4px;"></i> Live</span>
+        <a class="btn-view-live" href="http://localhost:5173/blog/{{ blog.slug }}" target="_blank" rel="noopener">
+          <i class="fa-solid fa-arrow-up-right-from-square"></i> View live post
+        </a>
+      {% elif blog %}
+        <span class="status-pill draft"><i class="fa-solid fa-file-pen" style="font-size:.6rem;margin-right:4px;"></i> Draft</span>
+      {% endif %}
+      <a class="btn-cancel" href="/blogs"><i class="fa-solid fa-xmark"></i> Cancel</a>
+      <button class="btn-submit" type="button" onclick="submitBlogForm()">
+        <i class="fa-solid fa-floppy-disk"></i> {{ 'Save changes' if blog else 'Publish article' }}
+      </button>
+    </div>
+  </div>
+
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% for category, message in messages %}
+      <div class="flash {{ category }}">
+        <i class="fa-solid {{ 'fa-circle-check' if category == 'success' else 'fa-circle-exclamation' }}"></i>
+        <span>{{ message }}</span>
+      </div>
+    {% endfor %}
+  {% endwith %}
+
+  <!-- MAIN BLOG FORM -->
+  <form method="POST" enctype="multipart/form-data" class="blog-editor-form" id="blogForm">
+    
+    <!-- ===== 1. CORE ARTICLE DETAILS ===== -->
+    <section class="card">
+      <div class="form-grid">
+        <div class="form-group">
+          <label class="field-label" for="titleInput">
+            Title
+            <span class="field-counter"><span id="titleCount">{{ blog.title|length if blog else 0 }}</span>/180</span>
+          </label>
+          <input name="title" id="titleInput" required maxlength="180"
+                 value="{{ blog.title if blog else '' }}"
+                 placeholder="How Next-Gen Web Architecture Drives Business Growth"
+                 oninput="handleTitleInput(this.value)">
+        </div>
+
+        <div class="form-group">
+          <label class="field-label" for="slugInput">
+            URL Slug
+            <span class="field-hint">(auto-generated from title)</span>
+          </label>
+          <input name="slug" id="slugInput" maxlength="180"
+                 value="{{ blog.slug if blog else '' }}"
+                 placeholder="next-gen-web-architecture-growth"
+                 oninput="handleSlugInput(this.value)">
+        </div>
+
+        <div class="form-group">
+          <label class="field-label" for="authorSelect">Author</label>
+          {% if is_admin %}
+          <input type="hidden" name="author" id="authorNameHidden" value="{{ blog.author if blog else (authors[0].name if authors else 'Globsoft Administrator') }}">
+          <input type="hidden" name="author_id" id="authorIdHidden" value="{{ blog.author_id if blog else '' }}">
+          <select name="author_email" id="authorSelect" required onchange="onAdminAuthorSelectChange(this)">
+            {% for author in authors %}
+              {% set is_selected = false %}
+              {% if blog %}
+                {% if blog.author_email and (blog.author_email|lower) == (author.email|lower) %}
+                  {% set is_selected = true %}
+                {% elif blog.created_by and (blog.created_by|lower) == (author.email|lower) %}
+                  {% set is_selected = true %}
+                {% elif not blog.author_email and not blog.created_by and blog.author == author.name %}
+                  {% set is_selected = true %}
+                {% endif %}
+              {% elif loop.first %}
+                {% set is_selected = true %}
+              {% endif %}
+              <option value="{{ author.email or '' }}" data-name="{{ author.name }}" data-id="{{ author._id or '' }}" {% if is_selected %}selected{% endif %}>
+                {{ author.name }}{% if author.email %} ({{ author.email }}){% endif %}
+              </option>
+            {% endfor %}
+          </select>
+          <small class="field-hint" style="display:block;margin-top:4px;">Account: <span id="authorEmailHint" style="color:var(--admin-cyan);">{{ blog.author_email or (authors[0].email if authors else '') }}</span></small>
+          {% else %}
+          <input type="hidden" name="author_email" value="{{ session.get('author_email') or session.get('user') }}">
+          <input type="hidden" name="author_id" value="{{ session.get('author_id') }}">
+          <input type="text" name="author" id="authorSelect" value="{{ session.get('author_name') }}" readonly style="background:var(--admin-panel-2);cursor:not-allowed;opacity:0.9;">
+          <small class="field-hint" style="display:block;margin-top:4px;">Publishing as: <strong style="color:var(--admin-cyan);">{{ session.get('author_name') }}</strong> ({{ session.get('author_email') or session.get('user') }}) · <a href="/author/profile" style="color:var(--admin-cyan);text-decoration:underline;">Change profile name</a></small>
+          {% endif %}
+        </div>
+
+        <div class="form-group">
+          <label class="field-label" for="categorySelect">Category</label>
+          <select name="category" id="categorySelect" required>
+            {% set current_cat = blog.category if blog else 'Technology' %}
+            <option value="Web Development" {% if current_cat == 'Web Development' %}selected{% endif %}>Web Development</option>
+            <option value="Mobile Apps" {% if current_cat == 'Mobile Apps' %}selected{% endif %}>Mobile Apps</option>
+            <option value="UI/UX Design" {% if current_cat == 'UI/UX Design' %}selected{% endif %}>UI/UX Design</option>
+            <option value="Tech Solutions" {% if current_cat == 'Tech Solutions' %}selected{% endif %}>Tech Solutions</option>
+            <option value="SEO & Growth" {% if current_cat == 'SEO & Growth' %}selected{% endif %}>SEO &amp; Growth</option>
+            <option value="Business Strategy" {% if current_cat == 'Business Strategy' %}selected{% endif %}>Business Strategy</option>
+            <option value="Cloud & Hosting" {% if current_cat == 'Cloud & Hosting' %}selected{% endif %}>Cloud &amp; Hosting</option>
+            <option value="Tutorials & Guides" {% if current_cat == 'Tutorials & Guides' %}selected{% endif %}>Tutorials &amp; Guides</option>
+            <option value="Technology" {% if current_cat == 'Technology' %}selected{% endif %}>Technology</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label class="field-label" for="tagsInput">
+            Topic Tags
+            <span class="field-hint">(comma-separated)</span>
+          </label>
+          <input name="tags" id="tagsInput" value="{{ blog.tags if blog else '' }}" placeholder="react, tailwind, mongodb, fullstack">
+        </div>
+
+        <div class="form-group">
+          <label class="field-label" for="statusSelect">Publish Status</label>
+          <select name="status" id="statusSelect">
+            <option value="draft" {% if not blog or blog.status == 'draft' %}selected{% endif %}>Draft (Saved internally)</option>
+            <option value="published" {% if blog and blog.status == 'published' %}selected{% endif %}>Published (Live on website)</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="form-group" style="margin-top: 10px;">
+        <label class="field-label" for="excerptInput">
+          Article Excerpt
+          <span class="field-counter"><span id="excerptCount">{{ blog.excerpt|length if blog else 0 }}</span>/320</span>
+        </label>
+        <textarea name="excerpt" id="excerptInput" maxlength="320" rows="3" required
+                  placeholder="A concise, compelling summary shown on blog cards and search engine results."
+                  oninput="handleExcerptInput(this.value)">{{ blog.excerpt if blog else '' }}</textarea>
+      </div>
+
+      <!-- RICH TEXT CONTENT AREA -->
+      <div class="form-group" style="margin-top: 14px;">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+          <span class="field-label" style="margin:0;">Article Body</span>
+          <span id="readTimeIndicator" style="font-size:.75rem; color:var(--admin-cyan); font-weight:600;">
+            <i class="fa-solid fa-clock"></i> ~1 min read (0 words)
+          </span>
+        </div>
+        
+        <!-- Hidden textarea which holds server value and is updated before submission -->
+        <textarea name="content" id="contentInput" style="display:none;">{{ blog.content if blog else '' }}</textarea>
+        
+        <!-- Quill Editor container: KEEP CLEAN WITH NO INITIAL CHILDREN -->
+        <div class="quill-wrapper">
+          <div id="quillEditor"></div>
+        </div>
+        <span class="field-hint" style="margin-top:6px; display:block;">
+          <i class="fa-solid fa-circle-info" style="color:var(--admin-cyan);"></i> You can drag &amp; drop images directly into the editor or click the image icon in the toolbar. Images are stored securely in MongoDB.
+        </span>
+      </div>
+
+      <!-- COVER IMAGE SECTION -->
+      <div class="form-group" style="margin-top: 24px;">
+        <span class="field-label">Featured Cover Image <span class="field-hint">(JPG, PNG, WEBP, GIF, SVG · max 10 MB)</span></span>
+        <input type="hidden" name="remove_cover_image" id="removeCoverInput" value="0">
+        <input type="file" name="cover_image" id="coverImageInput"
+               accept="image/jpeg,image/png,image/webp,image/gif,image/svg+xml"
+               style="display:none"
+               onchange="handleCoverSelected(this)">
+
+        <div class="cover-dropzone-container" id="coverDropzone">
+          <!-- Dropzone Prompt (shown when no cover image exists) -->
+          <div id="dropzonePrompt" class="cover-dropzone-prompt"
+               style="{% if blog and blog.image_data %}display:none;{% endif %}"
+               onclick="document.getElementById('coverImageInput').click()">
+            <i class="fa-solid fa-cloud-arrow-up" style="font-size:2rem; color:var(--admin-cyan); margin-bottom:10px; display:block;"></i>
+            <span style="font-weight:600; color:var(--admin-text); font-size:.9rem; display:block;">
+              Click to browse or drag &amp; drop your cover photo
+            </span>
+            <span class="field-hint" style="display:block; margin-top:6px;">
+              Used for the featured banner and Open Graph social sharing cards (1200×630 recommended).
+            </span>
+          </div>
+
+          <!-- Cover Image Preview (shown when image exists) -->
+          <div id="coverPreviewBox" style="{% if not blog or not blog.image_data %}display:none;{% endif %}">
+            {% if blog and blog.image_data %}
+              <img src="/api/blog-images/{{ blog._id }}" alt="Cover" class="cover-image-preview" id="coverPreview">
+            {% else %}
+              <img src="" alt="Cover preview" class="cover-image-preview" id="coverPreview">
+            {% endif %}
+            <div style="margin-top:12px; display:flex; gap:10px; justify-content:center;">
+              <button type="button" class="secondary-action" style="padding:7px 14px; font-size:.74rem;" onclick="document.getElementById('coverImageInput').click();">
+                <i class="fa-solid fa-arrows-rotate"></i> Change image
+              </button>
+              <button type="button" class="secondary-action" style="padding:7px 14px; font-size:.74rem; color:#ff98e2;" onclick="removeCoverImage();">
+                <i class="fa-solid fa-trash"></i> Remove cover
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===== 2. SEO & SOCIAL PREVIEW ===== -->
+    <section class="card">
+      <div class="seo-section-head">
+        <div>
+          <p class="eyebrow" style="margin:0 0 4px;">Search Engine Optimization</p>
+          <h2 style="margin:0; font-size:1.15rem;">Google &amp; Social Share Metadata</h2>
+          <p class="editor-help" style="margin:4px 0 0;">Customise how your article appears when shared on Google, LinkedIn, Twitter/X, and Facebook.</p>
+        </div>
+        <div style="display:flex; gap:6px;">
+          <span class="social-badge fb">FB</span>
+          <span class="social-badge tw">TW</span>
+          <span class="social-badge li">IN</span>
+        </div>
+      </div>
+
+      <div class="form-grid">
+        <div class="form-group">
+          <label class="field-label" for="seoTitleInput">
+            SEO Title
+            <span class="field-counter"><span id="seoTitleCount">{{ blog.seo_title|length if blog else 0 }}</span>/180</span>
+          </label>
+          <input name="seo_title" id="seoTitleInput" maxlength="180"
+                 value="{{ blog.seo_title if blog else '' }}"
+                 placeholder="Leave empty to use main title"
+                 oninput="handleSeoTitleInput(this.value)">
+        </div>
+
+        <div class="form-group">
+          <label class="field-label" for="seoDescInput">
+            SEO Meta Description
+            <span class="field-counter"><span id="seoDescCount">{{ blog.seo_description|length if blog else 0 }}</span>/320</span>
+          </label>
+          <textarea name="seo_description" id="seoDescInput" maxlength="320" rows="3"
+                    placeholder="Leave empty to use main excerpt"
+                    oninput="handleSeoDescInput(this.value)">{{ blog.seo_description if blog else '' }}</textarea>
+        </div>
+      </div>
+
+      <!-- Live SEO Google Snippet Card -->
+      <div class="seo-preview-card">
+        <p class="seo-domain">globsoft.vercel.app › blog › <span id="previewSlug">{{ blog.slug if blog else 'your-blog-slug' }}</span></p>
+        <p class="seo-ptitle" id="previewTitle">{{ (blog.seo_title or blog.title) if blog else 'Your SEO title will appear here' }}</p>
+        <p class="seo-pdesc" id="previewDesc">{{ (blog.seo_description or blog.excerpt) if blog else 'Your SEO description will appear here. Keep it between 120–160 characters for best results.' }}</p>
+      </div>
+    </section>
+
+    <!-- ===== 3. READER COMMENTS MODERATION (NO NESTED FORMS!) ===== -->
+    {% if blog and blog.comments and blog.comments|length > 0 %}
+    <section class="card" id="commentsSection">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
+        <div>
+          <p class="eyebrow" style="margin:0 0 4px;">Community Discussion</p>
+          <h2 style="margin:0; font-size:1.15rem;">Reader comments (<span id="commentCounter">{{ blog.comments|length }}</span>)</h2>
+        </div>
+      </div>
+
+      <div style="display:grid; gap:12px;" id="commentsList">
+        {% for comment in blog.comments %}
+        <div class="comment-item" id="comment-{{ comment.id }}">
+          <div style="flex:1;">
+            <strong style="color:var(--admin-cyan); font-size:.86rem;">{{ comment.author_name }}</strong>
+            <span style="font-size:.72rem; color:var(--admin-muted); margin-left:8px;">{{ comment.created_at[:10] if comment.created_at else '' }}</span>
+            <p style="margin:6px 0 0; font-size:.85rem; color:var(--admin-text); line-height:1.5;">{{ comment.content }}</p>
+          </div>
+          <button type="button" class="comment-delete-btn" onclick="deleteComment('{{ blog._id }}', '{{ comment.id }}', this)">
+            <i class="fa-solid fa-trash"></i> Delete
+          </button>
+        </div>
+        {% endfor %}
+      </div>
+    </section>
+    {% endif %}
+
+    <!-- ===== 4. BOTTOM ACTION BAR ===== -->
+    <div class="form-bottom-bar">
+      <a class="btn-cancel" href="/blogs"><i class="fa-solid fa-arrow-left"></i> Back to Blogs</a>
+      <button class="btn-submit" type="button" onclick="submitBlogForm()">
+        <i class="fa-solid fa-floppy-disk"></i> {{ 'Save changes' if blog else 'Publish article' }}
+      </button>
+    </div>
+
+  </form>
+
+  {% include '_admin_shell_end.html' %}
+
+  <!-- Quill JS Library -->
+  <script src="https://cdn.quilljs.com/1.3.7/quill.min.js"></script>
+  <script>
+    // ---- 1. QUILL IMAGE UPLOADER ----
+    function quillImageHandler() {
+      const fileInput = document.createElement('input');
+      fileInput.setAttribute('type', 'file');
+      fileInput.setAttribute('accept', 'image/jpeg,image/png,image/webp,image/gif,image/svg+xml');
+      fileInput.click();
+
+      fileInput.onchange = async () => {
+        const file = fileInput.files[0];
+        if (!file) return;
+
+        if (file.size > 10 * 1024 * 1024) {
+          alert('Image must be 10 MB or smaller.');
+          return;
+        }
+
+        const range = quill.getSelection(true) || { index: quill.getLength() };
+        quill.insertText(range.index, ' [Uploading image...] ', { italic: true, color: '#79fff7' });
+
+        const formData = new FormData();
+        formData.append('image', file);
+
+        try {
+          const res = await fetch('/api/blog-images/upload', {
+            method: 'POST',
+            body: formData,
+          });
+          const data = await res.json();
+          // Remove placeholder text
+          quill.deleteText(range.index, 21);
+
+          if (data.success && data.url) {
+            quill.insertEmbed(range.index, 'image', data.url);
+            quill.setSelection(range.index + 1);
+          } else {
+            alert(data.error || 'Could not upload image. Please try again.');
+          }
+        } catch (err) {
+          quill.deleteText(range.index, 21);
+          alert('Network error while uploading image.');
+        }
+      };
+    }
+
+    // ---- 2. QUILL INITIALISATION ----
+    const quill = new Quill('#quillEditor', {
+      theme: 'snow',
+      placeholder: 'Write your article here. Use headings, bullet lists, bold text, and photos to craft engaging content...',
+      modules: {
+        toolbar: {
+          container: [
+            [{ header: [1, 2, 3, false] }],
+            ['bold', 'italic', 'underline', 'strike'],
+            [{ color: [] }, { background: [] }],
+            [{ list: 'ordered' }, { list: 'bullet' }],
+            [{ indent: '-1' }, { indent: '+1' }],
+            ['blockquote', 'code-block'],
+            ['link', 'image'],
+            ['clean'],
+          ],
+          handlers: {
+            image: quillImageHandler,
+          },
+        },
+      },
+    });
+
+    // Handle drag & drop image file directly onto Quill editor
+    const editorEl = quill.root;
+    editorEl.addEventListener('drop', async (e) => {
+      const files = e.dataTransfer && e.dataTransfer.files;
+      if (files && files.length > 0 && files[0].type.startsWith('image/')) {
+        e.preventDefault();
+        const file = files[0];
+        if (file.size > 10 * 1024 * 1024) {
+          alert('Image must be 10 MB or smaller.');
+          return;
+        }
+        const formData = new FormData();
+        formData.append('image', file);
+        try {
+          const res = await fetch('/api/blog-images/upload', { method: 'POST', body: formData });
+          const data = await res.json();
+          if (data.success && data.url) {
+            const range = quill.getSelection(true) || { index: quill.getLength() };
+            quill.insertEmbed(range.index, 'image', data.url);
+          }
+        } catch (err) {
+          console.error('Drop image upload error:', err);
+        }
+      }
+    });
+
+    // ---- 3. SAFELY LOAD EXISTING CONTENT INTO QUILL ----
+    const contentInput = document.getElementById('contentInput');
+    const existingContent = contentInput ? contentInput.value.trim() : '';
+    if (existingContent) {
+      // dangerouslyPasteHTML parses full HTML, creates Delta objects and renders styled text & images correctly
+      quill.clipboard.dangerouslyPasteHTML(0, existingContent);
+    }
+
+    // ---- 4. LIVE READ TIME & WORD COUNTER ----
+    function updateReadTime() {
+      const text = quill.getText().trim();
+      const words = text ? text.split(/\s+/).filter(Boolean).length : 0;
+      const readTime = Math.max(1, Math.round(words / 200));
+      const el = document.getElementById('readTimeIndicator');
+      if (el) el.innerHTML = `<i class="fa-solid fa-clock"></i> ~${readTime} min read (${words} words)`;
+    }
+    quill.on('text-change', updateReadTime);
+    updateReadTime();
+
+    // ---- 4b. ADMIN AUTHOR SELECT CHANGE HANDLER ----
+    function onAdminAuthorSelectChange(selectEl) {
+      if (!selectEl) return;
+      const opt = selectEl.options[selectEl.selectedIndex];
+      if (opt) {
+        const nameField = document.getElementById('authorNameHidden');
+        const idField = document.getElementById('authorIdHidden');
+        const hintEl = document.getElementById('authorEmailHint');
+        const authorName = opt.getAttribute('data-name') || '';
+        const authorId = opt.getAttribute('data-id') || '';
+        if (nameField) nameField.value = authorName;
+        if (idField) idField.value = authorId;
+        if (hintEl) hintEl.textContent = opt.value || 'No email associated';
+      }
+    }
+
+    // ---- 5. FORM SUBMISSION HANDLER ----
+    function submitBlogForm() {
+      const form = document.getElementById('blogForm');
+      const html = quill.root.innerHTML;
+      const text = quill.getText().trim();
+
+      // Check required fields
+      const title = document.getElementById('titleInput').value.trim();
+      const excerpt = document.getElementById('excerptInput').value.trim();
+
+      if (!title) {
+        alert('Please enter an article title.');
+        document.getElementById('titleInput').focus();
+        return;
+      }
+      if (!excerpt) {
+        alert('Please enter a short excerpt for the article.');
+        document.getElementById('excerptInput').focus();
+        return;
+      }
+      if (!text && (!html || html === '<p><br></p>')) {
+        alert('Please write some content in the article editor.');
+        quill.focus();
+        return;
+      }
+
+      // Ensure author fields are synced if admin select exists
+      const authorSelect = document.getElementById('authorSelect');
+      if (authorSelect && authorSelect.tagName === 'SELECT') {
+        onAdminAuthorSelectChange(authorSelect);
+      }
+
+      // Sync Quill HTML content into hidden textarea
+      contentInput.value = html;
+      form.submit();
+    }
+
+    // ---- 6. SLUG GENERATION & SEO PREVIEW ----
+    function slugify(text) {
+      return text.toLowerCase()
+        .replace(/[^a-z0-9\s-]/g, '')
+        .trim()
+        .replace(/[\s-]+/g, '-');
+    }
+
+    const slugInput = document.getElementById('slugInput');
+    let userHasManuallyEditedSlug = Boolean(slugInput && slugInput.value.trim() !== '');
+
+    function handleSlugInput(val) {
+      userHasManuallyEditedSlug = val.trim() !== '';
+      updateSeoPreview();
+    }
+
+    function handleTitleInput(title) {
+      document.getElementById('titleCount').textContent = title.length;
+      if (!userHasManuallyEditedSlug) {
+        slugInput.value = slugify(title);
+      }
+      updateSeoPreview();
+    }
+
+    function handleExcerptInput(excerpt) {
+      document.getElementById('excerptCount').textContent = excerpt.length;
+      updateSeoPreview();
+    }
+
+    function handleSeoTitleInput(val) {
+      document.getElementById('seoTitleCount').textContent = val.length;
+      updateSeoPreview();
+    }
+
+    function handleSeoDescInput(val) {
+      document.getElementById('seoDescCount').textContent = val.length;
+      updateSeoPreview();
+    }
+
+    function updateSeoPreview() {
+      const titleInput = document.getElementById('titleInput');
+      const excerptInput = document.getElementById('excerptInput');
+      const seoTitleInput = document.getElementById('seoTitleInput');
+      const seoDescInput = document.getElementById('seoDescInput');
+
+      const title = (seoTitleInput && seoTitleInput.value.trim()) || (titleInput && titleInput.value.trim()) || 'Your SEO title will appear here';
+      const desc  = (seoDescInput && seoDescInput.value.trim()) || (excerptInput && excerptInput.value.trim()) || 'Your SEO description will appear here. Keep it between 120–160 characters for best results.';
+      const slug  = (slugInput && slugInput.value.trim()) || 'your-blog-slug';
+
+      document.getElementById('previewTitle').textContent = title;
+      document.getElementById('previewDesc').textContent  = desc;
+      document.getElementById('previewSlug').textContent  = slug;
+    }
+
+    // ---- 7. COVER IMAGE HANDLER ----
+    function handleCoverSelected(input) {
+      const preview = document.getElementById('coverPreview');
+      const previewBox = document.getElementById('coverPreviewBox');
+      const promptBox = document.getElementById('dropzonePrompt');
+      document.getElementById('removeCoverInput').value = '0';
+
+      if (input.files && input.files[0]) {
+        const file = input.files[0];
+        if (file.size > 10 * 1024 * 1024) {
+          alert('Cover image must be 10 MB or smaller.');
+          input.value = '';
+          return;
+        }
+        const reader = new FileReader();
+        reader.onload = e => {
+          preview.src = e.target.result;
+          previewBox.style.display = 'block';
+          promptBox.style.display = 'none';
+        };
+        reader.readAsDataURL(file);
+      }
+    }
+
+    function removeCoverImage() {
+      document.getElementById('coverImageInput').value = '';
+      document.getElementById('removeCoverInput').value = '1';
+      document.getElementById('coverPreview').src = '';
+      document.getElementById('coverPreviewBox').style.display = 'none';
+      document.getElementById('dropzonePrompt').style.display = 'block';
+    }
+
+    // Drag & drop on cover dropzone
+    const dropzone = document.getElementById('coverDropzone');
+    if (dropzone) {
+      ['dragenter', 'dragover'].forEach(name => {
+        dropzone.addEventListener(name, (e) => {
+          e.preventDefault();
+          dropzone.classList.add('dragover');
+        });
+      });
+      ['dragleave', 'drop'].forEach(name => {
+        dropzone.addEventListener(name, (e) => {
+          e.preventDefault();
+          dropzone.classList.remove('dragover');
+        });
+      });
+      dropzone.addEventListener('drop', (e) => {
+        const files = e.dataTransfer && e.dataTransfer.files;
+        if (files && files.length > 0) {
+          const fileInput = document.getElementById('coverImageInput');
+          fileInput.files = files;
+          handleCoverSelected(fileInput);
+        }
+      });
+    }
+
+    // ---- 8. ASYNC COMMENT DELETION (NO NESTED FORMS!) ----
+    async function deleteComment(blogId, commentId, btn) {
+      if (!confirm('Are you sure you want to permanently delete this comment?')) return;
+      btn.disabled = true;
+      btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Deleting...';
+
+      try {
+        const res = await fetch(`/blogs/${blogId}/comments/${commentId}/delete`, {
+          method: 'POST',
+          headers: {
+            'X-Requested-With': 'XMLHttpRequest',
+            'Accept': 'application/json'
+          }
+        });
+        const data = await res.json();
+        if (data.success) {
+          const card = document.getElementById(`comment-${commentId}`);
+          if (card) {
+            card.classList.add('deleting');
+            setTimeout(() => {
+              card.remove();
+              // Update counter
+              const counter = document.getElementById('commentCounter');
+              if (counter) {
+                const count = Math.max(0, parseInt(counter.textContent || '1') - 1);
+                counter.textContent = count;
+                if (count === 0) {
+                  const section = document.getElementById('commentsSection');
+                  if (section) section.style.display = 'none';
+                }
+              }
+            }, 300);
+          }
+        } else {
+          alert(data.error || 'Could not delete comment.');
+          btn.disabled = false;
+          btn.innerHTML = '<i class="fa-solid fa-trash"></i> Delete';
+        }
+      } catch (err) {
+        alert('Network error while deleting comment.');
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fa-solid fa-trash"></i> Delete';
+      }
+    }
+  </script>
+</body>
+</html>

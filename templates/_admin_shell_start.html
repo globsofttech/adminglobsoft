@@ -6,17 +6,42 @@
     </a>
     <div class="sidebar-label">Workspace</div>
     <nav class="sidebar-nav" aria-label="Admin tools">
+     {% if session.get('role') == 'author' %}
+      <a class="nav-item {% if request.path == '/' %}active{% endif %}" href="/"><i class="fa-solid fa-table-cells-large"></i><span>Overview</span></a>
+      <a class="nav-item {% if request.path.startswith('/blogs') %}active{% endif %}" href="/blogs"><i class="fa-solid fa-file-pen"></i><span>My Articles</span></a>
+      <a class="nav-item {% if request.path == '/author/profile' %}active{% endif %}" href="/author/profile"><i class="fa-solid fa-user-gear"></i><span>My Profile</span></a>
+      {% else %}
       <a class="nav-item {% if request.path == '/' %}active{% endif %}" href="/"><i class="fa-solid fa-table-cells-large"></i><span>Overview</span></a>
       <a class="nav-item {% if request.path == '/customer' %}active{% endif %}" href="/customer"><i class="fa-solid fa-users"></i><span>Customer Management</span></a>
       <a class="nav-item {% if request.path == '/newsletter' %}active{% endif %}" href="/newsletter"><i class="fa-solid fa-envelope-open-text"></i><span>Newsletter</span></a>
-      <a class="nav-item {% if request.path == '/site-content' %}active{% endif %}" href="/site-content"><i class="fa-solid fa-pen-to-square"></i><span>Homepage Content</span></a>
+      <a class="nav-item {% if request.path.startswith('/blogs') %}active{% endif %}" href="/blogs"><i class="fa-solid fa-blog"></i><span>Blogs</span></a>
+      <a class="nav-item {% if request.path.startswith('/authors') %}active{% endif %}" href="/authors"><i class="fa-solid fa-user-pen"></i><span>Authors</span></a>
+      <a class="nav-item {% if request.path.startswith('/social-media') %}active{% endif %}" href="/social-media"><i class="fa-brands fa-meta"></i><span>Social Media</span></a>
+      <a class="nav-item {% if request.path.startswith('/site-content') %}active{% endif %}" href="/site-content"><i class="fa-solid fa-pen-to-square"></i><span>Homepage Content</span></a>
       <a class="nav-item {% if request.path == '/system-status' %}active{% endif %}" href="/system-status"><i class="fa-solid fa-signal"></i><span>System Status</span></a>
+      {% endif %}
     </nav>
     <button type="button" class="sidebar-toggle" id="sidebarToggle" aria-label="Collapse navigation" aria-expanded="true">
       <i class="fa-solid fa-bars"></i>
     </button>
     <div class="sidebar-footer">
+      {% if session.get('role') == 'author' %}
+      <div class="sidebar-user-info" style="display:flex;align-items:center;gap:10px;padding:8px 0;margin-bottom:8px;border-bottom:1px solid var(--admin-line);">
+        {% if session.get('avatar') %}
+          <img src="{{ session.get('avatar') }}" alt="" style="width:34px;height:34px;border-radius:50%;object-fit:cover;border:1.5px solid var(--admin-cyan);">
+        {% else %}
+          <div style="width:34px;height:34px;border-radius:50%;background:rgba(121,255,247,0.15);color:var(--admin-cyan);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:.85rem;">
+            {{ (session.get('author_name') or 'A')[:1]|upper }}
+          </div>
+        {% endif %}
+        <div style="overflow:hidden;line-height:1.2;">
+          <strong style="display:block;font-size:.8rem;color:var(--admin-text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">{{ session.get('author_name') or 'Author' }}</strong>
+          <span style="font-size:.67rem;color:var(--admin-cyan);font-weight:600;"><i class="fa-solid fa-circle" style="font-size:.45rem;vertical-align:middle;margin-right:3px;"></i>Author</span>
+        </div>
+      </div>
+      {% else %}
       <span class="status-indicator"><i></i> Admin workspace</span>
+      {% endif %}
       <form action="/logout" method="POST">
         <button type="submit" class="logout-link"><i class="fa-solid fa-arrow-right-from-bracket"></i> Logout</button>
       </form>

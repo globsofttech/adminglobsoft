@@ -1,0 +1,316 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="shortcut icon" type="image/svg+xml" href="{{ url_for('static', filename='images/globsoft.svg') }}">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/admin.css') }}">
+  <title>Blogs - Globsoft Tech</title>
+  <style>
+    /* ---- Blog Studio Dashboard Stats ---- */
+    .blog-stats-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 16px;
+      max-width: 1200px;
+      margin: 0 auto 24px;
+    }
+    .blog-stat-card {
+      padding: 18px 20px;
+      border: 1px solid var(--admin-line);
+      border-radius: 14px;
+      background: var(--admin-panel);
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+    .blog-stat-icon {
+      width: 44px;
+      height: 44px;
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.1rem;
+      flex-shrink: 0;
+    }
+    .blog-stat-icon.cyan   { background: rgba(121, 255, 247, 0.12); color: var(--admin-cyan); }
+    .blog-stat-icon.purple { background: rgba(155, 115, 255, 0.12); color: var(--admin-purple); }
+    .blog-stat-icon.green  { background: rgba(122, 219, 120, 0.12); color: #7adb78; }
+    .blog-stat-icon.pink   { background: rgba(255, 152, 226, 0.12); color: #ff98e2; }
+    .blog-stat-val { font-size: 1.45rem; font-weight: 700; color: var(--admin-text); line-height: 1.1; margin: 0; }
+    .blog-stat-lbl { font-size: .72rem; color: var(--admin-muted); margin-top: 3px; }
+
+    /* ---- Filter bar ---- */
+    .blog-filter-bar {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      align-items: center;
+      justify-content: space-between;
+      max-width: 1200px;
+      margin: 0 auto 20px;
+    }
+    .filter-left { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; flex: 1; }
+    .search-box {
+      position: relative;
+      min-width: 240px;
+      flex: 1;
+      max-width: 360px;
+    }
+    .search-box i {
+      position: absolute;
+      left: 12px;
+      top: 50%;
+      transform: translateY(-50%);
+      color: var(--admin-muted);
+      font-size: .8rem;
+    }
+    .search-box input {
+      width: 100%;
+      padding: 10px 14px 10px 34px;
+      border: 1px solid var(--admin-line);
+      border-radius: 10px;
+      background: var(--admin-panel-2);
+      color: var(--admin-text);
+      font-size: .8rem;
+    }
+    .filter-select {
+      padding: 10px 14px;
+      border: 1px solid var(--admin-line);
+      border-radius: 10px;
+      background: var(--admin-panel-2);
+      color: var(--admin-text);
+      font-size: .8rem;
+      cursor: pointer;
+    }
+    .filter-tabs { display: flex; gap: 6px; }
+    .filter-tab {
+      padding: 8px 14px;
+      border-radius: 8px;
+      border: 1px solid var(--admin-line);
+      background: var(--admin-panel);
+      color: var(--admin-muted);
+      font-size: .75rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: .18s;
+    }
+    .filter-tab.active, .filter-tab:hover {
+      background: var(--admin-panel-2);
+      color: var(--admin-cyan);
+      border-color: rgba(121, 255, 247, 0.4);
+    }
+
+    /* ---- Card meta badges ---- */
+    .badge-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      padding: 3px 8px;
+      border-radius: 6px;
+      font-size: .65rem;
+      font-weight: 600;
+      background: rgba(166, 177, 221, 0.1);
+      color: var(--admin-muted);
+    }
+    .badge-pill.category { background: rgba(121, 255, 247, 0.12); color: var(--admin-cyan); }
+    .badge-pill.views    { background: rgba(122, 219, 120, 0.12); color: #7adb78; }
+    .badge-pill.comments { background: rgba(155, 115, 255, 0.12); color: var(--admin-purple); }
+  </style>
+</head>
+<body class="admin-page">
+  {% include '_admin_shell_start.html' %}
+  <header class="topbar">
+    <p class="eyebrow">{% if is_admin %}GLOBSoft Tech / Blog Studio{% else %}GLOBSoft Tech / Author Studio{% endif %}</p>
+    <h1>{% if is_admin %}Blog Studio{% else %}My Articles{% endif %}</h1>
+    <p class="topbar-subtitle">{% if is_admin %}Write, edit, and publish high-ranking articles with images, categories, and reader engagement.{% else %}Write and manage your articles. Your profile details and Google avatar appear automatically on every post.{% endif %}</p>
+  </header>
+
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% for category, message in messages %}<div class="flash {{ category }}">{{ message }}</div>{% endfor %}
+  {% endwith %}
+
+  <!-- Quick Stat Overview (from FlaskBlog) -->
+  {% if stats %}
+  <section class="blog-stats-grid">
+    <div class="blog-stat-card">
+      <div class="blog-stat-icon cyan"><i class="fa-solid fa-file-lines"></i></div>
+      <div>
+        <p class="blog-stat-val">{{ stats.total }}</p>
+        <div class="blog-stat-lbl">{{ stats.published }} published · {{ stats.drafts }} drafts</div>
+      </div>
+    </div>
+    <div class="blog-stat-card">
+      <div class="blog-stat-icon green"><i class="fa-solid fa-eye"></i></div>
+      <div>
+        <p class="blog-stat-val">{{ stats.views }}</p>
+        <div class="blog-stat-lbl">Total Article Views</div>
+      </div>
+    </div>
+    <div class="blog-stat-card">
+      <div class="blog-stat-icon purple"><i class="fa-solid fa-comments"></i></div>
+      <div>
+        <p class="blog-stat-val">{{ stats.comments }}</p>
+        <div class="blog-stat-lbl">Reader Comments</div>
+      </div>
+    </div>
+    <div class="blog-stat-card">
+      <div class="blog-stat-icon pink"><i class="fa-solid fa-user-pen"></i></div>
+      <div>
+        <p class="blog-stat-val">{{ stats.authors }}</p>
+        <div class="blog-stat-lbl">Active Authors</div>
+      </div>
+    </div>
+  </section>
+  {% endif %}
+
+  <!-- Top Action Buttons -->
+  <div class="page-actions">
+    <a class="btn-submit" href="/blogs/new"><i class="fa-solid fa-plus"></i> Write a blog</a>
+    {% if is_admin %}
+      <a class="secondary-action" href="/authors"><i class="fa-solid fa-user-pen"></i> Manage authors</a>
+    {% else %}
+      <a class="secondary-action" href="/author/profile"><i class="fa-solid fa-user-gear"></i> My Profile</a>
+    {% endif %}
+  </div>
+
+  <!-- Search & Filter Controls (from FlaskBlog) -->
+  <div class="blog-filter-bar">
+    <div class="filter-left">
+      <div class="search-box">
+        <i class="fa-solid fa-magnifying-glass"></i>
+        <input type="text" id="searchInput" placeholder="Search by title or author..." oninput="filterBlogs()">
+      </div>
+      <select class="filter-select" id="categoryFilter" onchange="filterBlogs()">
+        <option value="">All Categories</option>
+        <option value="Web Development">Web Development</option>
+        <option value="Mobile Apps">Mobile Apps</option>
+        <option value="UI/UX Design">UI/UX Design</option>
+        <option value="Tech Solutions">Tech Solutions</option>
+        <option value="SEO & Growth">SEO &amp; Growth</option>
+        <option value="Business Strategy">Business Strategy</option>
+        <option value="Cloud & Hosting">Cloud &amp; Hosting</option>
+        <option value="Tutorials & Guides">Tutorials &amp; Guides</option>
+        <option value="Technology">Technology</option>
+      </select>
+    </div>
+    <div class="filter-tabs">
+      <button type="button" class="filter-tab active" data-status="all" onclick="setStatusFilter('all')">All</button>
+      <button type="button" class="filter-tab" data-status="published" onclick="setStatusFilter('published')">Published</button>
+      <button type="button" class="filter-tab" data-status="draft" onclick="setStatusFilter('draft')">Drafts</button>
+    </div>
+  </div>
+
+  <!-- Article List -->
+  <section class="blog-admin-list" id="blogList">
+    {% for blog in blogs %}
+    <article class="blog-admin-card"
+             data-title="{{ blog.title|lower }}"
+             data-author="{{ blog.author|lower }}"
+             data-category="{{ blog.category or 'Technology' }}"
+             data-status="{{ blog.status }}">
+      {% if blog.image_data %}
+        <img src="/api/blog-images/{{ blog._id }}" alt="" class="blog-admin-image">
+      {% else %}
+        <div class="blog-admin-image" style="background:var(--admin-panel-2);display:flex;align-items:center;justify-content:center;color:var(--admin-muted);">
+          <i class="fa-regular fa-image" style="font-size:1.8rem;"></i>
+        </div>
+      {% endif %}
+      <div class="blog-admin-content">
+        <div class="blog-meta" style="flex-wrap:wrap;gap:8px;margin-bottom:6px;">
+          <span class="status-pill {{ blog.status }}">{{ blog.status }}</span>
+          <span class="badge-pill category"><i class="fa-solid fa-tag"></i> {{ blog.category or 'Technology' }}</span>
+          <span class="badge-pill views"><i class="fa-regular fa-eye"></i> {{ blog.views or 0 }} views</span>
+          {% if blog.comments and blog.comments|length > 0 %}
+            <span class="badge-pill comments"><i class="fa-regular fa-comments"></i> {{ blog.comments|length }}</span>
+          {% endif %}
+          <span style="color:var(--admin-muted);font-size:.72rem;display:inline-flex;align-items:center;gap:6px;">
+            {% if blog.author_avatar %}
+              <img src="{{ blog.author_avatar }}" alt="" style="width:18px;height:18px;border-radius:50%;object-fit:cover;vertical-align:middle;border:1px solid var(--admin-line);">
+            {% else %}
+              <i class="fa-solid fa-circle-user" style="color:var(--admin-cyan);"></i>
+            {% endif %}
+            By {{ blog.author }}
+          </span>
+        </div>
+        <h2>{{ blog.title }}</h2>
+        <p>{{ blog.excerpt }}</p>
+        <div class="blog-card-actions">
+          <a href="/blogs/{{ blog._id }}/edit"><i class="fa-solid fa-pen-to-square"></i> Edit</a>
+          {% if is_admin and blog.status == 'published' %}
+            <a href="/social-media?blog_id={{ blog._id }}" style="color:#79fff7;" title="Share this article directly to Facebook & Instagram"><i class="fa-brands fa-meta"></i> Share to Social</a>
+          {% endif %}
+          {% if blog.status == 'published' %}
+            <a href="http://localhost:5173/blog/{{ blog.slug }}" target="_blank" rel="noopener noreferrer" style="color:var(--admin-muted);">
+              <i class="fa-solid fa-arrow-up-right-from-square"></i> View live
+            </a>
+          {% endif %}
+          {% if is_admin or session.get('role') == 'author' %}
+            <form method="POST" action="/blogs/{{ blog._id }}/delete" onsubmit="return confirm('Delete this blog post?');" style="display:inline;">
+              <button type="submit"><i class="fa-solid fa-trash"></i> Delete</button>
+            </form>
+          {% endif %}
+        </div>
+      </div>
+    </article>
+    {% else %}
+    <div class="empty-state">
+      <i class="fa-solid fa-book-open"></i>
+      <h2>No blog posts yet</h2>
+      <p>Create your first article to start building organic search traffic.</p>
+    </div>
+    {% endfor %}
+    <div id="noMatchMessage" class="empty-state" style="display:none;">
+      <i class="fa-solid fa-filter-circle-xmark"></i>
+      <h2>No matching articles</h2>
+      <p>Try clearing your search or category filter.</p>
+    </div>
+  </section>
+
+  {% include '_admin_shell_end.html' %}
+
+  <script>
+    let currentStatus = 'all';
+
+    function setStatusFilter(status) {
+      currentStatus = status;
+      document.querySelectorAll('.filter-tab').forEach(tab => {
+        tab.classList.toggle('active', tab.getAttribute('data-status') === status);
+      });
+      filterBlogs();
+    }
+
+    function filterBlogs() {
+      const query = (document.getElementById('searchInput').value || '').toLowerCase().trim();
+      const cat = document.getElementById('categoryFilter').value;
+      const cards = document.querySelectorAll('.blog-admin-card');
+      let visibleCount = 0;
+
+      cards.forEach(card => {
+        const title = card.getAttribute('data-title') || '';
+        const author = card.getAttribute('data-author') || '';
+        const category = card.getAttribute('data-category') || '';
+        const status = card.getAttribute('data-status') || '';
+
+        const matchesQuery = !query || title.includes(query) || author.includes(query);
+        const matchesCat = !cat || category === cat;
+        const matchesStatus = currentStatus === 'all' || status === currentStatus;
+
+        if (matchesQuery && matchesCat && matchesStatus) {
+          card.style.display = 'flex';
+          visibleCount++;
+        } else {
+          card.style.display = 'none';
+        }
+      });
+
+      const noMatch = document.getElementById('noMatchMessage');
+      if (noMatch) {
+        noMatch.style.display = (visibleCount === 0 && cards.length > 0) ? 'block' : 'none';
+      }
+    }
+  </script>
+</body>
+</html>

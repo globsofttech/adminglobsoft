@@ -214,6 +214,76 @@
             display: none;
         }
 
+        .broadcast-panel {
+            margin-bottom: 30px;
+            padding: 22px;
+            border: 1px solid #e2e5f5;
+            border-radius: 12px;
+            background: #fafbff;
+        }
+
+        .broadcast-panel h2 {
+            margin-bottom: 8px;
+            color: #333;
+            font-size: 20px;
+        }
+
+        .broadcast-panel p {
+            margin-bottom: 16px;
+            color: #666;
+            font-size: 14px;
+        }
+
+        .broadcast-grid {
+            display: grid;
+            gap: 14px;
+        }
+
+        .broadcast-grid label {
+            display: grid;
+            gap: 6px;
+            color: #333;
+            font-weight: 600;
+            font-size: 14px;
+        }
+
+        .broadcast-grid input,
+        .broadcast-grid textarea {
+            width: 100%;
+            padding: 11px 12px;
+            border: 1px solid #d8dced;
+            border-radius: 7px;
+            font: inherit;
+            resize: vertical;
+        }
+
+        .broadcast-actions {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-top: 16px;
+        }
+
+        .broadcast-btn {
+            padding: 11px 18px;
+            border: 0;
+            border-radius: 7px;
+            color: white;
+            background: #667eea;
+            cursor: pointer;
+            font-weight: 600;
+        }
+
+        .broadcast-btn.secondary {
+            color: #4b55a0;
+            background: #e8ebff;
+        }
+
+        .broadcast-btn:disabled {
+            cursor: wait;
+            opacity: 0.65;
+        }
+
         @media (max-width: 768px) {
             .container {
                 padding: 15px;
@@ -269,6 +339,32 @@
         <div id="errorMessage" class="error-message">
             ✗ Error deleting emails. Please try again.
         </div>
+
+        <section class="broadcast-panel" aria-labelledby="broadcast-heading">
+            <h2 id="broadcast-heading">Send Newsletter</h2>
+            <p>
+                Send a preview to {{ sender_email }},
+                or broadcast privately to all {{ total_emails }} subscribers.
+            </p>
+            <div class="broadcast-grid">
+                <label for="broadcastSubject">
+                    Subject
+                    <input id="broadcastSubject" type="text" maxlength="998" placeholder="Your newsletter subject">
+                </label>
+                <label for="broadcastPlainText">
+                    Plain-text message
+                    <textarea id="broadcastPlainText" rows="6" placeholder="Write the accessible plain-text version"></textarea>
+                </label>
+                <label for="broadcastHtml">
+                    HTML message <span style="font-weight: 400;">(optional)</span>
+                    <textarea id="broadcastHtml" rows="8" placeholder="<h1>Your newsletter</h1><p>...</p>"></textarea>
+                </label>
+            </div>
+            <div class="broadcast-actions">
+                <button class="broadcast-btn secondary" type="button" onclick="sendNewsletter(true)">Send Preview</button>
+                <button class="broadcast-btn" type="button" onclick="sendNewsletter(false)">Send to Everyone</button>
+            </div>
+        </section>
 
         <div class="select-all-section">
             <input type="checkbox" id="selectAllCheckbox" onchange="toggleSelectAll()">
@@ -362,6 +458,44 @@
         }
 
         // Delete selected emails
+        async function sendNewsletter(preview) {
+            const subject = document.getElementById('broadcastSubject').value.trim();
+            const plainText = document.getElementById('broadcastPlainText').value.trim();
+            const html = document.getElementById('broadcastHtml').value.trim();
+
+            if (!subject || (!plainText && !html)) {
+                showMessage('errorMessage', 'Add a subject and a plain-text or HTML message first.');
+                return;
+            }
+            if (!preview && !confirm('Send this newsletter to every subscriber?')) {
+                return;
+            }
+
+            const buttons = document.querySelectorAll('.broadcast-btn');
+            buttons.forEach(button => { button.disabled = true; });
+            try {
+                const response = await fetch('/newsletter/send', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        subject,
+                        plain_text: plainText,
+                        html,
+                        preview
+                    })
+                });
+                const data = await response.json();
+                if (!response.ok || !data.success) {
+                    throw new Error(data.error || 'Newsletter could not be sent.');
+                }
+                showMessage('successMessage', data.message);
+            } catch (error) {
+                showMessage('errorMessage', error.message);
+            } finally {
+                buttons.forEach(button => { button.disabled = false; });
+            }
+        }
+
         async function deleteSelected() {
             const checkboxes = document.querySelectorAll('.email-checkbox:checked');
             const ids = Array.from(checkboxes).map(cb => cb.value);
