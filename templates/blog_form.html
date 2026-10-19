@@ -273,11 +273,11 @@
     </div>
     <div class="editor-top-actions">
       {% if blog and blog.status == 'published' %}
-        <span class="status-pill published"><i class="fa-solid fa-circle" style="font-size:.5rem;margin-right:4px;"></i> Live</span>
-        <a class="btn-view-live" href="http://localhost:5173/blog/{{ blog.slug }}" target="_blank" rel="noopener">
-          <i class="fa-solid fa-arrow-up-right-from-square"></i> View live post
-        </a>
-      {% elif blog %}
+  <span class="status-pill published"><i class="fa-solid fa-circle" style="font-size:.5rem;margin-right:4px;"></i> Live</span>
+  <a class="btn-view-live" href="https://globsoft.vercel.app/blog/{{ blog.slug }}" target="_blank" rel="noopener">
+    <i class="fa-solid fa-arrow-up-right-from-square"></i> View live post
+  </a>
+{% elif blog %}
         <span class="status-pill draft"><i class="fa-solid fa-file-pen" style="font-size:.6rem;margin-right:4px;"></i> Draft</span>
       {% endif %}
       <a class="btn-cancel" href="/blogs"><i class="fa-solid fa-xmark"></i> Cancel</a>

@@ -243,10 +243,10 @@
             <a href="/social-media?blog_id={{ blog._id }}" style="color:#79fff7;" title="Share this article directly to Facebook & Instagram"><i class="fa-brands fa-meta"></i> Share to Social</a>
           {% endif %}
           {% if blog.status == 'published' %}
-            <a href="http://localhost:5173/blog/{{ blog.slug }}" target="_blank" rel="noopener noreferrer" style="color:var(--admin-muted);">
-              <i class="fa-solid fa-arrow-up-right-from-square"></i> View live
-            </a>
-          {% endif %}
+  <a href="https://globsoft.vercel.app/blog/{{ blog.slug }}" target="_blank" rel="noopener noreferrer" style="color:var(--admin-muted);">
+    <i class="fa-solid fa-arrow-up-right-from-square"></i> View live
+  </a>
+{% endif %}
           {% if is_admin or session.get('role') == 'author' %}
             <form method="POST" action="/blogs/{{ blog._id }}/delete" onsubmit="return confirm('Delete this blog post?');" style="display:inline;">
               <button type="submit"><i class="fa-solid fa-trash"></i> Delete</button>
