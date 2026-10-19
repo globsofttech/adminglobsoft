@@ -259,16 +259,13 @@
       const btn = document.getElementById('googleSignInBtn');
       const text = document.getElementById('googleBtnText');
       if (btn) btn.classList.add('loading');
-      if (text) text.textContent = 'Opening Google Sign-In...';
+      if (text) text.textContent = 'Connecting to Google...';
 
       try {
         const clerk = await getClerkInstance();
         if (!clerk) {
           throw new Error("Clerk authentication library could not load. Check network connection.");
         }
-
-        if (btn) btn.classList.remove('loading');
-        if (text) text.textContent = 'Continue with Google';
 
         const origin = window.location.origin.replace('127.0.0.1', 'localhost');
         const redirectParams = {

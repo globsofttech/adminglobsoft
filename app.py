@@ -1354,13 +1354,19 @@ def clerk_proxy(subpath):
     Reverse proxy for Clerk Frontend API on adminglobsoft.vercel.app/__clerk.
     Enables Clerk on *.vercel.app production domain without custom DNS records.
     """
-    target_url = f"https://frontend-api.clerk.com/{subpath}"
+    if request.method == "OPTIONS":
+        return Response("", status=200)
+
+    target_url = f"https://frontend-api.clerk.dev/{subpath}"
     if request.query_string:
         target_url += f"?{request.query_string.decode('utf-8')}"
     
     headers = {k: v for k, v in request.headers if k.lower() not in {"host", "content-length"}}
-    headers["Host"] = "frontend-api.clerk.com"
-    headers["Clerk-Proxy-Url"] = f"{request.scheme}://{request.host}/__clerk"
+    headers["Host"] = "frontend-api.clerk.dev"
+    proxy_url = os.getenv("CLERK_PROXY_URL", "https://adminglobsoft.vercel.app/__clerk")
+    headers["Clerk-Proxy-Url"] = proxy_url
+    if clerk_secret_key:
+        headers["Clerk-Secret-Key"] = clerk_secret_key
     headers["X-Forwarded-Host"] = request.host
     headers["X-Forwarded-Proto"] = request.scheme
     if request.remote_addr:
@@ -1380,10 +1386,12 @@ def clerk_proxy(subpath):
     except Exception as e:
         if hasattr(e, "read"):
             try:
-                return Response(e.read(), status=getattr(e, "code", 500), content_type="application/json")
+                err_data = e.read()
+                return Response(err_data, status=getattr(e, "code", 500), content_type="application/json")
             except Exception:
                 pass
         return jsonify({"error": str(e)}), 500
+
 
 
 # ==================== PRODUCTS ====================
