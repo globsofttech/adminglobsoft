@@ -37,7 +37,9 @@ def get_clerk_frontend_api(publishable_key):
     try:
         parts = publishable_key.split("_", 2)
         if len(parts) >= 3:
-            return base64.b64decode(parts[2]).decode("utf-8").rstrip("$")
+            raw = parts[2]
+            padded = raw + "=" * (-len(raw) % 4)
+            return base64.b64decode(padded).decode("utf-8").rstrip("$")
     except Exception:
         pass
     return ""
@@ -1346,6 +1348,44 @@ def author_login():
     return redirect("/")
 
 
+@app.route("/__clerk/<path:subpath>", methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"])
+def clerk_proxy(subpath):
+    """
+    Reverse proxy for Clerk Frontend API on adminglobsoft.vercel.app/__clerk.
+    Enables Clerk on *.vercel.app production domain without custom DNS records.
+    """
+    target_url = f"https://frontend-api.clerk.com/{subpath}"
+    if request.query_string:
+        target_url += f"?{request.query_string.decode('utf-8')}"
+    
+    headers = {k: v for k, v in request.headers if k.lower() not in {"host", "content-length"}}
+    headers["Host"] = "frontend-api.clerk.com"
+    headers["Clerk-Proxy-Url"] = f"{request.scheme}://{request.host}/__clerk"
+    headers["X-Forwarded-Host"] = request.host
+    headers["X-Forwarded-Proto"] = request.scheme
+    if request.remote_addr:
+        headers["X-Forwarded-For"] = request.remote_addr
+
+    req = Request(
+        target_url,
+        data=request.get_data() if request.method not in {"GET", "HEAD", "OPTIONS"} else None,
+        headers=headers,
+        method=request.method,
+    )
+    try:
+        with urlopen(req, timeout=15) as resp:
+            excluded_headers = {"content-encoding", "content-length", "transfer-encoding", "connection"}
+            resp_headers = [(name, value) for name, value in resp.getheaders() if name.lower() not in excluded_headers]
+            return Response(resp.read(), status=resp.getcode(), headers=resp_headers)
+    except Exception as e:
+        if hasattr(e, "read"):
+            try:
+                return Response(e.read(), status=getattr(e, "code", 500), content_type="application/json")
+            except Exception:
+                pass
+        return jsonify({"error": str(e)}), 500
+
+
 # ==================== PRODUCTS ====================
 
 @app.route("/api/products", methods=['GET'])
@@ -1455,10 +1495,15 @@ def dashboard():
 
         flash("Invalid administrator credentials.", "error")
 
+    proxy_url = ""
+    if clerk_publishable_key and clerk_publishable_key.startswith("pk_live_"):
+        proxy_url = os.getenv("CLERK_PROXY_URL", "https://adminglobsoft.vercel.app/__clerk")
+
     return render_template(
         'login.html',
         clerk_publishable_key=clerk_publishable_key,
         clerk_frontend_api=clerk_frontend_api,
+        clerk_proxy_url=proxy_url,
     )
 
 @app.route("/logout", methods=['GET', 'POST'])
