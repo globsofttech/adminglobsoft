@@ -1536,12 +1536,11 @@ def dashboard():
 
         flash("Invalid administrator credentials.", "error")
 
-   proxy_url = ""
+    proxy_url = ""
     if clerk_publishable_key and clerk_publishable_key.startswith("pk_live_"):
         proto = request.headers.get("X-Forwarded-Proto", request.scheme)
         host = request.headers.get("X-Forwarded-Host", request.host)
         proxy_url = os.getenv("CLERK_PROXY_URL") or f"{proto}://{host}/__clerk"
-        
     return render_template(
         'login.html',
         clerk_publishable_key=clerk_publishable_key,
