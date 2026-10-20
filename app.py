@@ -2356,7 +2356,6 @@ def publish_social_post():
     channels = request.form.getlist("channels")
     link_url = request.form.get("link_url", "").strip()
     image_url = request.form.get("image_url", "").strip()
-    simulation_mode = request.form.get("simulation_mode") == "1"
 
     if not channels:
         flash("Please select at least one channel (Facebook or Instagram) to publish to.", "error")
@@ -2404,40 +2403,9 @@ def publish_social_post():
         flash("Instagram requires an image. Please attach an image file or provide a public Image URL, or deselect Instagram.", "error")
         return redirect("/social-media")
 
-    # Simulation / Test mode
-    if simulation_mode or not settings["is_configured"]:
-        sim_timestamp = int(time.time())
-        fb_result = {
-            "success": True,
-            "post_id": f"sim_fb_{sim_timestamp}",
-            "simulated": True,
-            "url": "https://facebook.com/globsofttech",
-        } if "facebook" in channels else None
-
-        ig_result = {
-            "success": True,
-            "media_id": f"sim_ig_{sim_timestamp}",
-            "simulated": True,
-            "url": "https://instagram.com/globsoftech",
-        } if "instagram" in channels else None
-
-        post_record = {
-            "caption": caption,
-            "channels": channels,
-            "image_url": saved_media_url,
-            "link_url": link_url,
-            "facebook": fb_result,
-            "instagram": ig_result,
-            "status": "simulated",
-            "created_at": datetime.utcnow(),
-            "created_by": session.get("user"),
-        }
-        client["globsoft_db"]["social_posts"].insert_one(post_record)
-
-        if not settings["is_configured"]:
-            flash("Published in Test / Simulation Mode. To post live to Facebook & Instagram, ensure your Meta credentials are configured.", "success")
-        else:
-            flash("Post published in Test / Simulation Mode! Log entry saved.", "success")
+    # Check if credentials are configured
+    if not settings["is_configured"]:
+        flash("Meta API is not configured. Please ensure your Vercel environment variables (META_PAGE_ID, META_PAGE_ACCESS_TOKEN) are set.", "error")
         return redirect("/social-media")
 
     # LIVE PUBLISHING VIA META GRAPH API

@@ -149,17 +149,19 @@
       margin-top: 6px;
       font-size: .72rem;
       color: var(--admin-muted);
-    }
-    .char-limit-warning {
-      color: #ff6b6b;
-      font-weight: 600;
+      flex-wrap: wrap;
+      gap: 8px;
     }
 
-    /* ---- Quick Hashtag & Emoji Bars ---- */
+    /* ---- Quick Hashtag & Emoji Toolbar ---- */
     .quick-toolbar {
       display: flex;
       flex-direction: column;
       gap: 8px;
+      background: var(--admin-panel-2);
+      padding: 12px 14px;
+      border-radius: 12px;
+      border: 1px solid var(--admin-line);
     }
     .quick-row {
       display: flex;
@@ -168,90 +170,76 @@
       flex-wrap: wrap;
     }
     .quick-label {
-      font-size: .7rem;
+      font-size: .72rem;
+      font-weight: 700;
       color: var(--admin-muted);
-      margin-right: 4px;
-      font-weight: 600;
       text-transform: uppercase;
-      letter-spacing: .05em;
+      letter-spacing: .04em;
+      margin-right: 4px;
     }
     .quick-pill {
-      border: 1px solid var(--admin-line);
       background: rgba(166, 177, 221, 0.08);
-      color: var(--admin-muted);
-      border-radius: 999px;
-      padding: 3px 9px;
+      border: 1px solid var(--admin-line);
+      color: var(--admin-cyan);
       font-size: .72rem;
-      font-weight: 500;
+      padding: 4px 9px;
+      border-radius: 6px;
       cursor: pointer;
-      transition: all .18s ease;
+      transition: all .15s ease;
     }
     .quick-pill:hover {
+      background: rgba(121, 255, 247, 0.15);
       border-color: var(--admin-cyan);
-      color: var(--admin-cyan);
-      background: rgba(121, 255, 247, 0.08);
+      transform: translateY(-1px);
     }
     .emoji-pill {
       background: transparent;
       border: 1px solid transparent;
-      padding: 2px 6px;
-      font-size: .95rem;
-      cursor: pointer;
+      font-size: 1.1rem;
+      padding: 2px 5px;
       border-radius: 6px;
+      cursor: pointer;
       transition: transform .15s ease;
+      line-height: 1;
     }
     .emoji-pill:hover {
       transform: scale(1.25);
-      background: rgba(255, 255, 255, 0.08);
+      background: rgba(255,255,255,0.06);
     }
 
     /* ---- Media Upload Area ---- */
     .media-box {
       border: 2px dashed var(--admin-line);
       border-radius: 12px;
-      padding: 18px;
+      padding: 20px;
       text-align: center;
       background: var(--admin-panel-2);
-      cursor: pointer;
       transition: border-color .2s, background .2s;
       position: relative;
     }
-    .media-box:hover, .media-box.dragover {
+    .media-box.dragover {
       border-color: var(--admin-cyan);
       background: rgba(121, 255, 247, 0.04);
     }
+    .upload-prompt-inner {
+      cursor: pointer;
+      padding: 10px;
+    }
     .media-preview-container {
       position: relative;
-      max-width: 280px;
+      max-width: 320px;
       margin: 0 auto;
-      display: none;
     }
     .media-preview-img {
       width: 100%;
-      max-height: 200px;
+      max-height: 220px;
       object-fit: cover;
       border-radius: 10px;
       border: 1px solid var(--admin-line);
-    }
-    .media-remove-btn {
-      position: absolute;
-      top: -8px;
-      right: -8px;
-      width: 26px;
-      height: 26px;
-      border-radius: 50%;
-      background: #ff6b6b;
-      color: #fff;
-      border: none;
-      cursor: pointer;
-      font-size: .8rem;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.5);
+      display: block;
     }
 
-    /* ---- Live Preview Column ---- */
+    /* ---- Preview Card Stack ---- */
     .preview-card-wrapper {
       position: sticky;
       top: 24px;
@@ -262,16 +250,20 @@
     .preview-tab-row {
       display: flex;
       gap: 8px;
+      background: var(--admin-panel);
+      padding: 6px;
+      border-radius: 12px;
+      border: 1px solid var(--admin-line);
     }
     .preview-tab-btn {
       flex: 1;
-      padding: 9px 12px;
-      border-radius: 10px;
-      border: 1px solid var(--admin-line);
-      background: var(--admin-panel);
+      padding: 8px 12px;
+      border: none;
+      background: transparent;
       color: var(--admin-muted);
-      font-size: .78rem;
+      font-size: .8rem;
       font-weight: 600;
+      border-radius: 8px;
       cursor: pointer;
       display: flex;
       align-items: center;
@@ -280,14 +272,12 @@
       transition: all .2s ease;
     }
     .preview-tab-btn.active.fb {
-      border-color: #1877f2;
-      color: #f8f9ff;
-      background: rgba(24, 119, 242, 0.15);
+      background: #1877f2;
+      color: #fff;
     }
     .preview-tab-btn.active.ig {
-      border-color: #e1306c;
-      color: #f8f9ff;
-      background: rgba(225, 48, 108, 0.15);
+      background: linear-gradient(135deg, #833ab4, #fd1d1d, #fcb045);
+      color: #fff;
     }
 
     /* Facebook Mockup */
@@ -484,45 +474,8 @@
       text-transform: uppercase;
     }
     .badge-status-pill.published { background: rgba(122, 219, 120, 0.15); color: #7adb78; border: 1px solid rgba(122, 219, 120, 0.3); }
-    .badge-status-pill.simulated { background: rgba(121, 255, 247, 0.15); color: #79fff7; border: 1px solid rgba(121, 255, 247, 0.3); }
     .badge-status-pill.failed    { background: rgba(255, 107, 107, 0.15); color: #ff6b6b; border: 1px solid rgba(255, 107, 107, 0.3); }
     .badge-status-pill.partial   { background: rgba(255, 186, 73, 0.15); color: #ffba49; border: 1px solid rgba(255, 186, 73, 0.3); }
-
-    /* ---- Modals ---- */
-    .modal-backdrop {
-      position: fixed;
-      inset: 0;
-      z-index: 999;
-      background: rgba(8, 10, 22, 0.85);
-      backdrop-filter: blur(6px);
-      display: none;
-      align-items: center;
-      justify-content: center;
-      padding: 20px;
-    }
-    .modal-backdrop.open { display: flex; }
-    .modal-box {
-      background: var(--admin-panel);
-      border: 1px solid var(--admin-line);
-      border-radius: 18px;
-      padding: 28px;
-      width: 100%;
-      max-width: 600px;
-      max-height: 90vh;
-      overflow-y: auto;
-      box-shadow: 0 20px 50px rgba(0,0,0,0.6);
-    }
-    .modal-top {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 20px;
-      border-bottom: 1px solid var(--admin-line);
-      padding-bottom: 12px;
-    }
-    .modal-top h3 { margin: 0; font-size: 1.2rem; }
-    .modal-close-btn { background: none; border: none; color: var(--admin-muted); font-size: 1.2rem; cursor: pointer; }
-    .modal-close-btn:hover { color: #fff; }
   </style>
 </head>
 <body class="admin-page">
@@ -530,20 +483,10 @@
 
   <!-- TOPBAR -->
   <header class="topbar">
-    <div style="display:flex; justify-content:space-between; align-items:flex-start; width:100%; flex-wrap:wrap; gap:16px;">
-      <div>
-        <p class="eyebrow">Workspace / Social Command</p>
-        <h1 style="margin:0 0 4px;">Social Media Hub</h1>
-        <p class="topbar-subtitle" style="margin:0;">Publish updates directly to your Facebook Page and Instagram Business Account at once.</p>
-      </div>
-      <div style="display:flex; gap:10px;">
-        <button type="button" class="secondary-action" onclick="openModal('guideModal')">
-          <i class="fa-solid fa-book-bookmark"></i> Setup Guide
-        </button>
-        <button type="button" class="btn-submit" onclick="openModal('settingsModal')">
-          <i class="fa-solid fa-gear"></i> Meta API Settings
-        </button>
-      </div>
+    <div>
+      <p class="eyebrow">Workspace / Social Command</p>
+      <h1 style="margin:0 0 4px;">Social Media Hub</h1>
+      <p class="topbar-subtitle" style="margin:0;">Publish updates directly to your Facebook Page and Instagram Business Account at once.</p>
     </div>
   </header>
 
@@ -599,9 +542,9 @@
         </p>
         <div class="social-stat-lbl">
           {% if settings.is_configured %}
-            Meta Graph API Active · {{ settings.facebook_page_name }} (@{{ settings.instagram_username }})
+            Meta Active · {{ settings.facebook_page_name }} (@{{ settings.instagram_username }})
           {% else %}
-            Simulation Mode Ready
+            Configure META_* in Vercel
           {% endif %}
         </div>
       </div>
@@ -615,7 +558,7 @@
     <form method="POST" action="/social-media/publish" enctype="multipart/form-data" class="composer-card" id="socialForm">
       <div class="composer-header">
         <h2><i class="fa-solid fa-pen-nib" style="color:var(--admin-cyan);"></i> Multi-Channel Composer</h2>
-        <span style="font-size:.75rem; color:var(--admin-muted);">Cross-post to 1 or both channels</span>
+        <span style="font-size:.75rem; color:var(--admin-muted);">Cross-post to Facebook &amp; Instagram</span>
       </div>
 
       <!-- CHANNEL SELECTOR -->
@@ -648,7 +591,6 @@
           required
           class="caption-textarea"
           placeholder="Share something exciting with your audience... What are you building today?"
-          oninput="handleCaptionInput(this.value)"
         >{{ prefill.caption if prefill else '' }}</textarea>
         <div class="caption-meta-bar">
           <span id="charCount">0 characters</span>
@@ -688,19 +630,30 @@
         <label class="field-label" style="display:block; margin-bottom:8px; font-size:.78rem; font-weight:600;">
           Media Attachment <small class="field-hint">(Required for Instagram, recommended for Facebook)</small>
         </label>
-        <div class="media-box" id="mediaDropzone" onclick="document.getElementById('imageFileInput').click()">
-          <div id="uploadPrompt" style="display:{% if prefill and prefill.image_url %}none{% else %}block{% endif %};">
+        
+        <div class="media-box" id="mediaDropzone">
+          <div class="upload-prompt-inner" id="uploadPrompt" style="display:{% if prefill and prefill.image_url %}none{% else %}block{% endif %};" onclick="triggerFileInput()">
             <i class="fa-solid fa-cloud-arrow-up" style="font-size:1.8rem; color:var(--admin-cyan); margin-bottom:8px;"></i>
             <p style="margin:0 0 4px; font-size:.85rem; font-weight:600;">Click to upload image or drag &amp; drop</p>
             <span style="font-size:.72rem; color:var(--admin-muted);">JPG, PNG, WEBP up to 10MB</span>
           </div>
+
           <div class="media-preview-container" id="mediaPreviewWrapper" style="display:{% if prefill and prefill.image_url %}block{% else %}none{% endif %};">
-            <img src="{{ prefill.image_url if prefill else '' }}" id="mediaPreview" class="media-preview-img" alt="Preview">
-            <button type="button" class="media-remove-btn" onclick="removeMedia(event)" title="Remove image">✕</button>
+            <img src="{{ prefill.image_url if prefill else '' }}" id="mediaPreview" class="media-preview-img" alt="Uploaded Attachment Preview">
+            <div style="display:flex; justify-content:center; gap:10px; margin-top:10px;">
+              <button type="button" class="secondary-action" style="padding:5px 12px; font-size:.75rem;" onclick="triggerFileInput()">
+                <i class="fa-solid fa-arrows-rotate"></i> Change Image
+              </button>
+              <button type="button" class="secondary-action" style="padding:5px 12px; font-size:.75rem; color:#ff6b6b; border-color:rgba(255,107,107,0.3);" onclick="removeMedia(event)">
+                <i class="fa-solid fa-trash"></i> Remove
+              </button>
+            </div>
           </div>
+
           <input type="file" name="image_file" id="imageFileInput" accept="image/jpeg,image/png,image/webp" style="display:none;" onchange="handleFileSelected(this)">
         </div>
-        <div id="aspectRatioTip" style="display:none; margin-top:8px; padding:9px 12px; border-radius:8px; font-size:.76rem; background:rgba(255,186,73,0.12); border:1px solid rgba(255,186,73,0.3);"></div>
+
+        <div id="aspectRatioTip" style="display:none; margin-top:8px; padding:9px 12px; border-radius:8px; font-size:.76rem;"></div>
 
         <div style="margin-top:10px;">
           <label style="font-size:.74rem; color:var(--admin-muted); display:block; margin-bottom:4px;">
@@ -729,19 +682,13 @@
           id="linkUrlInput"
           value="{{ prefill.link_url if prefill else '' }}"
           placeholder="https://globsoft.vercel.app/blog/..."
-          oninput="handleLinkInput(this.value)"
           style="width:100%; padding:10px 12px; border-radius:8px; font-size:.82rem; background:var(--admin-panel-2); border:1px solid var(--admin-line); color:var(--admin-text);"
         >
       </div>
 
-      <!-- SIMULATION MODE & ACTIONS -->
-      <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px; padding-top:10px; border-top:1px solid var(--admin-line);">
-        <label style="display:inline-flex; align-items:center; gap:8px; font-size:.78rem; color:var(--admin-muted); cursor:pointer; margin:0;">
-          <input type="checkbox" name="simulation_mode" value="1" {% if not settings.is_configured %}checked{% endif %}>
-          <span>Test / Simulation Mode <small style="display:block; font-size:.67rem;">Logs post without calling live Meta API</small></span>
-        </label>
-
-        <button type="submit" class="btn-submit" id="btnPublish" style="font-size:.9rem; padding:14px 28px;">
+      <!-- PUBLISH ACTION -->
+      <div style="padding-top:12px; border-top:1px solid var(--admin-line);">
+        <button type="submit" class="btn-submit" id="btnPublish" style="font-size:.95rem; padding:14px 28px; width:100%; display:flex; align-items:center; justify-content:center; gap:10px;">
           <i class="fa-brands fa-meta"></i> Publish to Social Channels
         </button>
       </div>
@@ -765,7 +712,7 @@
             <img src="{{ url_for('static', filename='images/globsoft.svg') }}" alt="Globsoft">
           </div>
           <div class="fb-name-area">
-            <div class="fb-name">{{ settings.facebook_page_name or "Globsoft Tech Pvt. Ltd." }} <i class="fa-solid fa-circle-check fb-badge"></i></div>
+            <div class="fb-name">{{ settings.facebook_page_name or 'Globsoft Tech Pvt. Ltd.' }} <i class="fa-solid fa-circle-check fb-badge"></i></div>
             <div class="fb-time">Just now · 🌐 Public</div>
           </div>
         </div>
@@ -791,7 +738,7 @@
                 <img src="{{ url_for('static', filename='images/globsoft.svg') }}" alt="Globsoft">
               </div>
             </div>
-            <span class="ig-username">{{ settings.instagram_username or "globsoftech" }}</span>
+            <span class="ig-username">{{ settings.instagram_username or 'globsoftech' }}</span>
           </div>
           <i class="fa-solid fa-ellipsis" style="color:#a8a8a8; font-size:.9rem;"></i>
         </div>
@@ -812,7 +759,7 @@
         </div>
 
         <div class="ig-caption-block">
-          <strong class="ig-username">{{ settings.instagram_username or "globsoftech" }}</strong>
+          <strong class="ig-username">{{ settings.instagram_username or 'globsoftech' }}</strong>
           <span id="igPreviewBody">{{ prefill.caption if prefill else 'Your Instagram caption appears here...' }}</span>
           <div style="font-size:.68rem; color:#737373; margin-top:6px;">JUST NOW</div>
         </div>
@@ -917,239 +864,78 @@
     {% endif %}
   </section>
 
-  <!-- MODAL 1: SETTINGS / META CREDENTIALS -->
-  <div class="modal-backdrop" id="settingsModal">
-    <div class="modal-box">
-      <div class="modal-top">
-        <h3><i class="fa-brands fa-meta" style="color:var(--admin-cyan);"></i> Meta API Credentials</h3>
-        <button type="button" class="modal-close-btn" onclick="closeModal('settingsModal')">✕</button>
-      </div>
-
-      <form method="POST" action="/social-media/settings" id="settingsForm">
-        <div style="display:grid; gap:16px;">
-          {% if settings.env_token_present or settings.env_page_id_present %}
-          <div style="background:rgba(122,219,120,0.12); border:1px solid rgba(122,219,120,0.3); border-radius:10px; padding:10px 14px; font-size:.76rem; color:#7adb78; display:flex; align-items:center; gap:8px;">
-            <i class="fa-solid fa-shield-halved" style="font-size:1rem; flex-shrink:0;"></i>
-            <div>
-              <strong>Production Credentials Active:</strong> Loaded securely from Vercel environment variables (<code>META_PAGE_ID</code>, <code>META_PAGE_ACCESS_TOKEN</code>, <code>META_IG_USER_ID</code>).
-            </div>
-          </div>
-          {% endif %}
-
-          <div>
-            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
-              <label style="font-size:.78rem; font-weight:600;">Facebook Page ID</label>
-              {% if settings.env_page_id_present %}
-                <span style="color:#7adb78; font-size:.68rem;"><i class="fa-solid fa-check"></i> Vercel: META_PAGE_ID</span>
-              {% endif %}
-            </div>
-            <input
-              type="text"
-              name="facebook_page_id"
-              id="fbPageIdInput"
-              value="{{ settings.facebook_page_id }}"
-              placeholder="e.g. 354868577710132"
-              style="width:100%; padding:10px 12px; border-radius:8px; background:var(--admin-panel-2); border:1px solid var(--admin-line); color:var(--admin-text);"
-            >
-            <small class="field-hint" style="display:block; margin-top:4px;">Find your Page ID in Facebook Page Settings &gt; Page Transparency or About.</small>
-          </div>
-
-          <div>
-            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
-              <label style="font-size:.78rem; font-weight:600;">Facebook Page Access Token</label>
-              {% if settings.env_token_present %}
-                <span style="color:#7adb78; font-size:.68rem;"><i class="fa-solid fa-check"></i> Vercel: META_PAGE_ACCESS_TOKEN</span>
-              {% endif %}
-            </div>
-            <div style="position:relative;">
-              <input
-                type="password"
-                name="facebook_access_token"
-                id="fbTokenInput"
-                value="{{ settings.facebook_access_token }}"
-                placeholder="EAA..."
-                style="width:100%; padding:10px 40px 10px 12px; border-radius:8px; background:var(--admin-panel-2); border:1px solid var(--admin-line); color:var(--admin-text);"
-              >
-              <button
-                type="button"
-                onclick="toggleTokenVisibility('fbTokenInput', 'eyeIcon')"
-                style="position:absolute; right:12px; top:50%; transform:translateY(-50%); background:none; border:none; color:var(--admin-muted); cursor:pointer;"
-              >
-                <i class="fa-regular fa-eye" id="eyeIcon"></i>
-              </button>
-            </div>
-            <small class="field-hint" style="display:block; margin-top:4px;">Scopes: <code>pages_manage_posts</code>, <code>pages_read_engagement</code>, <code>instagram_basic</code>, <code>instagram_content_publish</code>.</small>
-          </div>
-
-          <div>
-            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
-              <label style="font-size:.78rem; font-weight:600;">Instagram Business Account ID</label>
-              {% if settings.env_ig_id_present %}
-                <span style="color:#7adb78; font-size:.68rem;"><i class="fa-solid fa-check"></i> Vercel: META_IG_USER_ID</span>
-              {% endif %}
-            </div>
-            <input
-              type="text"
-              name="instagram_account_id"
-              id="igAccountIdInput"
-              value="{{ settings.instagram_account_id }}"
-              placeholder="e.g. 17841467456871120"
-              style="width:100%; padding:10px 12px; border-radius:8px; background:var(--admin-panel-2); border:1px solid var(--admin-line); color:var(--admin-text);"
-            >
-            <small class="field-hint" style="display:block; margin-top:4px;">Auto-detected when you click &quot;Test Connection&quot; if linked to your Facebook Page.</small>
-          </div>
-
-          <div>
-            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
-              <label style="font-size:.78rem; font-weight:600;">Meta App ID</label>
-              {% if settings.env_app_id_present %}
-                <span style="color:#7adb78; font-size:.68rem;"><i class="fa-solid fa-check"></i> Vercel: META_APP_ID</span>
-              {% endif %}
-            </div>
-            <input
-              type="text"
-              name="meta_app_id"
-              id="metaAppIdInput"
-              value="{{ settings.meta_app_id }}"
-              placeholder="e.g. 2109691276309185"
-              style="width:100%; padding:10px 12px; border-radius:8px; background:var(--admin-panel-2); border:1px solid var(--admin-line); color:var(--admin-text);"
-            >
-            <small class="field-hint" style="display:block; margin-top:4px;">Found in Meta App Dashboard.</small>
-          </div>
-
-          <div>
-            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
-              <label style="font-size:.78rem; font-weight:600;">Meta App Secret (Enables HMAC-SHA256 App Secret Proof)</label>
-              {% if settings.env_app_secret_present %}
-                <span style="color:#7adb78; font-size:.68rem;"><i class="fa-solid fa-check"></i> Vercel: META_APP_SECRET</span>
-              {% endif %}
-            </div>
-            <div style="position:relative;">
-              <input
-                type="password"
-                name="meta_app_secret"
-                id="metaAppSecretInput"
-                value="{{ settings.meta_app_secret }}"
-                placeholder="Enter App Secret..."
-                style="width:100%; padding:10px 40px 10px 12px; border-radius:8px; background:var(--admin-panel-2); border:1px solid var(--admin-line); color:var(--admin-text);"
-              >
-              <button
-                type="button"
-                onclick="toggleTokenVisibility('metaAppSecretInput', 'eyeSecretIcon')"
-                style="position:absolute; right:12px; top:50%; transform:translateY(-50%); background:none; border:none; color:var(--admin-muted); cursor:pointer;"
-              >
-                <i class="fa-regular fa-eye" id="eyeSecretIcon"></i>
-              </button>
-            </div>
-            <small class="field-hint" style="display:block; margin-top:4px;">Protects production API requests with HMAC-SHA256 authentication.</small>
-          </div>
-
-          <div>
-            <label style="display:block; margin-bottom:6px; font-size:.78rem; font-weight:600;">
-              Default Hashtags
-            </label>
-            <input
-              type="text"
-              name="default_hashtags"
-              value="{{ settings.default_hashtags }}"
-              placeholder="#GlobsoftTech #WebDevelopment #NepalTech"
-              style="width:100%; padding:10px 12px; border-radius:8px; background:var(--admin-panel-2); border:1px solid var(--admin-line); color:var(--admin-text);"
-            >
-          </div>
-
-          <!-- Connection Status Box -->
-          <div id="testResultBox" style="display:none; padding:12px 14px; border-radius:10px; font-size:.8rem;"></div>
-
-          <div style="display:flex; justify-content:space-between; align-items:center; margin-top:10px;">
-            <button type="button" class="secondary-action" id="btnTestConn" onclick="testMetaConnection()">
-              <i class="fa-solid fa-satellite-dish"></i> Test Connection
-            </button>
-            <button type="submit" class="btn-submit">
-              <i class="fa-solid fa-floppy-disk"></i> Save Settings
-            </button>
-          </div>
-        </div>
-      </form>
-    </div>
-  </div>
-
-  <!-- MODAL 2: SETUP GUIDE -->
-  <div class="modal-backdrop" id="guideModal">
-    <div class="modal-box" style="max-width:680px;">
-      <div class="modal-top">
-        <h3><i class="fa-solid fa-book-bookmark" style="color:var(--admin-cyan);"></i> Meta (FB &amp; IG) Setup Guide</h3>
-        <button type="button" class="modal-close-btn" onclick="closeModal('guideModal')">✕</button>
-      </div>
-
-      <div style="font-size:.84rem; line-height:1.6; color:var(--admin-text); display:grid; gap:16px;">
-        <p style="margin:0; color:var(--admin-muted);">Follow these 4 simple steps to connect your official Globsoft Tech Facebook Page &amp; Instagram Business Account.</p>
-
-        <div style="padding:14px; border-radius:12px; background:var(--admin-panel-2); border:1px solid var(--admin-line);">
-          <strong style="color:var(--admin-cyan); display:block; margin-bottom:4px;">1. Connect Instagram to Facebook Page</strong>
-          <span>Open your Facebook Page &gt; Settings &gt; Linked Accounts &gt; Connect your Instagram Professional/Business account.</span>
-        </div>
-
-        <div style="padding:14px; border-radius:12px; background:var(--admin-panel-2); border:1px solid var(--admin-line);">
-          <strong style="color:var(--admin-cyan); display:block; margin-bottom:4px;">2. Create Meta App</strong>
-          <span>Go to <a href="https://developers.facebook.com" target="_blank" rel="noopener" style="color:var(--admin-cyan); text-decoration:underline;">developers.facebook.com</a> &gt; <strong>My Apps</strong> &gt; <strong>Create App</strong> &gt; Select <strong>Business</strong> type.</span>
-        </div>
-
-        <div style="padding:14px; border-radius:12px; background:var(--admin-panel-2); border:1px solid var(--admin-line);">
-          <strong style="color:var(--admin-cyan); display:block; margin-bottom:4px;">3. Generate Page Access Token</strong>
-          <span>Open the <strong>Graph API Explorer</strong> tool:</span>
-          <ul style="margin:6px 0 0; padding-left:18px; color:var(--admin-muted);">
-            <li>Select your Meta App and choose <strong>Get Page Access Token</strong> for Globsoft Tech.</li>
-            <li>Add scopes: <code>pages_manage_posts</code>, <code>pages_read_engagement</code>, <code>instagram_basic</code>, <code>instagram_content_publish</code>.</li>
-            <li>Click <strong>Generate Access Token</strong> and grant permissions.</li>
-          </ul>
-        </div>
-
-        <div style="padding:14px; border-radius:12px; background:var(--admin-panel-2); border:1px solid var(--admin-line);">
-          <strong style="color:var(--admin-cyan); display:block; margin-bottom:4px;">4. Paste &amp; Test</strong>
-          <span>Paste the Page ID and Access Token into the <strong>Meta API Settings</strong> modal in this dashboard, click <strong>Test Connection</strong>, and save!</span>
-        </div>
-      </div>
-
-      <div style="margin-top:20px; text-align:right;">
-        <button type="button" class="btn-submit" onclick="closeModal('guideModal'); openModal('settingsModal');">
-          Open Settings Now <i class="fa-solid fa-arrow-right"></i>
-        </button>
-      </div>
-    </div>
-  </div>
-
   {% include '_admin_shell_end.html' %}
 
   <!-- LIVE SCRIPT -->
   <script>
-    // Form submit validation & spinner
-    document.addEventListener('DOMContentLoaded', () => {
-      const socialForm = document.getElementById('socialForm');
-      if (socialForm) {
-        socialForm.addEventListener('submit', function(e) {
-          const igCheckbox = document.querySelector('input[name="channels"][value="instagram"]');
-          const isIgChecked = igCheckbox && igCheckbox.checked;
-          const imageFileInput = document.getElementById('imageFileInput');
-          const hasImageFile = imageFileInput && imageFileInput.files && imageFileInput.files.length > 0;
-          const imageUrlInput = document.getElementById('imageUrlInput');
-          const hasImageUrl = imageUrlInput && imageUrlInput.value.trim().length > 0;
-          const simMode = document.querySelector('input[name="simulation_mode"]');
-          const isSimulated = simMode && simMode.checked;
+    // Trigger hidden file input
+    function triggerFileInput() {
+      const input = document.getElementById('imageFileInput');
+      if (input) input.click();
+    }
 
-          if (isIgChecked && !hasImageFile && !hasImageUrl && !isSimulated) {
-            e.preventDefault();
-            alert('Instagram strictly requires an image. Please attach an image or provide a public Image URL, or deselect Instagram.');
-            return false;
-          }
+    // Live caption sync
+    function handleCaptionInput(val) {
+      const text = val || '';
+      const fbPreview = document.getElementById('fbPreviewBody');
+      const igPreview = document.getElementById('igPreviewBody');
 
-          const btn = document.getElementById('btnPublish');
-          if (btn) {
-            btn.disabled = true;
-            btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Publishing to Meta...';
-          }
-        });
+      if (fbPreview) {
+        fbPreview.textContent = text || 'Your post caption will appear here in real time...';
       }
-    });
+      if (igPreview) {
+        igPreview.textContent = text || 'Your Instagram caption appears here...';
+      }
+
+      const len = text.length;
+      const charCount = document.getElementById('charCount');
+      if (charCount) {
+        charCount.textContent = `${len} character${len === 1 ? '' : 's'}`;
+      }
+
+      // Count hashtags (Instagram limits to 30)
+      const tags = (text.match(/#[\w-]+/g) || []).length;
+      const tagCountEl = document.getElementById('tagCount');
+      if (tagCountEl) {
+        tagCountEl.textContent = `${tags} / 30 hashtags`;
+        tagCountEl.style.color = tags > 30 ? '#ff6b6b' : 'var(--admin-cyan)';
+      }
+
+      const limitWarn = document.getElementById('igCharLimit');
+      if (limitWarn) {
+        if (len > 2200) {
+          limitWarn.innerHTML = `<span style="color:#ff6b6b; font-weight:600;">⚠️ Over Instagram limit (${len}/2200)</span>`;
+        } else {
+          limitWarn.textContent = `Instagram max: 2,200 chars (${2200 - len} left)`;
+        }
+      }
+    }
+
+    // Insert Hashtag
+    function insertTag(tag) {
+      const textarea = document.getElementById('captionInput');
+      if (!textarea) return;
+      const val = textarea.value || '';
+      if (!val.includes(tag)) {
+        textarea.value = val ? `${val.trimEnd()} ${tag} ` : `${tag} `;
+      }
+      handleCaptionInput(textarea.value);
+      textarea.focus();
+    }
+
+    // Insert Emoji
+    function insertEmoji(emoji) {
+      const textarea = document.getElementById('captionInput');
+      if (!textarea) return;
+      const start = textarea.selectionStart !== undefined ? textarea.selectionStart : textarea.value.length;
+      const end = textarea.selectionEnd !== undefined ? textarea.selectionEnd : textarea.value.length;
+      const text = textarea.value || '';
+      textarea.value = text.substring(0, start) + emoji + text.substring(end);
+      const newPos = start + emoji.length;
+      textarea.selectionStart = textarea.selectionEnd = newPos;
+      handleCaptionInput(textarea.value);
+      textarea.focus();
+    }
 
     // Check image aspect ratio for Instagram compliance
     function checkAspectRatio(imgSrc) {
@@ -1189,119 +975,126 @@
       img.src = imgSrc;
     }
 
-    // Live caption sync
-    function handleCaptionInput(val) {
-      document.getElementById('fbPreviewBody').textContent = val || 'Your post caption will appear here in real time...';
-      document.getElementById('igPreviewBody').textContent = val || 'Your Instagram caption appears here...';
-
-      const len = val.length;
-      document.getElementById('charCount').textContent = `${len} character${len === 1 ? '' : 's'}`;
-
-      // Count hashtags (Instagram limits to 30)
-      const tags = (val.match(/#[\w-]+/g) || []).length;
-      const tagCountEl = document.getElementById('tagCount');
-      if (tagCountEl) {
-        tagCountEl.textContent = `${tags} / 30 hashtags`;
-        tagCountEl.style.color = tags > 30 ? '#ff6b6b' : 'var(--admin-cyan)';
-      }
-
-      const limitWarn = document.getElementById('igCharLimit');
-      if (len > 2200) {
-        limitWarn.innerHTML = `<span class="char-limit-warning">⚠️ Over Instagram limit (${len}/2200)</span>`;
-      } else {
-        limitWarn.textContent = `Instagram max: 2,200 chars (${2200 - len} left)`;
-      }
-    }
-      document.getElementById('fbPreviewBody').textContent = val || 'Your post caption will appear here in real time...';
-      document.getElementById('igPreviewBody').textContent = val || 'Your Instagram caption appears here...';
-
-      const len = val.length;
-      document.getElementById('charCount').textContent = `${len} character${len === 1 ? '' : 's'}`;
-
-      const limitWarn = document.getElementById('igCharLimit');
-      if (len > 2200) {
-        limitWarn.innerHTML = `<span class="char-limit-warning">⚠️ Over Instagram limit (${len}/2200)</span>`;
-      } else {
-        limitWarn.textContent = `Instagram max: 2,200 chars (${2200 - len} left)`;
-      }
-    }
-
-    // Insert Hashtag
-    function insertTag(tag) {
-      const textarea = document.getElementById('captionInput');
-      const val = textarea.value;
-      if (!val.includes(tag)) {
-        textarea.value = val ? `${val.trimEnd()} ${tag} ` : `${tag} `;
-        handleCaptionInput(textarea.value);
-      }
-      textarea.focus();
-    }
-
-    // Insert Emoji
-    function insertEmoji(emoji) {
-      const textarea = document.getElementById('captionInput');
-      const start = textarea.selectionStart;
-      const end = textarea.selectionEnd;
-      const text = textarea.value;
-      textarea.value = text.substring(0, start) + emoji + text.substring(end);
-      textarea.selectionStart = textarea.selectionEnd = start + emoji.length;
-      handleCaptionInput(textarea.value);
-      textarea.focus();
-    }
-
-    // Image URL Input
-    function handleImageUrlInput(url) {
-      const cleanUrl = url.trim();
-      const fbImg = document.getElementById('fbPreviewImg');
-      const igImg = document.getElementById('igPreviewImg');
-      const igPrompt = document.getElementById('igNoImgPrompt');
-      const wrapper = document.getElementById('mediaPreviewWrapper');
-      const previewImg = document.getElementById('mediaPreview');
-      const uploadPrompt = document.getElementById('uploadPrompt');
-
-      if (cleanUrl) {
-        fbImg.src = cleanUrl;
-        fbImg.style.display = 'block';
-        igImg.src = cleanUrl;
-        igImg.style.display = 'block';
-        if (igPrompt) igPrompt.style.display = 'none';
-
-        if (previewImg) previewImg.src = cleanUrl;
-        if (wrapper) wrapper.style.display = 'block';
-        if (uploadPrompt) uploadPrompt.style.display = 'none';
-        checkAspectRatio(cleanUrl);
-      } else {
-        checkAspectRatio('');
-        fbImg.style.display = 'none';
-        igImg.style.display = 'none';
-        if (igPrompt) igPrompt.style.display = 'flex';
-        if (wrapper) wrapper.style.display = 'none';
-        if (uploadPrompt) uploadPrompt.style.display = 'block';
-      }
-    }
-
-    // Link URL input
-    function handleLinkInput(link) {
-      // If no image, link preview can be indicated
-    }
-
     // Local file upload handling
     function handleFileSelected(input) {
-      if (input.files && input.files[0]) {
+      if (input && input.files && input.files[0]) {
         const file = input.files[0];
         const reader = new FileReader();
         reader.onload = function(e) {
-          handleImageUrlInput(e.target.result);
+          const dataUrl = e.target.result;
+          
+          // Update media attachment box preview
+          const previewImg = document.getElementById('mediaPreview');
+          const wrapper = document.getElementById('mediaPreviewWrapper');
+          const uploadPrompt = document.getElementById('uploadPrompt');
+          
+          if (previewImg) previewImg.src = dataUrl;
+          if (wrapper) wrapper.style.display = 'block';
+          if (uploadPrompt) uploadPrompt.style.display = 'none';
+
+          // Update right-hand live previews
+          const fbImg = document.getElementById('fbPreviewImg');
+          const igImg = document.getElementById('igPreviewImg');
+          const igPrompt = document.getElementById('igNoImgPrompt');
+          if (fbImg) {
+            fbImg.src = dataUrl;
+            fbImg.style.display = 'block';
+          }
+          if (igImg) {
+            igImg.src = dataUrl;
+            igImg.style.display = 'block';
+          }
+          if (igPrompt) {
+            igPrompt.style.display = 'none';
+          }
+
+          checkAspectRatio(dataUrl);
         };
         reader.readAsDataURL(file);
       }
     }
 
+    // Image URL Input
+    function handleImageUrlInput(url) {
+      const cleanUrl = (url || '').trim();
+      const previewImg = document.getElementById('mediaPreview');
+      const wrapper = document.getElementById('mediaPreviewWrapper');
+      const uploadPrompt = document.getElementById('uploadPrompt');
+      const fbImg = document.getElementById('fbPreviewImg');
+      const igImg = document.getElementById('igPreviewImg');
+      const igPrompt = document.getElementById('igNoImgPrompt');
+
+      if (cleanUrl) {
+        if (previewImg) previewImg.src = cleanUrl;
+        if (wrapper) wrapper.style.display = 'block';
+        if (uploadPrompt) uploadPrompt.style.display = 'none';
+
+        if (fbImg) {
+          fbImg.src = cleanUrl;
+          fbImg.style.display = 'block';
+        }
+        if (igImg) {
+          igImg.src = cleanUrl;
+          igImg.style.display = 'block';
+        }
+        if (igPrompt) igPrompt.style.display = 'none';
+
+        checkAspectRatio(cleanUrl);
+      } else {
+        const fileInput = document.getElementById('imageFileInput');
+        if (!fileInput || !fileInput.files || fileInput.files.length === 0) {
+          if (previewImg) previewImg.src = '';
+          if (wrapper) wrapper.style.display = 'none';
+          if (uploadPrompt) uploadPrompt.style.display = 'block';
+
+          if (fbImg) {
+            fbImg.src = '';
+            fbImg.style.display = 'none';
+          }
+          if (igImg) {
+            igImg.src = '';
+            igImg.style.display = 'none';
+          }
+          if (igPrompt) igPrompt.style.display = 'flex';
+
+          checkAspectRatio('');
+        }
+      }
+    }
+
+    // Remove media
     function removeMedia(e) {
-      if (e) e.stopPropagation();
-      document.getElementById('imageFileInput').value = '';
-      document.getElementById('imageUrlInput').value = '';
-      handleImageUrlInput('');
+      if (e) {
+        e.preventDefault();
+        e.stopPropagation();
+      }
+      const fileInput = document.getElementById('imageFileInput');
+      if (fileInput) fileInput.value = '';
+      const urlInput = document.getElementById('imageUrlInput');
+      if (urlInput) urlInput.value = '';
+
+      const previewImg = document.getElementById('mediaPreview');
+      const wrapper = document.getElementById('mediaPreviewWrapper');
+      const uploadPrompt = document.getElementById('uploadPrompt');
+      if (previewImg) previewImg.src = '';
+      if (wrapper) wrapper.style.display = 'none';
+      if (uploadPrompt) uploadPrompt.style.display = 'block';
+
+      const fbImg = document.getElementById('fbPreviewImg');
+      const igImg = document.getElementById('igPreviewImg');
+      const igPrompt = document.getElementById('igNoImgPrompt');
+      if (fbImg) {
+        fbImg.src = '';
+        fbImg.style.display = 'none';
+      }
+      if (igImg) {
+        igImg.src = '';
+        igImg.style.display = 'none';
+      }
+      if (igPrompt) {
+        igPrompt.style.display = 'flex';
+      }
+      checkAspectRatio('');
     }
 
     // Channel checkbox styling
@@ -1332,106 +1125,59 @@
       }
     }
 
-    // Modals
-    function openModal(id) {
-      const el = document.getElementById(id);
-      if (el) el.classList.add('open');
-    }
-    function closeModal(id) {
-      const el = document.getElementById(id);
-      if (el) el.classList.remove('open');
-    }
-
-    // Toggle password eye
-    function toggleTokenVisibility(inputId = 'fbTokenInput', iconId = 'eyeIcon') {
-      const input = document.getElementById(inputId);
-      const icon = document.getElementById(iconId);
-      if (!input || !icon) return;
-      if (input.type === 'password') {
-        input.type = 'text';
-        icon.classList.remove('fa-eye');
-        icon.classList.add('fa-eye-slash');
-      } else {
-        input.type = 'password';
-        icon.classList.remove('fa-eye-slash');
-        icon.classList.add('fa-eye');
-      }
-    }
-
-    // Test Meta connection via API
-    async function testMetaConnection() {
-      const btn = document.getElementById('btnTestConn');
-      const resultBox = document.getElementById('testResultBox');
-      const fbPageId = (document.getElementById('fbPageIdInput')?.value || '').trim();
-      const fbToken = (document.getElementById('fbTokenInput')?.value || '').trim();
-      const igId = (document.getElementById('igAccountIdInput')?.value || '').trim();
-      const appId = (document.getElementById('metaAppIdInput')?.value || '').trim();
-      const appSecret = (document.getElementById('metaAppSecretInput')?.value || '').trim();
-
-      btn.disabled = true;
-      btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Verifying with Meta...';
-      resultBox.style.display = 'none';
-
-      try {
-        const res = await fetch('/social-media/test-connection', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            facebook_page_id: fbPageId,
-            facebook_access_token: fbToken,
-            instagram_account_id: igId,
-            meta_app_id: appId,
-            meta_app_secret: appSecret,
-          })
-        });
-        const data = await res.json();
-        resultBox.style.display = 'block';
-
-        if (data.success) {
-          resultBox.style.background = 'rgba(122,219,120,0.14)';
-          resultBox.style.border = '1px solid #7adb78';
-          resultBox.style.color = '#7adb78';
-          
-          let detailsHtml = `
-            <div style="font-weight:700; margin-bottom:6px; font-size:.88rem;">${data.message}</div>
-            <div style="font-size:.76rem; color:#f8f9ff; line-height:1.6;">
-              <div>• Facebook Page: <strong>${data.page_name || 'N/A'}</strong> (ID: <code>${data.page_id || fbPageId}</code> · ${data.followers || 0} followers)</div>
-              ${data.instagram ? `<div>• Instagram Business: <strong>@${data.instagram.username}</strong> (${data.instagram.followers || 0} followers · ID: <code>${data.instagram.id}</code>)</div>` : '<div>• Instagram: Not linked or not detected.</div>'}
-              <div>• App Secret Proof: <strong>${data.appsecret_proof_active ? 'Active & HMAC-SHA256 Protected' : 'Inactive (Add Meta App Secret to enable)'}</strong></div>
-              ${data.debug && data.debug.scopes ? `<div>• Granted Token Scopes: <code>${data.debug.scopes.join(', ')}</code></div>` : ''}
-            </div>
-          `;
-          resultBox.innerHTML = detailsHtml;
-
-          if (data.instagram && data.instagram.id && !igId) {
-            document.getElementById('igAccountIdInput').value = data.instagram.id;
-          }
-          if (data.page_id && !fbPageId) {
-            document.getElementById('fbPageIdInput').value = data.page_id;
-          }
-        } else {
-          resultBox.style.background = 'rgba(255,107,107,0.15)';
-          resultBox.style.border = '1px solid #ff6b6b';
-          resultBox.style.color = '#ff6b6b';
-          resultBox.innerHTML = `<strong>Connection Failed:</strong> ${data.error}`;
-        }
-      } catch (err) {
-        resultBox.style.display = 'block';
-        resultBox.style.background = 'rgba(255,107,107,0.15)';
-        resultBox.style.border = '1px solid #ff6b6b';
-        resultBox.style.color = '#ff6b6b';
-        resultBox.textContent = 'Network error testing Meta connection.';
-      } finally {
-        btn.disabled = false;
-        btn.innerHTML = '<i class="fa-solid fa-satellite-dish"></i> Test Connection';
-      }
-    }
-
-    // Initialize character counter on load
+    // Initialize on DOM load
     document.addEventListener('DOMContentLoaded', () => {
-      const cap = document.getElementById('captionInput');
-      if (cap && cap.value) {
-        handleCaptionInput(cap.value);
+      const captionInput = document.getElementById('captionInput');
+      if (captionInput) {
+        captionInput.addEventListener('input', (e) => handleCaptionInput(e.target.value));
+        captionInput.addEventListener('keyup', (e) => handleCaptionInput(e.target.value));
+        if (captionInput.value) {
+          handleCaptionInput(captionInput.value);
+        }
+      }
+
+      // Drag and drop on mediaDropzone
+      const dropzone = document.getElementById('mediaDropzone');
+      if (dropzone) {
+        dropzone.addEventListener('dragover', (e) => {
+          e.preventDefault();
+          dropzone.classList.add('dragover');
+        });
+        dropzone.addEventListener('dragleave', () => dropzone.classList.remove('dragover'));
+        dropzone.addEventListener('drop', (e) => {
+          e.preventDefault();
+          dropzone.classList.remove('dragover');
+          if (e.dataTransfer.files && e.dataTransfer.files[0]) {
+            const fileInput = document.getElementById('imageFileInput');
+            fileInput.files = e.dataTransfer.files;
+            handleFileSelected(fileInput);
+          }
+        });
+      }
+
+      // Form submission validation & spinner
+      const socialForm = document.getElementById('socialForm');
+      if (socialForm) {
+        socialForm.addEventListener('submit', function(e) {
+          const igCheckbox = document.querySelector('input[name="channels"][value="instagram"]');
+          const isIgChecked = igCheckbox && igCheckbox.checked;
+          const imageFileInput = document.getElementById('imageFileInput');
+          const hasImageFile = imageFileInput && imageFileInput.files && imageFileInput.files.length > 0;
+          const imageUrlInput = document.getElementById('imageUrlInput');
+          const hasImageUrl = imageUrlInput && imageUrlInput.value.trim().length > 0;
+
+          if (isIgChecked && !hasImageFile && !hasImageUrl) {
+            e.preventDefault();
+            alert('Instagram strictly requires an image. Please attach an image or provide a public Image URL, or deselect Instagram.');
+            return false;
+          }
+
+          const btn = document.getElementById('btnPublish');
+          if (btn) {
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Publishing to Meta...';
+          }
+        });
       }
     });
   </script>
