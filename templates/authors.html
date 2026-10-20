@@ -309,6 +309,164 @@
       border-radius: 14px;
       background: var(--admin-panel-2);
     }
+
+    /* ---- Auto-Approve Banner ---- */
+    .auto-approve-card {
+      max-width: 1200px;
+      margin: 0 auto 24px;
+      padding: 18px 22px;
+      border-radius: 14px;
+      border: 1px solid var(--admin-line);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 20px;
+      transition: all 0.25s ease;
+    }
+    .auto-approve-card.is-enabled {
+      background: linear-gradient(100deg, rgba(122, 219, 120, 0.08), rgba(14, 16, 31, 0.95));
+      border-color: rgba(122, 219, 120, 0.4);
+      box-shadow: 0 0 20px rgba(122, 219, 120, 0.08);
+    }
+    .auto-approve-card.is-disabled {
+      background: linear-gradient(100deg, rgba(255, 186, 73, 0.06), rgba(14, 16, 31, 0.95));
+      border-color: rgba(255, 186, 73, 0.35);
+    }
+    .auto-approve-info {
+      flex: 1;
+      min-width: 0;
+    }
+    .auto-approve-badge-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin-bottom: 6px;
+    }
+    .auto-approve-title {
+      font-size: 1.05rem;
+      color: var(--admin-text);
+      font-weight: 700;
+    }
+    .auto-approve-indicator-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+    }
+    .is-enabled .auto-approve-indicator-dot {
+      background: #7adb78;
+      box-shadow: 0 0 10px #7adb78;
+      animation: pulse-dot 2s infinite;
+    }
+    .is-disabled .auto-approve-indicator-dot {
+      background: #ffba49;
+    }
+    @keyframes pulse-dot {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.6; transform: scale(1.2); }
+    }
+    .auto-approve-badge {
+      font-size: 0.68rem;
+      font-weight: 700;
+      padding: 3px 9px;
+      border-radius: 999px;
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      letter-spacing: 0.04em;
+    }
+    .auto-approve-badge.on {
+      background: rgba(122, 219, 120, 0.16);
+      color: #7adb78;
+      border: 1px solid rgba(122, 219, 120, 0.4);
+    }
+    .auto-approve-badge.off {
+      background: rgba(255, 186, 73, 0.16);
+      color: #ffba49;
+      border: 1px solid rgba(255, 186, 73, 0.35);
+    }
+    .auto-approve-desc {
+      margin: 0;
+      font-size: 0.8rem;
+      color: var(--admin-muted);
+      line-height: 1.45;
+    }
+    .auto-approve-desc strong {
+      color: var(--admin-text);
+    }
+    .btn-toggle-auto-approve {
+      padding: 10px 20px;
+      border-radius: 10px;
+      font-size: 0.82rem;
+      font-weight: 700;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      transition: all 0.2s ease;
+      white-space: nowrap;
+    }
+    .btn-toggle-auto-approve.btn-enable {
+      background: linear-gradient(135deg, #7adb78, #48bb78);
+      color: #080a16;
+      border: 0;
+      box-shadow: 0 0 16px rgba(122, 219, 120, 0.3);
+    }
+    .btn-toggle-auto-approve.btn-enable:hover {
+      box-shadow: 0 0 22px rgba(122, 219, 120, 0.5);
+      transform: translateY(-1px);
+    }
+    .btn-toggle-auto-approve.btn-disable {
+      background: rgba(255, 107, 107, 0.12);
+      color: #ff8585;
+      border: 1px solid rgba(255, 107, 107, 0.3);
+    }
+    .btn-toggle-auto-approve.btn-disable:hover {
+      background: rgba(255, 107, 107, 0.22);
+      border-color: #ff8585;
+      transform: translateY(-1px);
+    }
+    @media (max-width: 680px) {
+      .auto-approve-card {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 14px;
+        padding: 16px;
+      }
+      .btn-toggle-auto-approve {
+        width: 100%;
+        justify-content: center;
+      }
+      .author-card-item {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 14px;
+        padding: 16px;
+      }
+      .author-actions {
+        justify-content: flex-end;
+        width: 100%;
+        border-top: 1px solid var(--admin-line);
+        padding-top: 12px;
+      }
+      .author-toolbar {
+        flex-direction: column;
+        align-items: stretch;
+      }
+      .author-search-box {
+        max-width: 100%;
+      }
+      .filter-tabs {
+        overflow-x: auto;
+        padding-bottom: 4px;
+        width: 100%;
+      }
+      .filter-tab {
+        flex: 1;
+        text-align: center;
+        white-space: nowrap;
+      }
+    }
   </style>
 </head>
 <body class="admin-page">
@@ -328,6 +486,37 @@
       </div>
     {% endfor %}
   {% endwith %}
+
+  <!-- AUTO-APPROVE BANNER -->
+  <section class="auto-approve-card {% if auto_approve %}is-enabled{% else %}is-disabled{% endif %}">
+    <div class="auto-approve-info">
+      <div class="auto-approve-badge-row">
+        <span class="auto-approve-indicator-dot"></span>
+        <strong class="auto-approve-title">Author Auto-Approval</strong>
+        {% if auto_approve %}
+          <span class="auto-approve-badge on"><i class="fa-solid fa-bolt"></i> ACTIVE / ON</span>
+        {% else %}
+          <span class="auto-approve-badge off"><i class="fa-solid fa-lock"></i> DISABLED / OFF</span>
+        {% endif %}
+      </div>
+      <p class="auto-approve-desc">
+        {% if auto_approve %}
+          <strong>Automatic approval is currently turned ON.</strong> Any new writer signing in with Google/Clerk is instantly approved and can start drafting and publishing articles right away.
+        {% else %}
+          <strong>Manual review is currently enforced.</strong> Newly registered writers will see a pending review notice until you manually approve them below.
+        {% endif %}
+      </p>
+    </div>
+    <form method="POST" action="/authors/toggle-auto-approve" class="auto-approve-form">
+      <button type="submit" class="btn-toggle-auto-approve {% if auto_approve %}btn-disable{% else %}btn-enable{% endif %}">
+        {% if auto_approve %}
+          <i class="fa-solid fa-toggle-on"></i> Turn OFF Auto-Approval
+        {% else %}
+          <i class="fa-solid fa-toggle-off"></i> Turn ON Auto-Approval
+        {% endif %}
+      </button>
+    </form>
+  </section>
 
   <!-- STATS OVERVIEW -->
   {% if stats %}

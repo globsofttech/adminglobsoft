@@ -1,9 +1,35 @@
-<div class="admin-layout">
+<header class="admin-mobile-topbar">
+  <button type="button" class="admin-mobile-menu-btn" id="mobileMenuTrigger" aria-label="Open navigation menu">
+    <i class="fa-solid fa-bars"></i>
+  </button>
+  <a class="admin-mobile-brand" href="/">
+    <img src="{{ url_for('static', filename='images/globsoft.svg') }}" alt="Globsoft Tech">
+    <span><strong>Globsoft</strong><small>{% if session.get('role') == 'author' %}AUTHOR{% else %}ADMIN{% endif %}</small></span>
+  </a>
+  <div class="admin-mobile-user">
+    {% if session.get('avatar') %}
+      <img src="{{ session.get('avatar') }}" alt="" class="mobile-avatar-img">
+    {% else %}
+      <div class="mobile-avatar-placeholder">
+        {{ (session.get('author_name') or session.get('admin_name') or 'A')[:1]|upper }}
+      </div>
+    {% endif %}
+  </div>
+</header>
+
+<div class="admin-drawer-backdrop" id="adminDrawerBackdrop"></div>
+
+<div class="admin-layout" id="adminLayout">
   <aside class="admin-sidebar" id="adminSidebar">
-    <a class="brand" href="/">
-      <img src="{{ url_for('static', filename='images/globsoft.svg') }}" alt="Globsoft Tech">
-      <span><strong>Globsoft</strong><small>TECH ADMIN</small></span>
-    </a>
+    <div class="sidebar-header-row">
+      <a class="brand" href="/">
+        <img src="{{ url_for('static', filename='images/globsoft.svg') }}" alt="Globsoft Tech">
+        <span><strong>Globsoft</strong><small>{% if session.get('role') == 'author' %}AUTHOR STUDIO{% else %}TECH ADMIN{% endif %}</small></span>
+      </a>
+      <button type="button" class="drawer-close-btn" id="drawerCloseBtn" aria-label="Close navigation menu">
+        <i class="fa-solid fa-xmark"></i>
+      </button>
+    </div>
     <div class="sidebar-label">Workspace</div>
     <nav class="sidebar-nav" aria-label="Admin tools">
      {% if session.get('role') == 'author' %}

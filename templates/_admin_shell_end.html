@@ -2,12 +2,47 @@
 </div>
 <script>
   (() => {
-    const layout = document.querySelector(".admin-layout");
+    const layout = document.getElementById("adminLayout") || document.querySelector(".admin-layout");
     const toggle = document.getElementById("sidebarToggle");
-    if (!layout || !toggle) return;
-    toggle.addEventListener("click", () => {
-      const collapsed = layout.classList.toggle("sidebar-collapsed");
-      toggle.setAttribute("aria-expanded", String(!collapsed));
+    const mobileTrigger = document.getElementById("mobileMenuTrigger");
+    const backdrop = document.getElementById("adminDrawerBackdrop");
+    const drawerClose = document.getElementById("drawerCloseBtn");
+
+    // Desktop collapsible sidebar
+    if (toggle && layout) {
+      toggle.addEventListener("click", () => {
+        const collapsed = layout.classList.toggle("sidebar-collapsed");
+        toggle.setAttribute("aria-expanded", String(!collapsed));
+      });
+    }
+
+    // Mobile / Tablet drawer functions
+    const openMobileMenu = () => {
+      document.body.classList.add("mobile-drawer-open");
+    };
+
+    const closeMobileMenu = () => {
+      document.body.classList.remove("mobile-drawer-open");
+    };
+
+    if (mobileTrigger) {
+      mobileTrigger.addEventListener("click", openMobileMenu);
+    }
+    if (backdrop) {
+      backdrop.addEventListener("click", closeMobileMenu);
+    }
+    if (drawerClose) {
+      drawerClose.addEventListener("click", closeMobileMenu);
+    }
+
+    // Close drawer when a nav link is tapped on mobile
+    const navItems = document.querySelectorAll(".admin-sidebar .nav-item");
+    navItems.forEach(item => {
+      item.addEventListener("click", () => {
+        if (window.innerWidth < 1024) {
+          closeMobileMenu();
+        }
+      });
     });
   })();
 </script>

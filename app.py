@@ -1,3 +1,4 @@
+import html
 from flask import Flask, flash, render_template, request, session, redirect, jsonify, make_response, Response, has_request_context
 import hmac
 import hashlib
@@ -591,6 +592,97 @@ def public_blog(slug):
         return jsonify({"success": False, "error": "Blog post not found"}), 404
     return jsonify(get_public_blog(document))
 
+@app.route("/api/blog-preview/<slug>", methods=["GET"])
+@no_cache
+def blog_social_preview(slug):
+    """
+    Renders clean Open Graph and Twitter Card HTML metadata for social media scrapers
+    (Facebook, Instagram, WhatsApp, Twitter, LinkedIn, Telegram, Discord, etc.).
+    Includes meta refresh and immediate JS redirect for real users.
+    """
+    db = client["globsoft_db"]
+    blog = db["blogs"].find_one({"slug": slug, "status": "published"}) or db["blogs"].find_one({"slug": slug})
+    
+    frontend_base = os.getenv("FRONTEND_URL", "https://globsoft.vercel.app").rstrip("/")
+    admin_base = os.getenv("ADMIN_PORTAL_URL", "https://adminglobsoft.vercel.app").rstrip("/")
+    
+    if not blog:
+        return f"""<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Globsoft Tech | Your Vision, Our Code!</title>
+    <meta property="og:title" content="Globsoft Tech | Your Vision, Our Code!">
+    <meta property="og:description" content="We empower businesses with Smart & Affordable Tech Solutions without breaking your bank account!">
+    <meta property="og:image" content="{frontend_base}/social-preview.jpg">
+    <meta property="og:url" content="{frontend_base}/blog">
+    <meta property="og:type" content="website">
+    <meta name="twitter:card" content="summary_large_image">
+    <meta http-equiv="refresh" content="0;url={frontend_base}/blog">
+</head>
+<body>
+    <script>window.location.replace("{frontend_base}/blog");</script>
+</body>
+</html>""", 200, {"Content-Type": "text/html; charset=utf-8"}
+
+    title = html.escape(str(blog.get("seo_title") or blog.get("title") or "Globsoft Tech Blog"))
+    desc = html.escape(str(blog.get("seo_description") or blog.get("excerpt") or "Read the latest article from Globsoft Tech."))
+    blog_url = f"{frontend_base}/blog/{slug}"
+    
+    # Determine absolute image URL
+    image_url = f"{frontend_base}/social-preview.jpg"
+    if blog.get("image_data"):
+        image_url = f"{admin_base}/api/blog-images/{blog['_id']}"
+    elif blog.get("image_url"):
+        img = str(blog["image_url"]).strip()
+        if img.startswith("http://") or img.startswith("https://"):
+            image_url = img
+        elif img.startswith("/"):
+            image_url = f"{admin_base}{img}"
+
+    author_name = html.escape(str(blog.get("author") or "Globsoft Team"))
+
+    html_content = f"""<!DOCTYPE html>
+<html lang="en" prefix="og: https://ogp.me/ns#">
+<head>
+    <meta charset="UTF-8">
+    <title>{title} | Globsoft Tech</title>
+    <meta name="description" content="{desc}">
+    <meta name="author" content="{author_name}">
+    <link rel="canonical" href="{blog_url}">
+
+    <!-- Open Graph / Facebook / Instagram / WhatsApp / Messenger -->
+    <meta property="og:type" content="article">
+    <meta property="og:site_name" content="Globsoft Tech">
+    <meta property="og:title" content="{title}">
+    <meta property="og:description" content="{desc}">
+    <meta property="og:image" content="{image_url}">
+    <meta property="og:image:secure_url" content="{image_url}">
+    <meta property="og:image:width" content="1200">
+    <meta property="og:image:height" content="630">
+    <meta property="og:url" content="{blog_url}">
+    <meta property="og:locale" content="en_US">
+    <meta property="article:author" content="{author_name}">
+
+    <!-- Twitter / X -->
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="{title}">
+    <meta name="twitter:description" content="{desc}">
+    <meta name="twitter:image" content="{image_url}">
+
+    <!-- Instant redirect for normal web browsers -->
+    <meta http-equiv="refresh" content="0;url={blog_url}">
+    <script>window.location.replace("{blog_url}");</script>
+</head>
+<body style="background:#0e0c15;color:#fff;font-family:sans-serif;padding:2rem;">
+    <h2>{title}</h2>
+    <p>{desc}</p>
+    <p><a href="{blog_url}">Click here to view full article on Globsoft Tech</a></p>
+</body>
+</html>"""
+    return html_content, 200, {"Content-Type": "text/html; charset=utf-8"}
+
+
 
 @app.route("/api/blogs/<slug>/related", methods=["GET"])
 @no_cache
@@ -1083,6 +1175,27 @@ def delete_blog(blog_id):
     return redirect("/blogs")
 
 
+def get_author_auto_approve_setting():
+    try:
+        doc = client["globsoft_db"]["settings"].find_one({"key": "author_settings"})
+        if doc and "auto_approve" in doc:
+            return bool(doc["auto_approve"])
+    except Exception:
+        pass
+    return False
+
+
+def set_author_auto_approve_setting(enabled):
+    try:
+        client["globsoft_db"]["settings"].update_one(
+            {"key": "author_settings"},
+            {"$set": {"auto_approve": bool(enabled), "updated_at": datetime.utcnow()}},
+            upsert=True
+        )
+        return True
+    except Exception:
+        return False
+
 @app.route("/authors", methods=["GET", "POST"])
 @no_cache
 def manage_authors():
@@ -1143,7 +1256,20 @@ def manage_authors():
         "active": active_authors,
         "pending": pending_authors,
     }
-    return render_template("authors.html", authors=authors, stats=stats)
+    auto_approve = get_author_auto_approve_setting()
+    return render_template("authors.html", authors=authors, stats=stats, auto_approve=auto_approve)
+@app.route("/authors/toggle-auto-approve", methods=["POST"])
+@no_cache
+def toggle_author_auto_approve():
+    if not is_admin():
+        return redirect("/")
+    current = get_author_auto_approve_setting()
+    new_val = not current
+    set_author_auto_approve_setting(new_val)
+    status_txt = "turned ON (new writers will be automatically approved upon sign-in)" if new_val else "turned OFF (new writers will require manual admin approval)"
+    flash(f"Author Auto-Approval {status_txt}.", "success")
+    return redirect("/authors")
+
 @app.route("/authors/<author_id>/approve", methods=["POST"])
 @no_cache
 def approve_author(author_id):
@@ -1311,6 +1437,10 @@ def clerk_session_auth():
         authors_col = client["globsoft_db"]["authors"]
         now = datetime.utcnow()
         fallback_name = name or email.split("@")[0]
+        auto_approve = get_author_auto_approve_setting()
+
+        insert_active = True if auto_approve else False
+        insert_approved_at = now if auto_approve else None
 
         author = authors_col.find_one_and_update(
             {"email": email},
@@ -1324,7 +1454,8 @@ def clerk_session_auth():
                 "$setOnInsert": {
                     "email": email,
                     "name": fallback_name,
-                    "active": False,  # Pending approval by admin on first creation
+                    "active": insert_active,
+                    "approved_at": insert_approved_at,
                     "role": "author",
                     "created_at": now,
                 },
@@ -1332,6 +1463,11 @@ def clerk_session_auth():
             upsert=True,
             return_document=ReturnDocument.AFTER,
         )
+
+        # If auto-approve is active and this account was in pending status, activate immediately
+        if auto_approve and not author.get("active", False):
+            authors_col.update_one({"_id": author["_id"]}, {"$set": {"active": True, "approved_at": now}})
+            author["active"] = True
 
         author_id = str(author["_id"])
         is_active = bool(author.get("active", False))
