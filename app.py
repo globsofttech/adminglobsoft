@@ -1,4 +1,6 @@
-from flask import Flask, flash, render_template, request, session, redirect, jsonify, make_response, Response
+from flask import Flask, flash, render_template, request, session, redirect, jsonify, make_response, Response, has_request_context
+import hmac
+import hashlib
 from pymongo import MongoClient, ReturnDocument
 from datetime import datetime, timedelta
 from bson.objectid import ObjectId
@@ -20,6 +22,7 @@ try:
 except ImportError:
     requests = None
 
+load_dotenv(os.path.join(os.path.dirname(__file__), ".env"))
 load_dotenv()
 
 
@@ -639,7 +642,7 @@ def post_blog_comment(slug):
         return jsonify({"success": False, "error": "Unable to save comment."}), 500
 
 
-@app.route("/api/blog-images/<blog_id>", methods=["GET"])
+@app.route("/api/blog-images/<blog_id>", methods=["GET", "HEAD"])
 def blog_image(blog_id):
     try:
         document = client["globsoft_db"]["blogs"].find_one(
@@ -650,12 +653,15 @@ def blog_image(blog_id):
         return jsonify({"success": False, "error": "Invalid image"}), 400
     if not document or not document.get("image_data"):
         return jsonify({"success": False, "error": "Image not found"}), 404
-    resp = Response(document["image_data"], mimetype=document.get("image_mime", "image/jpeg"))
-    resp.headers['Cache-Control'] = 'public, max-age=86400'
+    data_bytes = bytes(document["image_data"])
+    resp = Response(data_bytes, mimetype=document.get("image_mime", "image/jpeg"))
+    resp.headers['Content-Length'] = str(len(data_bytes))
+    resp.headers['Accept-Ranges'] = 'bytes'
+    resp.headers['Cache-Control'] = 'public, max-age=86400, immutable'
     return resp
 
 
-@app.route("/api/blog-media/<media_id>", methods=["GET"])
+@app.route("/api/blog-media/<media_id>", methods=["GET", "HEAD"])
 def blog_media(media_id):
     try:
         doc = client["globsoft_db"]["blog_media"].find_one({"_id": ObjectId(media_id)})
@@ -663,8 +669,11 @@ def blog_media(media_id):
         return jsonify({"success": False, "error": "Invalid image ID"}), 400
     if not doc or not doc.get("data"):
         return jsonify({"success": False, "error": "Image not found"}), 404
-    resp = Response(doc["data"], mimetype=doc.get("mimetype", "image/jpeg"))
-    resp.headers['Cache-Control'] = 'public, max-age=31536000'
+    data_bytes = bytes(doc["data"])
+    resp = Response(data_bytes, mimetype=doc.get("mimetype", "image/jpeg"))
+    resp.headers['Content-Length'] = str(len(data_bytes))
+    resp.headers['Accept-Ranges'] = 'bytes'
+    resp.headers['Cache-Control'] = 'public, max-age=31536000, immutable'
     return resp
 
 
@@ -1908,38 +1917,132 @@ def verify_instructor_api():
 # SOCIAL MEDIA MANAGEMENT (DIRECT PUBLISHING TO FACEBOOK & INSTAGRAM)
 # =========================================================================
 
+def get_admin_base_url():
+    """Public base URL of the Admin Portal backend (used by Meta/Instagram to fetch images)."""
+    admin_env = (os.environ.get("ADMIN_PORTAL_URL") or os.environ.get("ADMIN_URL") or "").strip()
+    if admin_env:
+        return admin_env.rstrip("/")
+    if has_request_context():
+        proto = request.headers.get("X-Forwarded-Proto") or request.scheme or "https"
+        host = request.headers.get("X-Forwarded-Host") or request.host
+        if host:
+            return f"{proto}://{host}".rstrip("/")
+    return "https://adminglobsoft.vercel.app"
+
+
+def get_site_base_url():
+    """Public website URL for articles and pages."""
+    return (os.environ.get("SITE_URL") or "https://globsoft.vercel.app").strip().rstrip("/")
+
+
+def _get_meta_appsecret_proof(token, secret):
+    """Compute HMAC-SHA256 appsecret_proof for Meta Graph API calls."""
+    if not token or not secret:
+        return None
+    try:
+        return hmac.new(
+            secret.encode("utf-8"),
+            token.encode("utf-8"),
+            hashlib.sha256
+        ).hexdigest()
+    except Exception:
+        return None
+
+
+def _format_meta_error(res_json, default_msg="Meta API request failed"):
+    """Extract clean, descriptive error messages from Meta Graph API responses."""
+    if not isinstance(res_json, dict):
+        return str(res_json)
+    err = res_json.get("error")
+    if isinstance(err, dict):
+        msg = err.get("error_user_msg") or err.get("message") or default_msg
+        code = err.get("code")
+        subcode = err.get("error_subcode")
+        err_type = err.get("type", "Meta")
+        suffix = f" [Code: {code}" + (f", Subcode: {subcode}" if subcode else "") + "]" if code else ""
+        return f"{err_type}: {msg}{suffix}"
+    return res_json.get("message") or default_msg
+
+
 def get_social_settings():
-    """Fetch Facebook and Instagram credentials from MongoDB, fallback to .env."""
-    doc = client["globsoft_db"]["settings"].find_one({"key": "social_media"}) or {}
-    fb_page_id = doc.get("facebook_page_id") or os.environ.get("FACEBOOK_PAGE_ID", "").strip()
-    fb_token = doc.get("facebook_access_token") or os.environ.get("FACEBOOK_PAGE_ACCESS_TOKEN", "").strip()
-    ig_account_id = doc.get("instagram_account_id") or os.environ.get("INSTAGRAM_ACCOUNT_ID", "").strip()
-    default_hashtags = doc.get("default_hashtags", "#GlobsoftTech #WebDevelopment #NepalTech #SoftwareCompany #TechSolutions")
-    
+    """Fetch Facebook and Instagram credentials from MongoDB or environment variables."""
+    doc = {}
+    try:
+        doc = client["globsoft_db"]["settings"].find_one({"key": "social_media"}) or {}
+    except Exception:
+        pass
+
+    fb_page_id = (
+        (doc.get("facebook_page_id") or "").strip()
+        or os.environ.get("META_PAGE_ID", "").strip()
+        or os.environ.get("FACEBOOK_PAGE_ID", "").strip()
+    )
+    fb_token = (
+        (doc.get("facebook_access_token") or "").strip()
+        or os.environ.get("META_PAGE_ACCESS_TOKEN", "").strip()
+        or os.environ.get("FACEBOOK_PAGE_ACCESS_TOKEN", "").strip()
+    )
+    ig_account_id = (
+        (doc.get("instagram_account_id") or "").strip()
+        or os.environ.get("META_IG_USER_ID", "").strip()
+        or os.environ.get("INSTAGRAM_ACCOUNT_ID", "").strip()
+    )
+    app_id = (
+        (doc.get("meta_app_id") or "").strip()
+        or os.environ.get("META_APP_ID", "").strip()
+    )
+    app_secret = (
+        (doc.get("meta_app_secret") or "").strip()
+        or os.environ.get("META_APP_SECRET", "").strip()
+    )
+    default_hashtags = (
+        (doc.get("default_hashtags") or "").strip()
+        or "#GlobsoftTech #WebDevelopment #NepalTech #SoftwareCompany #TechSolutions"
+    )
+
+    fb_page_name = doc.get("facebook_page_name") or "Globsoft Tech Pvt. Ltd."
+    ig_username = doc.get("instagram_username") or "globsoftech"
+
+    appsecret_proof = _get_meta_appsecret_proof(fb_token, app_secret)
+
     return {
         "facebook_page_id": fb_page_id,
         "facebook_access_token": fb_token,
         "instagram_account_id": ig_account_id,
+        "meta_app_id": app_id,
+        "meta_app_secret": app_secret,
+        "appsecret_proof": appsecret_proof,
         "default_hashtags": default_hashtags,
+        "facebook_page_name": fb_page_name,
+        "instagram_username": ig_username,
         "is_configured": bool(fb_page_id and fb_token),
+        "env_page_id_present": bool(os.environ.get("META_PAGE_ID") or os.environ.get("FACEBOOK_PAGE_ID")),
+        "env_token_present": bool(os.environ.get("META_PAGE_ACCESS_TOKEN") or os.environ.get("FACEBOOK_PAGE_ACCESS_TOKEN")),
+        "env_ig_id_present": bool(os.environ.get("META_IG_USER_ID") or os.environ.get("INSTAGRAM_ACCOUNT_ID")),
+        "env_app_id_present": bool(os.environ.get("META_APP_ID")),
+        "env_app_secret_present": bool(os.environ.get("META_APP_SECRET")),
     }
 
 
 def _meta_http_post(url, data=None, files=None, timeout=30):
-    """POST helper with requests or urllib fallback."""
+    """POST helper with requests or urllib fallback, with network exception catching."""
+    data = dict(data or {})
     if requests is not None:
-        resp = requests.post(url, data=data, files=files, timeout=timeout)
         try:
-            return resp.status_code, resp.json()
-        except Exception:
-            return resp.status_code, {"error": {"message": resp.text}}
-    
+            resp = requests.post(url, data=data, files=files, timeout=timeout)
+            try:
+                return resp.status_code, resp.json()
+            except Exception:
+                return resp.status_code, {"error": {"message": resp.text}}
+        except requests.exceptions.RequestException as e:
+            return 500, {"error": {"message": f"Network error during POST request: {str(e)}"}}
+
     if files:
         return 400, {"error": {"message": "Binary image file upload requires the 'requests' package."}}
-    
-    encoded = urlencode(data or {}).encode("utf-8")
-    req = Request(url, data=encoded, headers={"User-Agent": "GlobsoftAdmin/1.0"})
+
     try:
+        encoded = urlencode(data).encode("utf-8")
+        req = Request(url, data=encoded, headers={"User-Agent": "GlobsoftAdmin/1.0"})
         with urlopen(req, timeout=timeout) as r:
             return r.getcode(), json.loads(r.read().decode("utf-8"))
     except Exception as exc:
@@ -1952,16 +2055,19 @@ def _meta_http_post(url, data=None, files=None, timeout=30):
 
 
 def _meta_http_get(url, timeout=15):
-    """GET helper with requests or urllib fallback."""
+    """GET helper with requests or urllib fallback, with network exception catching."""
     if requests is not None:
-        resp = requests.get(url, timeout=timeout)
         try:
-            return resp.status_code, resp.json()
-        except Exception:
-            return resp.status_code, {"error": {"message": resp.text}}
-    
-    req = Request(url, headers={"User-Agent": "GlobsoftAdmin/1.0"})
+            resp = requests.get(url, timeout=timeout)
+            try:
+                return resp.status_code, resp.json()
+            except Exception:
+                return resp.status_code, {"error": {"message": resp.text}}
+        except requests.exceptions.RequestException as e:
+            return 500, {"error": {"message": f"Network error during GET request: {str(e)}"}}
+
     try:
+        req = Request(url, headers={"User-Agent": "GlobsoftAdmin/1.0"})
         with urlopen(req, timeout=timeout) as r:
             return r.getcode(), json.loads(r.read().decode("utf-8"))
     except Exception as exc:
@@ -1976,19 +2082,25 @@ def _meta_http_get(url, timeout=15):
 def post_to_facebook_page(caption, image_bytes=None, image_mime=None, image_url=None, link_url=None, settings=None):
     """
     Publish a post to Facebook Page via Meta Graph API.
-    Supports direct multipart image upload or feed link post.
+    Supports direct multipart image upload, public image URL, or feed status/link post.
     """
     if not settings:
         settings = get_social_settings()
-    
+
     page_id = settings.get("facebook_page_id")
     access_token = settings.get("facebook_access_token")
-    
+    proof = settings.get("appsecret_proof")
+
     if not page_id or not access_token:
         return {"success": False, "error": "Facebook Page ID or Page Access Token is missing."}
-    
+
     graph_version = "v19.0"
-    
+
+    # If link_url provided and not already included in caption, append it nicely
+    final_caption = caption
+    if link_url and link_url not in final_caption:
+        final_caption = f"{caption}\n\n🔗 {link_url}"
+
     try:
         if image_bytes:
             # Multipart binary photo upload
@@ -1997,9 +2109,11 @@ def post_to_facebook_page(caption, image_bytes=None, image_mime=None, image_url=
                 "source": ("social_post_image.jpg", image_bytes, image_mime or "image/jpeg")
             }
             data = {
-                "caption": caption,
+                "caption": final_caption,
                 "access_token": access_token
             }
+            if proof:
+                data["appsecret_proof"] = proof
             status_code, res_json = _meta_http_post(url, data=data, files=files, timeout=30)
             if status_code == 200 and ("id" in res_json or "post_id" in res_json):
                 post_id = res_json.get("post_id") or res_json.get("id")
@@ -2009,17 +2123,19 @@ def post_to_facebook_page(caption, image_bytes=None, image_mime=None, image_url=
                     "url": f"https://www.facebook.com/{post_id}"
                 }
             else:
-                err_msg = res_json.get("error", {}).get("message", str(res_json))
+                err_msg = _format_meta_error(res_json, "Facebook photo upload failed")
                 return {"success": False, "error": f"Facebook Error: {err_msg}"}
-        
+
         elif image_url and (image_url.startswith("http://") or image_url.startswith("https://")):
             # Public image URL photo post
             url = f"https://graph.facebook.com/{graph_version}/{page_id}/photos"
             data = {
                 "url": image_url,
-                "caption": caption,
+                "caption": final_caption,
                 "access_token": access_token
             }
+            if proof:
+                data["appsecret_proof"] = proof
             status_code, res_json = _meta_http_post(url, data=data, timeout=30)
             if status_code == 200 and ("id" in res_json or "post_id" in res_json):
                 post_id = res_json.get("post_id") or res_json.get("id")
@@ -2029,9 +2145,9 @@ def post_to_facebook_page(caption, image_bytes=None, image_mime=None, image_url=
                     "url": f"https://www.facebook.com/{post_id}"
                 }
             else:
-                err_msg = res_json.get("error", {}).get("message", str(res_json))
+                err_msg = _format_meta_error(res_json, "Facebook photo post failed")
                 return {"success": False, "error": f"Facebook Error: {err_msg}"}
-        
+
         else:
             # Text or link post to feed
             url = f"https://graph.facebook.com/{graph_version}/{page_id}/feed"
@@ -2041,6 +2157,8 @@ def post_to_facebook_page(caption, image_bytes=None, image_mime=None, image_url=
             }
             if link_url:
                 data["link"] = link_url
+            if proof:
+                data["appsecret_proof"] = proof
             status_code, res_json = _meta_http_post(url, data=data, timeout=30)
             if status_code == 200 and "id" in res_json:
                 post_id = res_json["id"]
@@ -2050,7 +2168,7 @@ def post_to_facebook_page(caption, image_bytes=None, image_mime=None, image_url=
                     "url": f"https://www.facebook.com/{post_id}"
                 }
             else:
-                err_msg = res_json.get("error", {}).get("message", str(res_json))
+                err_msg = _format_meta_error(res_json, "Facebook feed post failed")
                 return {"success": False, "error": f"Facebook Error: {err_msg}"}
     except Exception as e:
         return {"success": False, "error": f"Facebook API Connection Error: {str(e)}"}
@@ -2060,22 +2178,29 @@ def post_to_instagram_business(caption, image_url, settings=None):
     """
     Publish a photo post to Instagram Business Account via Meta Graph API.
     Step 1: Create media container POST /{ig_account_id}/media
-    Step 2: Publish container POST /{ig_account_id}/media_publish
+    Step 2: Wait until container status is FINISHED
+    Step 3: Publish container POST /{ig_account_id}/media_publish
+    Step 4: Retrieve permalink for direct linking
     """
     if not settings:
         settings = get_social_settings()
-    
+
     ig_account_id = settings.get("instagram_account_id")
     access_token = settings.get("facebook_access_token")
-    
+    proof = settings.get("appsecret_proof")
+
     if not ig_account_id or not access_token:
         return {"success": False, "error": "Instagram Business Account ID or Access Token is missing."}
-    
+
     if not image_url or not (image_url.startswith("http://") or image_url.startswith("https://")):
-        return {"success": False, "error": "Instagram requires a publicly accessible image URL (JPEG/PNG) to publish."}
-    
+        return {"success": False, "error": "Instagram requires a publicly accessible HTTPS image URL (JPEG/PNG) to publish."}
+
+    # Meta requires HTTPS for Instagram media URLs
+    if image_url.startswith("http://"):
+        image_url = "https://" + image_url[len("http://"):]
+
     graph_version = "v19.0"
-    
+
     try:
         # Step 1: Create media container
         container_url = f"https://graph.facebook.com/{graph_version}/{ig_account_id}/media"
@@ -2084,38 +2209,75 @@ def post_to_instagram_business(caption, image_url, settings=None):
             "caption": caption,
             "access_token": access_token
         }
+        if proof:
+            c_data["appsecret_proof"] = proof
         c_status, c_json = _meta_http_post(container_url, data=c_data, timeout=30)
-        
+
         if c_status != 200 or "id" not in c_json:
-            err_msg = c_json.get("error", {}).get("message", str(c_json))
+            err_msg = _format_meta_error(c_json, "Failed to create Instagram media container")
             return {"success": False, "error": f"Instagram Container Error: {err_msg}"}
-        
+
         creation_id = c_json["id"]
-        
-        # Pause briefly to allow Meta to download and process the image
-        time.sleep(2)
-        
-        # Step 2: Publish container
+
+        # Step 2: Poll container status until FINISHED or error (up to 20 seconds)
+        status_url = f"https://graph.facebook.com/{graph_version}/{creation_id}?fields=status_code,status&access_token={access_token}"
+        if proof:
+            status_url += f"&appsecret_proof={proof}"
+
+        for _ in range(10):
+            time.sleep(2)
+            s_status, s_json = _meta_http_get(status_url, timeout=10)
+            if s_status == 200:
+                container_state = s_json.get("status_code")
+                if container_state == "FINISHED":
+                    break
+                elif container_state == "ERROR":
+                    err_details = s_json.get("status") or "Meta rejected image processing."
+                    return {"success": False, "error": f"Instagram Image Processing Error: {err_details}"}
+                elif container_state == "EXPIRED":
+                    return {"success": False, "error": "Instagram media container expired."}
+            else:
+                break
+
+        # Step 3: Publish container
         pub_url = f"https://graph.facebook.com/{graph_version}/{ig_account_id}/media_publish"
         p_data = {
             "creation_id": creation_id,
             "access_token": access_token
         }
+        if proof:
+            p_data["appsecret_proof"] = proof
         p_status, p_json = _meta_http_post(pub_url, data=p_data, timeout=30)
-        
+
         if p_status == 200 and "id" in p_json:
             media_id = p_json["id"]
+
+            # Step 4: Fetch permalink
+            ig_url = None
+            try:
+                perm_url = f"https://graph.facebook.com/{graph_version}/{media_id}?fields=permalink&access_token={access_token}"
+                if proof:
+                    perm_url += f"&appsecret_proof={proof}"
+                _, perm_res = _meta_http_get(perm_url, timeout=10)
+                if isinstance(perm_res, dict) and perm_res.get("permalink"):
+                    ig_url = perm_res["permalink"]
+            except Exception:
+                pass
+
+            if not ig_url:
+                username = settings.get("instagram_username", "")
+                ig_url = f"https://www.instagram.com/{username}".rstrip("/") if username else "https://www.instagram.com"
+
             return {
                 "success": True,
                 "media_id": str(media_id),
-                "url": "https://www.instagram.com"
+                "url": ig_url
             }
         else:
-            err_msg = p_json.get("error", {}).get("message", str(p_json))
+            err_msg = _format_meta_error(p_json, "Instagram media publication failed")
             return {"success": False, "error": f"Instagram Publish Error: {err_msg}"}
     except Exception as e:
         return {"success": False, "error": f"Instagram API Connection Error: {str(e)}"}
-
 
 
 @app.route("/social-media", methods=["GET"])
@@ -2123,9 +2285,9 @@ def post_to_instagram_business(caption, image_url, settings=None):
 def social_media_hub():
     if not is_admin():
         return redirect("/blogs" if session.get("role") == "author" else "/")
-    
+
     settings = get_social_settings()
-    
+
     # Check if pre-filling from an existing blog
     blog_id = request.args.get("blog_id")
     prefill = None
@@ -2134,19 +2296,20 @@ def social_media_hub():
             blog = client["globsoft_db"]["blogs"].find_one({"_id": ObjectId(blog_id)})
             if blog:
                 blog_slug = blog.get("slug", "")
-                site_base = os.environ.get("SITE_URL", "https://globsoft.vercel.app").rstrip("/")
+                site_base = get_site_base_url()
+                admin_base = get_admin_base_url()
                 blog_url = f"{site_base}/blog/{blog_slug}"
                 tags_str = ""
                 if blog.get("tags"):
                     raw_tags = [t.strip().replace(" ", "").replace("-", "") for t in blog.get("tags", "").split(",") if t.strip()]
                     tags_str = " ".join([f"#{t}" for t in raw_tags if not t.startswith("#")])
-                
+
                 caption = f"🚀 New on the Globsoft Tech Blog:\n\"{blog.get('title')}\"\n\n{blog.get('excerpt', '')}\n\n👉 Read full article: {blog_url}\n\n{tags_str or settings.get('default_hashtags', '')}"
-                
+
                 image_url = ""
                 if blog.get("image_data"):
-                    image_url = f"{site_base}/api/blog-images/{blog['_id']}"
-                
+                    image_url = f"{admin_base}/api/blog-images/{blog['_id']}"
+
                 prefill = {
                     "blog_id": str(blog["_id"]),
                     "title": blog.get("title"),
@@ -2160,17 +2323,17 @@ def social_media_hub():
     # Retrieve recent social posts history
     posts_col = client["globsoft_db"]["social_posts"]
     recent_posts = list(posts_col.find().sort("created_at", -1).limit(50))
-    
+
     total_posts = posts_col.count_documents({})
     fb_count = posts_col.count_documents({"channels": "facebook", "facebook.success": True})
     ig_count = posts_col.count_documents({"channels": "instagram", "instagram.success": True})
-    
+
     stats = {
         "total": total_posts,
         "facebook": fb_count,
         "instagram": ig_count,
     }
-    
+
     return render_template(
         "social_media.html",
         settings=settings,
@@ -2188,35 +2351,35 @@ def publish_social_post():
         if request.headers.get("X-Requested-With") == "XMLHttpRequest" or request.is_json:
             return jsonify({"success": False, "error": "Unauthorized"}), 401
         return redirect("/")
-    
+
     caption = request.form.get("caption", "").strip()
     channels = request.form.getlist("channels")
     link_url = request.form.get("link_url", "").strip()
     image_url = request.form.get("image_url", "").strip()
     simulation_mode = request.form.get("simulation_mode") == "1"
-    
+
     if not channels:
         flash("Please select at least one channel (Facebook or Instagram) to publish to.", "error")
         return redirect("/social-media")
-    
+
     if not caption:
         flash("Post caption cannot be empty.", "error")
         return redirect("/social-media")
-    
+
     settings = get_social_settings()
-    
+
     # Handle image upload if a file was attached
     image_file = request.files.get("image_file")
     image_bytes = None
     image_mime = None
     saved_media_url = image_url
-    
+
     if image_file and image_file.filename:
         image_bytes = image_file.read()
         if len(image_bytes) > BLOG_IMAGE_MAX_BYTES:
             flash(f"Attached image exceeds max size of {BLOG_IMAGE_MAX_BYTES // (1024 * 1024)} MB.", "error")
             return redirect("/social-media")
-        
+
         image_mime = normalize_image_mime(image_file.mimetype, image_file.filename) or "image/jpeg"
         media_doc = {
             "filename": image_file.filename,
@@ -2229,14 +2392,19 @@ def publish_social_post():
         }
         res = client["globsoft_db"]["blog_media"].insert_one(media_doc)
         media_id = str(res.inserted_id)
-        
-        # Determine public URL
-        site_base = os.environ.get("SITE_URL", "https://globsoft.vercel.app").rstrip("/")
-        saved_media_url = f"{site_base}/api/blog-media/{media_id}"
+
+        # Build absolute URL pointing to Admin Portal backend where the image is served
+        admin_base = get_admin_base_url()
+        saved_media_url = f"{admin_base}/api/blog-media/{media_id}"
         if not image_url:
             image_url = saved_media_url
 
-    # Check if simulation/test mode is selected or if credentials are unconfigured
+    # Instagram validation: Meta strictly requires an image for feed publishing
+    if "instagram" in channels and not image_bytes and not image_url:
+        flash("Instagram requires an image. Please attach an image file or provide a public Image URL, or deselect Instagram.", "error")
+        return redirect("/social-media")
+
+    # Simulation / Test mode
     if simulation_mode or not settings["is_configured"]:
         sim_timestamp = int(time.time())
         fb_result = {
@@ -2245,14 +2413,14 @@ def publish_social_post():
             "simulated": True,
             "url": "https://facebook.com/globsofttech",
         } if "facebook" in channels else None
-        
+
         ig_result = {
             "success": True,
             "media_id": f"sim_ig_{sim_timestamp}",
             "simulated": True,
-            "url": "https://instagram.com/globsofttech",
+            "url": "https://instagram.com/globsoftech",
         } if "instagram" in channels else None
-        
+
         post_record = {
             "caption": caption,
             "channels": channels,
@@ -2265,9 +2433,9 @@ def publish_social_post():
             "created_by": session.get("user"),
         }
         client["globsoft_db"]["social_posts"].insert_one(post_record)
-        
+
         if not settings["is_configured"]:
-            flash("Published in Test / Simulation Mode. To post live to your official Facebook Page & Instagram, enter your Meta Page Token in Settings.", "success")
+            flash("Published in Test / Simulation Mode. To post live to Facebook & Instagram, ensure your Meta credentials are configured.", "success")
         else:
             flash("Post published in Test / Simulation Mode! Log entry saved.", "success")
         return redirect("/social-media")
@@ -2277,7 +2445,7 @@ def publish_social_post():
     ig_result = None
     success_channels = []
     error_channels = []
-    
+
     if "facebook" in channels:
         fb_res = post_to_facebook_page(
             caption=caption,
@@ -2292,14 +2460,13 @@ def publish_social_post():
             success_channels.append("Facebook")
         else:
             error_channels.append(f"Facebook ({fb_res.get('error')})")
-    
+
     if "instagram" in channels:
-        # Instagram requires a public image URL
         effective_ig_img = image_url
         if effective_ig_img and not (effective_ig_img.startswith("http://") or effective_ig_img.startswith("https://")):
-            site_base = os.environ.get("SITE_URL", "https://globsoft.vercel.app").rstrip("/")
-            effective_ig_img = f"{site_base}{effective_ig_img}" if effective_ig_img.startswith("/") else f"{site_base}/{effective_ig_img}"
-            
+            admin_base = get_admin_base_url()
+            effective_ig_img = f"{admin_base}{effective_ig_img}" if effective_ig_img.startswith("/") else f"{admin_base}/{effective_ig_img}"
+
         ig_res = post_to_instagram_business(
             caption=caption,
             image_url=effective_ig_img,
@@ -2310,9 +2477,9 @@ def publish_social_post():
             success_channels.append("Instagram")
         else:
             error_channels.append(f"Instagram ({ig_res.get('error')})")
-    
+
     overall_status = "published" if success_channels and not error_channels else ("partial" if success_channels else "failed")
-    
+
     post_record = {
         "caption": caption,
         "channels": channels,
@@ -2325,14 +2492,14 @@ def publish_social_post():
         "created_by": session.get("user"),
     }
     client["globsoft_db"]["social_posts"].insert_one(post_record)
-    
+
     if overall_status == "published":
         flash(f"🎉 Successfully published to {' & '.join(success_channels)} at once!", "success")
     elif overall_status == "partial":
-        flash(f"Published to {', '.join(success_channels)}, but had issues with: {'; '.join(error_channels)}", "error")
+        flash(f"Published to {', '.join(success_channels)}, but encountered errors: {'; '.join(error_channels)}", "error")
     else:
         flash(f"Could not publish post: {'; '.join(error_channels)}", "error")
-    
+
     return redirect("/social-media")
 
 
@@ -2341,12 +2508,14 @@ def publish_social_post():
 def update_social_settings():
     if not is_admin():
         return redirect("/")
-    
+
     fb_page_id = request.form.get("facebook_page_id", "").strip()
     fb_token = request.form.get("facebook_access_token", "").strip()
     ig_account_id = request.form.get("instagram_account_id", "").strip()
+    app_id = request.form.get("meta_app_id", "").strip()
+    app_secret = request.form.get("meta_app_secret", "").strip()
     default_hashtags = request.form.get("default_hashtags", "").strip()
-    
+
     client["globsoft_db"]["settings"].update_one(
         {"key": "social_media"},
         {
@@ -2355,6 +2524,8 @@ def update_social_settings():
                 "facebook_page_id": fb_page_id,
                 "facebook_access_token": fb_token,
                 "instagram_account_id": ig_account_id,
+                "meta_app_id": app_id,
+                "meta_app_secret": app_secret,
                 "default_hashtags": default_hashtags,
                 "updated_at": datetime.utcnow(),
                 "updated_by": session.get("user"),
@@ -2362,7 +2533,7 @@ def update_social_settings():
         },
         upsert=True
     )
-    
+
     flash("Meta API credentials and default settings saved successfully.", "success")
     return redirect("/social-media")
 
@@ -2372,63 +2543,111 @@ def update_social_settings():
 def test_social_connection():
     if not is_admin():
         return jsonify({"success": False, "error": "Unauthorized"}), 401
-    
+
     data = request.get_json(silent=True) or request.form
     fb_page_id = (data.get("facebook_page_id") or "").strip()
     fb_token = (data.get("facebook_access_token") or "").strip()
     ig_account_id = (data.get("instagram_account_id") or "").strip()
-    
-    # If not provided in request, fallback to saved settings
+    app_id = (data.get("meta_app_id") or "").strip()
+    app_secret = (data.get("meta_app_secret") or "").strip()
+
+    # Fallback to saved / environment settings if fields left blank
+    saved = get_social_settings()
+    fb_page_id = fb_page_id or saved.get("facebook_page_id")
+    fb_token = fb_token or saved.get("facebook_access_token")
+    ig_account_id = ig_account_id or saved.get("instagram_account_id")
+    app_id = app_id or saved.get("meta_app_id")
+    app_secret = app_secret or saved.get("meta_app_secret")
+
     if not fb_token:
-        saved = get_social_settings()
-        fb_page_id = fb_page_id or saved.get("facebook_page_id")
-        fb_token = fb_token or saved.get("facebook_access_token")
-        ig_account_id = ig_account_id or saved.get("instagram_account_id")
-    
-    if not fb_token:
-        return jsonify({"success": False, "error": "Please enter a Facebook Page Access Token to test."}), 400
-    
+        return jsonify({"success": False, "error": "No Facebook Page Access Token found. Please enter or configure META_PAGE_ACCESS_TOKEN."}), 400
+
+    proof = _get_meta_appsecret_proof(fb_token, app_secret)
+
     try:
         # 1. Query Facebook Page details
         target = fb_page_id if fb_page_id else "me"
-        url = f"https://graph.facebook.com/v19.0/{target}?fields=id,name,category,followers_count,instagram_business_account&access_token={fb_token}"
+        url = f"https://graph.facebook.com/v19.0/{target}?fields=id,name,category,followers_count,link,instagram_business_account&access_token={fb_token}"
+        if proof:
+            url += f"&appsecret_proof={proof}"
         status_code, res = _meta_http_get(url, timeout=15)
-        
+
         if status_code != 200 or "error" in res:
             err = res.get("error", {})
             return jsonify({
                 "success": False,
                 "error": f"Meta Error ({err.get('code', 'Auth')}): {err.get('message', 'Invalid access token or Page ID')}"
             }), 400
-        
+
         page_name = res.get("name", "Facebook Page")
+        resolved_page_id = res.get("id")
         followers = res.get("followers_count", "N/A")
         connected_ig_id = res.get("instagram_business_account", {}).get("id")
-        
+
+        # 2. Query Instagram Account details
         ig_info = None
         ig_target = ig_account_id or connected_ig_id
         if ig_target:
             ig_url = f"https://graph.facebook.com/v19.0/{ig_target}?fields=id,username,followers_count,name&access_token={fb_token}"
+            if proof:
+                ig_url += f"&appsecret_proof={proof}"
             ig_status, ig_res = _meta_http_get(ig_url, timeout=15)
             if ig_status == 200 and "username" in ig_res:
                 ig_info = {
                     "id": ig_res.get("id"),
                     "username": ig_res.get("username"),
                     "followers": ig_res.get("followers_count", "N/A"),
+                    "name": ig_res.get("name", ""),
                 }
-        
+
+        # 3. Optional Token Scope Inspection if app_id and app_secret provided
+        debug_info = None
+        if app_id and app_secret:
+            try:
+                dbg_url = f"https://graph.facebook.com/v19.0/debug_token?input_token={fb_token}&access_token={app_id}|{app_secret}"
+                d_status, d_res = _meta_http_get(dbg_url, timeout=10)
+                if d_status == 200 and "data" in d_res:
+                    d_data = d_res["data"]
+                    debug_info = {
+                        "is_valid": d_data.get("is_valid", True),
+                        "scopes": d_data.get("scopes", []),
+                        "type": d_data.get("type", "PAGE"),
+                    }
+            except Exception:
+                pass
+
+        # Cache page name and Instagram username for UI mockups
+        try:
+            update_fields = {
+                "facebook_page_name": page_name,
+            }
+            if ig_info and ig_info.get("username"):
+                update_fields["instagram_username"] = ig_info["username"]
+            if connected_ig_id and not ig_account_id:
+                update_fields["instagram_account_id"] = connected_ig_id
+
+            client["globsoft_db"]["settings"].update_one(
+                {"key": "social_media"},
+                {"$set": update_fields},
+                upsert=True
+            )
+        except Exception:
+            pass
+
         msg = f"✓ Verified! Connected to Facebook Page: {page_name}"
         if ig_info:
             msg += f" & Instagram Account: @{ig_info['username']}"
         elif connected_ig_id:
             msg += f" & Linked Instagram ID: {connected_ig_id}"
-            
+
         return jsonify({
             "success": True,
             "page_name": page_name,
-            "page_id": res.get("id"),
+            "page_id": resolved_page_id,
             "followers": followers,
             "instagram": ig_info,
+            "debug": debug_info,
+            "appsecret_proof_active": bool(proof),
             "message": msg,
         })
     except Exception as e:
