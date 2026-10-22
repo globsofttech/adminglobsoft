@@ -1909,9 +1909,9 @@ def add_customer():
     customer_name = request.form.get("customer_name")
     customer_location = request.form.get("customer_location")
     customer_phone = request.form.get("customer_phone")
-        customer_email = request.form.get("customer_email", "").strip()
-        customer_company = request.form.get("customer_company", "").strip()
-        customer_service = request.form.get("customer_service", "").strip()
+    customer_email = request.form.get("customer_email", "").strip()
+    customer_company = request.form.get("customer_company", "").strip()
+    customer_service = request.form.get("customer_service", "").strip()
     customer_remark = request.form.get("customer_remark", "")
     
     # Check if customer with same phone already exists
