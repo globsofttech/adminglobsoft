@@ -66,6 +66,18 @@
                 <input type="tel" id="customerPhone" name="customer_phone" value="{{ customer.phone }}" required>
             </div>
             <div class="form-group">
+                <label for="customerEmail">Email Address</label>
+                <input type="email" id="customerEmail" name="customer_email" value="{{ customer.email or '' }}">
+            </div>
+            <div class="form-group">
+                <label for="customerCompany">Company / Organization</label>
+                <input type="text" id="customerCompany" name="customer_company" value="{{ customer.company or '' }}">
+            </div>
+            <div class="form-group">
+                <label for="customerService">Service Needed</label>
+                <input type="text" id="customerService" name="customer_service" value="{{ customer.service or '' }}">
+            </div>
+            <div class="form-group">
                 <label for="customerRemark">Remark</label>
                 <textarea id="customerRemark" name="customer_remark" rows="5">{{ customer.remark }}</textarea>
             </div>

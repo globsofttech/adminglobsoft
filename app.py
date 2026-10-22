@@ -82,6 +82,7 @@ CORS(app, resources={r"/api/*": {
 _products_cache = {"data": None, "timestamp": None}
 _subscribe_attempts = {}
 BLOG_IMAGE_MAX_BYTES = 10 * 1024 * 1024
+BLOG_VIDEO_MAX_BYTES = 15 * 1024 * 1024
 
 def no_cache(f):
     def decorated_function(*args, **kwargs):
@@ -399,6 +400,168 @@ def subscribe():
     except Exception:
         app.logger.exception("Newsletter subscription error")
         return jsonify({"success": False, "error": "Unable to subscribe right now"}), 500
+
+
+def send_admin_alert(subject, text_body, html_body=None):
+    """Safely send an email notification to admin using configured Gmail credentials."""
+    try:
+        sender, app_password = get_gmail_smtp_credentials()
+        dest = os.getenv("ADMIN_EMAIL", "info.globsoft@gmail.com")
+        msg = MIMEMultipart("alternative")
+        msg["Subject"] = subject
+        msg["From"] = f"Globsoft Tech Portal <{sender}>"
+        msg["To"] = dest
+        msg.attach(MIMEText(text_body, "plain", "utf-8"))
+        if html_body:
+            msg.attach(MIMEText(html_body, "html", "utf-8"))
+        with smtplib.SMTP_SSL("smtp.gmail.com", 465, timeout=15) as server:
+            server.login(sender, app_password)
+            server.sendmail(sender, [dest], msg.as_string())
+    except Exception as exc:
+        app.logger.warning(f"Could not send admin alert email: {exc}")
+
+
+@app.route("/api/contact", methods=["POST", "OPTIONS"])
+def api_contact():
+    """Receive contact form submissions and save directly to Customer Management."""
+    if request.method == "OPTIONS":
+        return "", 204
+
+    try:
+        client_ip = get_client_ip()
+        if is_rate_limited(client_ip):
+            return jsonify({
+                "success": False,
+                "error": "Too many requests. Please wait a moment."
+            }), 429
+
+        data = request.get_json(silent=True) or request.form.to_dict() or {}
+        name = str(data.get("name", "")).strip()
+        email = str(data.get("email", "")).strip().lower()
+        message = str(data.get("message", "")).strip()
+        phone = str(data.get("phone", "")).strip()
+        turnstile_token = str(data.get("turnstile_token", "")).strip()
+
+        if turnstile_token and not verify_turnstile(turnstile_token):
+            return jsonify({"success": False, "error": "Security verification failed."}), 400
+
+        if not name:
+            return jsonify({"success": False, "error": "Name is required."}), 400
+        if not email or not is_valid_email(email):
+            return jsonify({"success": False, "error": "A valid email address is required."}), 400
+        if not message:
+            return jsonify({"success": False, "error": "Message is required."}), 400
+
+        customer_doc = {
+            "name": name,
+            "email": email,
+            "phone": phone or "N/A",
+            "location": "Website Contact",
+            "source": "Contact Form",
+            "type": "inquiry",
+            "service": "General Inquiry",
+            "company": "N/A",
+            "remark": message,
+            "status_call": False,
+            "status_sms": False,
+            "status_whatsapp": False,
+            "status_email": False,
+            "ip_address": client_ip,
+            "user": "website_contact",
+            "date_added": datetime.now()
+        }
+
+        db = client["customer_db"]
+        res = db["customers"].insert_one(customer_doc)
+
+        email_subj = f"📨 New Website Contact: {name}"
+        email_text = f"New Contact Message received on Globsoft Tech:\n\nName: {name}\nEmail: {email}\nPhone: {phone or 'N/A'}\nMessage:\n{message}\n\nView in Admin: https://adminglobsoft.vercel.app/customer"
+        send_admin_alert(email_subj, email_text)
+
+        return jsonify({
+            "success": True,
+            "message": "Message sent successfully! We will get back to you shortly.",
+            "id": str(res.inserted_id)
+        }), 201
+
+    except Exception as e:
+        app.logger.exception("Contact submission error")
+        return jsonify({"success": False, "error": "Server error processing your message. Please try again."}), 500
+
+
+@app.route("/api/order", methods=["POST", "OPTIONS"])
+def api_order():
+    """Receive order form submissions and save directly to Customer Management."""
+    if request.method == "OPTIONS":
+        return "", 204
+
+    try:
+        client_ip = get_client_ip()
+        if is_rate_limited(client_ip):
+            return jsonify({
+                "success": False,
+                "error": "Too many requests. Please wait a moment."
+            }), 429
+
+        data = request.get_json(silent=True) or request.form.to_dict() or {}
+        name = str(data.get("name", "")).strip()
+        email = str(data.get("email", "")).strip().lower()
+        phone = str(data.get("phone", "")).strip()
+        company = str(data.get("company", "")).strip()
+        service = str(data.get("service", "")).strip()
+        message = str(data.get("message", "")).strip()
+        turnstile_token = str(data.get("turnstile_token", "")).strip()
+
+        if turnstile_token and not verify_turnstile(turnstile_token):
+            return jsonify({"success": False, "error": "Security verification failed."}), 400
+
+        if not name:
+            return jsonify({"success": False, "error": "Full name is required."}), 400
+        if not email or not is_valid_email(email):
+            return jsonify({"success": False, "error": "A valid email address is required."}), 400
+        if not phone:
+            return jsonify({"success": False, "error": "Phone number is required."}), 400
+        if not service:
+            return jsonify({"success": False, "error": "Service selection is required."}), 400
+        if not message:
+            return jsonify({"success": False, "error": "Project details are required."}), 400
+
+        customer_doc = {
+            "name": name,
+            "email": email,
+            "phone": phone,
+            "company": company or "N/A",
+            "location": company or "Website Order",
+            "source": "Order Form",
+            "type": "order",
+            "service": service,
+            "remark": f"Service: {service} | Company: {company or 'N/A'}\nProject Details: {message}",
+            "project_details": message,
+            "status_call": False,
+            "status_sms": False,
+            "status_whatsapp": False,
+            "status_email": False,
+            "ip_address": client_ip,
+            "user": "website_order",
+            "date_added": datetime.now()
+        }
+
+        db = client["customer_db"]
+        res = db["customers"].insert_one(customer_doc)
+
+        email_subj = f"🎉 New Order Received: {service} - {name}"
+        email_text = f"New Project Order received on Globsoft Tech!\n\nClient Name: {name}\nEmail: {email}\nPhone: {phone}\nCompany: {company or 'N/A'}\nService: {service}\n\nProject Details:\n{message}\n\nView in Admin: https://adminglobsoft.vercel.app/customer"
+        send_admin_alert(email_subj, email_text)
+
+        return jsonify({
+            "success": True,
+            "message": "Order submitted successfully! Our team will contact you within 24 hours.",
+            "id": str(res.inserted_id)
+        }), 201
+
+    except Exception as e:
+        app.logger.exception("Order submission error")
+        return jsonify({"success": False, "error": "Server error processing your order. Please try again."}), 500
 
 # ==================== SYSTEM STATUS ====================
 
@@ -824,6 +987,28 @@ def normalize_image_mime(mimetype, filename=""):
     if ext == ".svg":
         return "image/svg+xml"
     return None
+
+
+def is_video_mime(mimetype, filename=""):
+    """Check if the mimetype or file extension represents a supported video file."""
+    m = (mimetype or "").lower().strip()
+    if m.startswith("video/"):
+        return True
+    ext = os.path.splitext(filename or "")[1].lower()
+    return ext in {".mp4", ".mov", ".m4v", ".webm", ".avi", ".mkv", ".3gp"}
+
+
+def normalize_media_mime(mimetype, filename=""):
+    """Normalize mimetype for either video or image."""
+    m = (mimetype or "").lower().strip()
+    ext = os.path.splitext(filename or "")[1].lower()
+    if m.startswith("video/") or ext in {".mp4", ".mov", ".m4v", ".webm", ".avi", ".mkv"}:
+        if ext == ".mov" or m == "video/quicktime":
+            return "video/quicktime"
+        if ext == ".webm" or m == "video/webm":
+            return "video/webm"
+        return "video/mp4"
+    return normalize_image_mime(mimetype, filename)
 
 
 def extract_and_store_base64_images(html_content):
@@ -1708,7 +1893,7 @@ def customer():
     collection = db["customers"]
     
     # Fetch all customers
-    customers = list(collection.find())
+    customers = list(collection.find().sort("date_added", -1))
     
     return render_template('customer.html', customers=customers)
 
@@ -1724,6 +1909,9 @@ def add_customer():
     customer_name = request.form.get("customer_name")
     customer_location = request.form.get("customer_location")
     customer_phone = request.form.get("customer_phone")
+        customer_email = request.form.get("customer_email", "").strip()
+        customer_company = request.form.get("customer_company", "").strip()
+        customer_service = request.form.get("customer_service", "").strip()
     customer_remark = request.form.get("customer_remark", "")
     
     # Check if customer with same phone already exists
@@ -1736,6 +1924,10 @@ def add_customer():
         return redirect('/customer')
     
     customer_data = {
+        "email": customer_email,
+        "company": customer_company,
+        "service": customer_service,
+        "source": "Manual Entry",
         "name": customer_name,
         "location": customer_location,
         "phone": customer_phone,
@@ -1767,9 +1959,15 @@ def edit_customer(customer_id):
         customer_name = request.form.get("customer_name")
         customer_location = request.form.get("customer_location")
         customer_phone = request.form.get("customer_phone")
+        customer_email = request.form.get("customer_email", "").strip()
+        customer_company = request.form.get("customer_company", "").strip()
+        customer_service = request.form.get("customer_service", "").strip()
         customer_remark = request.form.get("customer_remark", "")
         
         updated_data = {
+            "email": customer_email,
+            "company": customer_company,
+            "service": customer_service,
             "name": customer_name,
             "location": customer_location,
             "phone": customer_phone,
@@ -2215,10 +2413,25 @@ def _meta_http_get(url, timeout=15):
         return 500, {"error": {"message": str(exc)}}
 
 
-def post_to_facebook_page(caption, image_bytes=None, image_mime=None, image_url=None, link_url=None, settings=None):
+def post_to_facebook_page(
+    caption,
+    image_bytes=None,
+    image_mime=None,
+    image_url=None,
+    video_bytes=None,
+    video_mime=None,
+    video_url=None,
+    media_items=None,
+    link_url=None,
+    settings=None
+):
     """
     Publish a post to Facebook Page via Meta Graph API.
-    Supports direct multipart image upload, public image URL, or feed status/link post.
+    Supports:
+    - Single video (multipart upload or public file URL)
+    - Multi-photo album (multiple photos via attached_media)
+    - Single photo (direct multipart upload or public image URL)
+    - Status/link post
     """
     if not settings:
         settings = get_social_settings()
@@ -2232,14 +2445,97 @@ def post_to_facebook_page(caption, image_bytes=None, image_mime=None, image_url=
 
     graph_version = "v19.0"
 
-    # If link_url provided and not already included in caption, append it nicely
     final_caption = caption
     if link_url and link_url not in final_caption:
         final_caption = f"{caption}\n\n🔗 {link_url}"
 
     try:
-        if image_bytes:
-            # Multipart binary photo upload
+        # Case 1: Video Post
+        if video_bytes or video_url:
+            url = f"https://graph.facebook.com/{graph_version}/{page_id}/videos"
+            data = {
+                "description": final_caption,
+                "access_token": access_token
+            }
+            if proof:
+                data["appsecret_proof"] = proof
+
+            files = None
+            if video_bytes:
+                files = {
+                    "source": ("social_post_video.mp4", video_bytes, video_mime or "video/mp4")
+                }
+            elif video_url:
+                data["file_url"] = video_url
+
+            status_code, res_json = _meta_http_post(url, data=data, files=files, timeout=90)
+            if status_code == 200 and ("id" in res_json):
+                video_id = res_json["id"]
+                return {
+                    "success": True,
+                    "post_id": str(video_id),
+                    "url": f"https://www.facebook.com/{video_id}"
+                }
+            else:
+                err_msg = _format_meta_error(res_json, "Facebook video upload failed")
+                return {"success": False, "error": f"Facebook Error: {err_msg}"}
+
+        # Case 2: Multi-Photo Post (2 or more photos)
+        elif media_items and len(media_items) > 1:
+            photo_ids = []
+            for idx, item in enumerate(media_items):
+                p_url = f"https://graph.facebook.com/{graph_version}/{page_id}/photos"
+                p_data = {
+                    "published": "false",
+                    "temporary": "true",
+                    "access_token": access_token
+                }
+                if proof:
+                    p_data["appsecret_proof"] = proof
+
+                p_files = None
+                if item.get("bytes"):
+                    p_files = {
+                        "source": (item.get("filename", f"photo_{idx}.jpg"), item["bytes"], item.get("mime", "image/jpeg"))
+                    }
+                elif item.get("url"):
+                    p_data["url"] = item["url"]
+                else:
+                    continue
+
+                p_status, p_json = _meta_http_post(p_url, data=p_data, files=p_files, timeout=30)
+                if p_status == 200 and "id" in p_json:
+                    photo_ids.append(p_json["id"])
+                else:
+                    err_msg = _format_meta_error(p_json, f"Failed uploading photo {idx+1}")
+                    return {"success": False, "error": f"Facebook Multi-Photo Error: {err_msg}"}
+
+            if not photo_ids:
+                return {"success": False, "error": "No valid photos could be prepared for multi-photo post."}
+
+            feed_url = f"https://graph.facebook.com/{graph_version}/{page_id}/feed"
+            feed_data = {
+                "message": final_caption,
+                "attached_media": json.dumps([{"media_fbid": pid} for pid in photo_ids]),
+                "access_token": access_token
+            }
+            if proof:
+                feed_data["appsecret_proof"] = proof
+
+            feed_status, feed_json = _meta_http_post(feed_url, data=feed_data, timeout=30)
+            if feed_status == 200 and "id" in feed_json:
+                post_id = feed_json["id"]
+                return {
+                    "success": True,
+                    "post_id": str(post_id),
+                    "url": f"https://www.facebook.com/{post_id}"
+                }
+            else:
+                err_msg = _format_meta_error(feed_json, "Facebook multi-photo publishing failed")
+                return {"success": False, "error": f"Facebook Error: {err_msg}"}
+
+        # Case 3: Single Image Multipart Binary
+        elif image_bytes:
             url = f"https://graph.facebook.com/{graph_version}/{page_id}/photos"
             files = {
                 "source": ("social_post_image.jpg", image_bytes, image_mime or "image/jpeg")
@@ -2262,8 +2558,8 @@ def post_to_facebook_page(caption, image_bytes=None, image_mime=None, image_url=
                 err_msg = _format_meta_error(res_json, "Facebook photo upload failed")
                 return {"success": False, "error": f"Facebook Error: {err_msg}"}
 
+        # Case 4: Single Image Public URL
         elif image_url and (image_url.startswith("http://") or image_url.startswith("https://")):
-            # Public image URL photo post
             url = f"https://graph.facebook.com/{graph_version}/{page_id}/photos"
             data = {
                 "url": image_url,
@@ -2284,8 +2580,8 @@ def post_to_facebook_page(caption, image_bytes=None, image_mime=None, image_url=
                 err_msg = _format_meta_error(res_json, "Facebook photo post failed")
                 return {"success": False, "error": f"Facebook Error: {err_msg}"}
 
+        # Case 5: Text / Link Feed Post
         else:
-            # Text or link post to feed
             url = f"https://graph.facebook.com/{graph_version}/{page_id}/feed"
             data = {
                 "message": caption,
@@ -2306,17 +2602,18 @@ def post_to_facebook_page(caption, image_bytes=None, image_mime=None, image_url=
             else:
                 err_msg = _format_meta_error(res_json, "Facebook feed post failed")
                 return {"success": False, "error": f"Facebook Error: {err_msg}"}
+
     except Exception as e:
         return {"success": False, "error": f"Facebook API Connection Error: {str(e)}"}
 
 
-def post_to_instagram_business(caption, image_url, settings=None):
+def post_to_instagram_business(caption, image_url=None, video_url=None, media_items=None, settings=None):
     """
-    Publish a photo post to Instagram Business Account via Meta Graph API.
-    Step 1: Create media container POST /{ig_account_id}/media
-    Step 2: Wait until container status is FINISHED
-    Step 3: Publish container POST /{ig_account_id}/media_publish
-    Step 4: Retrieve permalink for direct linking
+    Publish to Instagram Business Account via Meta Graph API.
+    Supports:
+    - Single video / Reel (media_type=REELS)
+    - Carousel (2 to 10 photos or videos, media_type=CAROUSEL)
+    - Single photo
     """
     if not settings:
         settings = get_social_settings()
@@ -2328,54 +2625,170 @@ def post_to_instagram_business(caption, image_url, settings=None):
     if not ig_account_id or not access_token:
         return {"success": False, "error": "Instagram Business Account ID or Access Token is missing."}
 
-    if not image_url or not (image_url.startswith("http://") or image_url.startswith("https://")):
-        return {"success": False, "error": "Instagram requires a publicly accessible HTTPS image URL (JPEG/PNG) to publish."}
-
-    # Meta requires HTTPS for Instagram media URLs
-    if image_url.startswith("http://"):
-        image_url = "https://" + image_url[len("http://"):]
-
     graph_version = "v19.0"
 
     try:
-        # Step 1: Create media container
-        container_url = f"https://graph.facebook.com/{graph_version}/{ig_account_id}/media"
-        c_data = {
-            "image_url": image_url,
-            "caption": caption,
-            "access_token": access_token
-        }
-        if proof:
-            c_data["appsecret_proof"] = proof
-        c_status, c_json = _meta_http_post(container_url, data=c_data, timeout=30)
+        creation_id = None
 
-        if c_status != 200 or "id" not in c_json:
-            err_msg = _format_meta_error(c_json, "Failed to create Instagram media container")
-            return {"success": False, "error": f"Instagram Container Error: {err_msg}"}
+        # Case 1: Video / Reel Post
+        if video_url:
+            if video_url.startswith("http://"):
+                video_url = "https://" + video_url[len("http://"):]
 
-        creation_id = c_json["id"]
+            container_url = f"https://graph.facebook.com/{graph_version}/{ig_account_id}/media"
+            c_data = {
+                "media_type": "REELS",
+                "video_url": video_url,
+                "caption": caption,
+                "access_token": access_token
+            }
+            if proof:
+                c_data["appsecret_proof"] = proof
 
-        # Step 2: Poll container status until FINISHED or error (up to 20 seconds)
-        status_url = f"https://graph.facebook.com/{graph_version}/{creation_id}?fields=status_code,status&access_token={access_token}"
-        if proof:
-            status_url += f"&appsecret_proof={proof}"
+            c_status, c_json = _meta_http_post(container_url, data=c_data, timeout=30)
+            if c_status != 200 or "id" not in c_json:
+                err_msg = _format_meta_error(c_json, "Failed to create Instagram video container")
+                return {"success": False, "error": f"Instagram Video Error: {err_msg}"}
 
-        for _ in range(10):
-            time.sleep(2)
-            s_status, s_json = _meta_http_get(status_url, timeout=10)
-            if s_status == 200:
-                container_state = s_json.get("status_code")
-                if container_state == "FINISHED":
+            creation_id = c_json["id"]
+
+            status_url = f"https://graph.facebook.com/{graph_version}/{creation_id}?fields=status_code,status&access_token={access_token}"
+            if proof:
+                status_url += f"&appsecret_proof={proof}"
+
+            for _ in range(20):
+                time.sleep(3)
+                s_status, s_json = _meta_http_get(status_url, timeout=10)
+                if s_status == 200:
+                    state = s_json.get("status_code")
+                    if state == "FINISHED":
+                        break
+                    elif state == "ERROR":
+                        err_d = s_json.get("status") or "Meta rejected video processing."
+                        return {"success": False, "error": f"Instagram Video Processing Error: {err_d}"}
+                    elif state == "EXPIRED":
+                        return {"success": False, "error": "Instagram video container expired."}
+
+        # Case 2: Carousel Post (2 to 10 items)
+        elif media_items and len(media_items) > 1:
+            child_ids = []
+            for idx, item in enumerate(media_items[:10]):
+                item_url = item.get("url") or ""
+                if item_url.startswith("http://"):
+                    item_url = "https://" + item_url[len("http://"):]
+
+                if not item_url:
+                    continue
+
+                child_container_url = f"https://graph.facebook.com/{graph_version}/{ig_account_id}/media"
+                c_data = {
+                    "is_carousel_item": "true",
+                    "access_token": access_token
+                }
+                if proof:
+                    c_data["appsecret_proof"] = proof
+
+                if item.get("is_video"):
+                    c_data["media_type"] = "VIDEO"
+                    c_data["video_url"] = item_url
+                else:
+                    c_data["image_url"] = item_url
+
+                c_status, c_json = _meta_http_post(child_container_url, data=c_data, timeout=30)
+                if c_status != 200 or "id" not in c_json:
+                    err_msg = _format_meta_error(c_json, f"Failed to create carousel item {idx+1}")
+                    return {"success": False, "error": f"Instagram Carousel Item Error: {err_msg}"}
+
+                child_id = c_json["id"]
+
+                if item.get("is_video"):
+                    poll_url = f"https://graph.facebook.com/{graph_version}/{child_id}?fields=status_code,status&access_token={access_token}"
+                    if proof:
+                        poll_url += f"&appsecret_proof={proof}"
+                    for _ in range(15):
+                        time.sleep(3)
+                        s_status, s_json = _meta_http_get(poll_url, timeout=10)
+                        if s_status == 200 and s_json.get("status_code") == "FINISHED":
+                            break
+
+                child_ids.append(child_id)
+
+            if len(child_ids) < 2:
+                return {"success": False, "error": "Instagram carousel requires at least 2 valid media items."}
+
+            car_url = f"https://graph.facebook.com/{graph_version}/{ig_account_id}/media"
+            car_data = {
+                "media_type": "CAROUSEL",
+                "children": ",".join(child_ids),
+                "caption": caption,
+                "access_token": access_token
+            }
+            if proof:
+                car_data["appsecret_proof"] = proof
+
+            car_status, car_json = _meta_http_post(car_url, data=car_data, timeout=30)
+            if car_status != 200 or "id" not in car_json:
+                err_msg = _format_meta_error(car_json, "Failed to create Instagram carousel container")
+                return {"success": False, "error": f"Instagram Carousel Error: {err_msg}"}
+
+            creation_id = car_json["id"]
+
+            c_poll_url = f"https://graph.facebook.com/{graph_version}/{creation_id}?fields=status_code,status&access_token={access_token}"
+            if proof:
+                c_poll_url += f"&appsecret_proof={proof}"
+            for _ in range(12):
+                time.sleep(2)
+                s_status, s_json = _meta_http_get(c_poll_url, timeout=10)
+                if s_status == 200 and s_json.get("status_code") == "FINISHED":
                     break
-                elif container_state == "ERROR":
-                    err_details = s_json.get("status") or "Meta rejected image processing."
-                    return {"success": False, "error": f"Instagram Image Processing Error: {err_details}"}
-                elif container_state == "EXPIRED":
-                    return {"success": False, "error": "Instagram media container expired."}
-            else:
-                break
 
-        # Step 3: Publish container
+        # Case 3: Single Image Post
+        else:
+            if not image_url or not (image_url.startswith("http://") or image_url.startswith("https://")):
+                return {"success": False, "error": "Instagram requires a publicly accessible HTTPS image or video URL to publish."}
+
+            if image_url.startswith("http://"):
+                image_url = "https://" + image_url[len("http://"):]
+
+            container_url = f"https://graph.facebook.com/{graph_version}/{ig_account_id}/media"
+            c_data = {
+                "image_url": image_url,
+                "caption": caption,
+                "access_token": access_token
+            }
+            if proof:
+                c_data["appsecret_proof"] = proof
+
+            c_status, c_json = _meta_http_post(container_url, data=c_data, timeout=30)
+            if c_status != 200 or "id" not in c_json:
+                err_msg = _format_meta_error(c_json, "Failed to create Instagram media container")
+                return {"success": False, "error": f"Instagram Container Error: {err_msg}"}
+
+            creation_id = c_json["id"]
+
+            status_url = f"https://graph.facebook.com/{graph_version}/{creation_id}?fields=status_code,status&access_token={access_token}"
+            if proof:
+                status_url += f"&appsecret_proof={proof}"
+
+            for _ in range(10):
+                time.sleep(2)
+                s_status, s_json = _meta_http_get(status_url, timeout=10)
+                if s_status == 200:
+                    container_state = s_json.get("status_code")
+                    if container_state == "FINISHED":
+                        break
+                    elif container_state == "ERROR":
+                        err_details = s_json.get("status") or "Meta rejected image processing."
+                        return {"success": False, "error": f"Instagram Image Processing Error: {err_details}"}
+                    elif container_state == "EXPIRED":
+                        return {"success": False, "error": "Instagram media container expired."}
+                else:
+                    break
+
+        if not creation_id:
+            return {"success": False, "error": "Could not create Instagram media container."}
+
+        # Common Publish Step for All Instagram Media Types
         pub_url = f"https://graph.facebook.com/{graph_version}/{ig_account_id}/media_publish"
         p_data = {
             "creation_id": creation_id,
@@ -2388,7 +2801,6 @@ def post_to_instagram_business(caption, image_url, settings=None):
         if p_status == 200 and "id" in p_json:
             media_id = p_json["id"]
 
-            # Step 4: Fetch permalink
             ig_url = None
             try:
                 perm_url = f"https://graph.facebook.com/{graph_version}/{media_id}?fields=permalink&access_token={access_token}"
@@ -2412,10 +2824,9 @@ def post_to_instagram_business(caption, image_url, settings=None):
         else:
             err_msg = _format_meta_error(p_json, "Instagram media publication failed")
             return {"success": False, "error": f"Instagram Publish Error: {err_msg}"}
+
     except Exception as e:
         return {"success": False, "error": f"Instagram API Connection Error: {str(e)}"}
-
-
 @app.route("/social-media", methods=["GET"])
 @no_cache
 def social_media_hub():
@@ -2480,6 +2891,212 @@ def social_media_hub():
     )
 
 
+def _process_and_publish_single_post(caption, channels, link_url="", media_files=None, image_url="", video_url="", media_urls_raw="", settings=None):
+    """Internal helper to publish a single post to Facebook and/or Instagram."""
+    if not settings:
+        settings = get_social_settings()
+
+    media_files = media_files or []
+    admin_base = get_admin_base_url()
+    all_media_items = []
+    video_bytes = None
+    video_mime = None
+    first_image_bytes = None
+    first_image_mime = None
+
+    # 1. Process uploaded files
+    for f in media_files:
+        if not f or not f.filename:
+            continue
+        f_bytes = f.read()
+        if not f_bytes:
+            continue
+        is_vid = is_video_mime(f.mimetype, f.filename)
+        max_bytes = BLOG_VIDEO_MAX_BYTES if is_vid else BLOG_IMAGE_MAX_BYTES
+        if len(f_bytes) > max_bytes:
+            return {"success": False, "error": f"File '{f.filename}' exceeds limit of {max_bytes // (1024*1024)} MB."}
+
+        mime = normalize_media_mime(f.mimetype, f.filename) or ("video/mp4" if is_vid else "image/jpeg")
+        m_doc = {
+            "filename": f.filename,
+            "data": f_bytes,
+            "mimetype": mime,
+            "size": len(f_bytes),
+            "created_at": datetime.utcnow(),
+            "uploaded_by": session.get("user"),
+            "source": "social_media",
+        }
+        res = client["globsoft_db"]["blog_media"].insert_one(m_doc)
+        media_id = str(res.inserted_id)
+        pub_url = f"{admin_base}/api/blog-media/{media_id}"
+
+        item = {
+            "bytes": f_bytes,
+            "mime": mime,
+            "url": pub_url,
+            "is_video": is_vid,
+            "filename": f.filename,
+        }
+        all_media_items.append(item)
+        if is_vid and not video_bytes:
+            video_bytes = f_bytes
+            video_mime = mime
+        if not is_vid and not first_image_bytes:
+            first_image_bytes = f_bytes
+            first_image_mime = mime
+
+    # 2. Process external/manual URLs
+    if video_url:
+        all_media_items.append({
+            "url": video_url.strip(),
+            "is_video": True,
+            "bytes": None,
+            "mime": "video/mp4"
+        })
+
+    if image_url:
+        all_media_items.append({
+            "url": image_url.strip(),
+            "is_video": False,
+            "bytes": None,
+            "mime": "image/jpeg"
+        })
+
+    if media_urls_raw:
+        for u in re.split(r'[\r\n,]+', media_urls_raw):
+            u_clean = u.strip()
+            if u_clean:
+                is_u_vid = any(u_clean.lower().endswith(ext) for ext in [".mp4", ".mov", ".m4v", ".webm"])
+                all_media_items.append({
+                    "url": u_clean,
+                    "is_video": is_u_vid,
+                    "bytes": None,
+                    "mime": "video/mp4" if is_u_vid else "image/jpeg"
+                })
+
+    # 3. Determine media classification
+    is_video_post = any(m["is_video"] for m in all_media_items)
+    is_multi_post = len(all_media_items) > 1
+
+    if is_video_post:
+        primary_media_type = "video"
+    elif is_multi_post:
+        primary_media_type = "carousel"
+    elif len(all_media_items) == 1:
+        primary_media_type = "image"
+    else:
+        primary_media_type = "text"
+
+    # Instagram validation
+    if "instagram" in channels and primary_media_type == "text":
+        return {"success": False, "error": "Instagram strictly requires an image or video to publish. Please attach media or uncheck Instagram."}
+
+    # Meta Credentials Check
+    if not settings["is_configured"]:
+        return {"success": False, "error": "Meta API credentials are not configured. Please check Social Settings."}
+
+    # 4. Execute Publishing to Selected Channels
+    fb_result = None
+    ig_result = None
+    success_channels = []
+    error_channels = []
+
+    primary_video_url = next((m["url"] for m in all_media_items if m.get("is_video")), None)
+    primary_image_url = next((m["url"] for m in all_media_items if not m.get("is_video")), None)
+    if not primary_image_url and all_media_items:
+        primary_image_url = all_media_items[0].get("url")
+
+    # Facebook
+    if "facebook" in channels:
+        if primary_media_type == "video":
+            fb_res = post_to_facebook_page(
+                caption=caption,
+                video_bytes=video_bytes,
+                video_mime=video_mime,
+                video_url=primary_video_url,
+                link_url=link_url,
+                settings=settings
+            )
+        elif primary_media_type == "carousel":
+            fb_res = post_to_facebook_page(
+                caption=caption,
+                media_items=all_media_items,
+                link_url=link_url,
+                settings=settings
+            )
+        else:
+            fb_res = post_to_facebook_page(
+                caption=caption,
+                image_bytes=first_image_bytes,
+                image_mime=first_image_mime,
+                image_url=primary_image_url,
+                link_url=link_url,
+                settings=settings
+            )
+        fb_result = fb_res
+        if fb_res.get("success"):
+            success_channels.append("Facebook")
+        else:
+            error_channels.append(f"Facebook ({fb_res.get('error')})")
+
+    # Instagram
+    if "instagram" in channels:
+        if primary_media_type == "video":
+            ig_res = post_to_instagram_business(
+                caption=caption,
+                video_url=primary_video_url,
+                settings=settings
+            )
+        elif primary_media_type == "carousel":
+            ig_res = post_to_instagram_business(
+                caption=caption,
+                media_items=all_media_items,
+                settings=settings
+            )
+        else:
+            ig_res = post_to_instagram_business(
+                caption=caption,
+                image_url=primary_image_url,
+                settings=settings
+            )
+        ig_result = ig_res
+        if ig_res.get("success"):
+            success_channels.append("Instagram")
+        else:
+            error_channels.append(f"Instagram ({ig_res.get('error')})")
+
+    overall_status = "published" if success_channels and not error_channels else ("partial" if success_channels else "failed")
+
+    post_record = {
+        "caption": caption,
+        "channels": channels,
+        "media_type": primary_media_type,
+        "image_url": primary_image_url or (primary_video_url if primary_media_type == "video" else None),
+        "video_url": primary_video_url,
+        "media_urls": [m["url"] for m in all_media_items if m.get("url")],
+        "link_url": link_url,
+        "facebook": fb_result,
+        "instagram": ig_result,
+        "status": overall_status,
+        "created_at": datetime.utcnow(),
+        "created_by": session.get("user"),
+    }
+    client["globsoft_db"]["social_posts"].insert_one(post_record)
+
+    return {
+        "success": overall_status in ["published", "partial"],
+        "status": overall_status,
+        "success_channels": success_channels,
+        "error_channels": error_channels,
+        "record": {
+            "media_type": primary_media_type,
+            "status": overall_status,
+            "facebook": fb_result,
+            "instagram": ig_result,
+        }
+    }
+
+
 @app.route("/social-media/publish", methods=["POST"])
 @no_cache
 def publish_social_post():
@@ -2492,6 +3109,8 @@ def publish_social_post():
     channels = request.form.getlist("channels")
     link_url = request.form.get("link_url", "").strip()
     image_url = request.form.get("image_url", "").strip()
+    video_url = request.form.get("video_url", "").strip()
+    media_urls = request.form.get("media_urls", "").strip()
 
     if not channels:
         flash("Please select at least one channel (Facebook or Instagram) to publish to.", "error")
@@ -2501,110 +3120,85 @@ def publish_social_post():
         flash("Post caption cannot be empty.", "error")
         return redirect("/social-media")
 
-    settings = get_social_settings()
+    # Collect files from media_files or image_file / video_file
+    files = request.files.getlist("media_files")
+    if not files or all(not f.filename for f in files):
+        single_img = request.files.get("image_file")
+        single_vid = request.files.get("video_file")
+        files = [f for f in [single_img, single_vid] if f and f.filename]
 
-    # Handle image upload if a file was attached
-    image_file = request.files.get("image_file")
-    image_bytes = None
-    image_mime = None
-    saved_media_url = image_url
+    res = _process_and_publish_single_post(
+        caption=caption,
+        channels=channels,
+        link_url=link_url,
+        media_files=files,
+        image_url=image_url,
+        video_url=video_url,
+        media_urls_raw=media_urls
+    )
 
-    if image_file and image_file.filename:
-        image_bytes = image_file.read()
-        if len(image_bytes) > BLOG_IMAGE_MAX_BYTES:
-            flash(f"Attached image exceeds max size of {BLOG_IMAGE_MAX_BYTES // (1024 * 1024)} MB.", "error")
-            return redirect("/social-media")
+    if request.headers.get("X-Requested-With") == "XMLHttpRequest" or request.is_json:
+        return jsonify(res)
 
-        image_mime = normalize_image_mime(image_file.mimetype, image_file.filename) or "image/jpeg"
-        media_doc = {
-            "filename": image_file.filename,
-            "data": image_bytes,
-            "mimetype": image_mime,
-            "size": len(image_bytes),
-            "created_at": datetime.utcnow(),
-            "uploaded_by": session.get("user"),
-            "source": "social_media",
-        }
-        res = client["globsoft_db"]["blog_media"].insert_one(media_doc)
-        media_id = str(res.inserted_id)
-
-        # Build absolute URL pointing to Admin Portal backend where the image is served
-        admin_base = get_admin_base_url()
-        saved_media_url = f"{admin_base}/api/blog-media/{media_id}"
-        if not image_url:
-            image_url = saved_media_url
-
-    # Instagram validation: Meta strictly requires an image for feed publishing
-    if "instagram" in channels and not image_bytes and not image_url:
-        flash("Instagram requires an image. Please attach an image file or provide a public Image URL, or deselect Instagram.", "error")
-        return redirect("/social-media")
-
-    # Check if credentials are configured
-    if not settings["is_configured"]:
-        flash("Meta API is not configured. Please ensure your Vercel environment variables (META_PAGE_ID, META_PAGE_ACCESS_TOKEN) are set.", "error")
-        return redirect("/social-media")
-
-    # LIVE PUBLISHING VIA META GRAPH API
-    fb_result = None
-    ig_result = None
-    success_channels = []
-    error_channels = []
-
-    if "facebook" in channels:
-        fb_res = post_to_facebook_page(
-            caption=caption,
-            image_bytes=image_bytes,
-            image_mime=image_mime,
-            image_url=image_url,
-            link_url=link_url,
-            settings=settings
-        )
-        fb_result = fb_res
-        if fb_res.get("success"):
-            success_channels.append("Facebook")
-        else:
-            error_channels.append(f"Facebook ({fb_res.get('error')})")
-
-    if "instagram" in channels:
-        effective_ig_img = image_url
-        if effective_ig_img and not (effective_ig_img.startswith("http://") or effective_ig_img.startswith("https://")):
-            admin_base = get_admin_base_url()
-            effective_ig_img = f"{admin_base}{effective_ig_img}" if effective_ig_img.startswith("/") else f"{admin_base}/{effective_ig_img}"
-
-        ig_res = post_to_instagram_business(
-            caption=caption,
-            image_url=effective_ig_img,
-            settings=settings
-        )
-        ig_result = ig_res
-        if ig_res.get("success"):
-            success_channels.append("Instagram")
-        else:
-            error_channels.append(f"Instagram ({ig_res.get('error')})")
-
-    overall_status = "published" if success_channels and not error_channels else ("partial" if success_channels else "failed")
-
-    post_record = {
-        "caption": caption,
-        "channels": channels,
-        "image_url": saved_media_url,
-        "link_url": link_url,
-        "facebook": fb_result,
-        "instagram": ig_result,
-        "status": overall_status,
-        "created_at": datetime.utcnow(),
-        "created_by": session.get("user"),
-    }
-    client["globsoft_db"]["social_posts"].insert_one(post_record)
-
-    if overall_status == "published":
-        flash(f"🎉 Successfully published to {' & '.join(success_channels)} at once!", "success")
-    elif overall_status == "partial":
-        flash(f"Published to {', '.join(success_channels)}, but encountered errors: {'; '.join(error_channels)}", "error")
+    if res["status"] == "published":
+        flash(f"🎉 Successfully published to {' & '.join(res['success_channels'])} at once!", "success")
+    elif res["status"] == "partial":
+        flash(f"Published to {', '.join(res['success_channels'])}, but encountered errors: {'; '.join(res['error_channels'])}", "error")
     else:
-        flash(f"Could not publish post: {'; '.join(error_channels)}", "error")
+        errs = res.get("error_channels") or [res.get("error", "Unknown publishing error")]
+        flash(f"Could not publish post: {'; '.join(errs)}", "error")
 
     return redirect("/social-media")
+
+
+@app.route("/social-media/publish-batch", methods=["POST"])
+@no_cache
+def publish_social_batch():
+    """Publish multiple posts in a single request (Batch / Multi-post feature)."""
+    if not is_admin():
+        return jsonify({"success": False, "error": "Unauthorized"}), 401
+
+    data = request.get_json(silent=True) or {}
+    posts = data.get("posts", [])
+
+    if not posts or not isinstance(posts, list):
+        return jsonify({"success": False, "error": "No posts provided in batch."}), 400
+
+    results = []
+    settings = get_social_settings()
+
+    for idx, p in enumerate(posts):
+        caption = str(p.get("caption", "")).strip()
+        channels = p.get("channels", ["facebook", "instagram"])
+        link_url = str(p.get("link_url", "")).strip()
+        image_url = str(p.get("image_url", "")).strip()
+        video_url = str(p.get("video_url", "")).strip()
+        media_urls = str(p.get("media_urls", "")).strip()
+
+        if not caption:
+            results.append({"index": idx + 1, "success": False, "error": "Caption cannot be empty"})
+            continue
+
+        res = _process_and_publish_single_post(
+            caption=caption,
+            channels=channels,
+            link_url=link_url,
+            media_files=None,
+            image_url=image_url,
+            video_url=video_url,
+            media_urls_raw=media_urls,
+            settings=settings
+        )
+        res["index"] = idx + 1
+        results.append(res)
+
+    success_count = sum(1 for r in results if r.get("success"))
+    return jsonify({
+        "success": success_count > 0,
+        "total": len(posts),
+        "success_count": success_count,
+        "results": results
+    })
 
 
 @app.route("/social-media/settings", methods=["POST"])

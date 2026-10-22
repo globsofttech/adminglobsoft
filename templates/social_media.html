@@ -42,6 +42,34 @@
     .social-stat-val { font-size: 1.45rem; font-weight: 700; color: var(--admin-text); line-height: 1.1; margin: 0; }
     .social-stat-lbl { font-size: .72rem; color: var(--admin-muted); margin-top: 3px; }
 
+    /* ---- Mode Selector Tabs ---- */
+    .mode-tab-bar {
+      max-width: 1200px;
+      margin: 0 auto 20px;
+      display: flex;
+      gap: 12px;
+    }
+    .mode-tab-btn {
+      padding: 10px 20px;
+      border-radius: 12px;
+      border: 1px solid var(--admin-line);
+      background: var(--admin-panel);
+      color: var(--admin-muted);
+      font-weight: 600;
+      font-size: .88rem;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      transition: all .2s ease;
+    }
+    .mode-tab-btn.active {
+      background: var(--admin-panel-2);
+      color: var(--admin-cyan);
+      border-color: var(--admin-cyan);
+      box-shadow: 0 0 16px rgba(121, 255, 247, 0.15);
+    }
+
     /* ---- Hub Split Workspace ---- */
     .social-workspace {
       display: grid;
@@ -81,7 +109,7 @@
       gap: 10px;
     }
 
-    /* ---- Channel Pills / Checkboxes ---- */
+    /* ---- Channel Selector ---- */
     .channel-selector-row {
       display: flex;
       gap: 12px;
@@ -122,7 +150,7 @@
       font-size: 1.1rem;
     }
 
-    /* ---- Caption Field & Extras ---- */
+    /* ---- Caption & Quick Tools ---- */
     .caption-wrapper {
       position: relative;
     }
@@ -149,19 +177,15 @@
       margin-top: 6px;
       font-size: .72rem;
       color: var(--admin-muted);
-      flex-wrap: wrap;
-      gap: 8px;
     }
-
-    /* ---- Quick Hashtag & Emoji Toolbar ---- */
     .quick-toolbar {
       display: flex;
       flex-direction: column;
       gap: 8px;
+      padding: 12px;
       background: var(--admin-panel-2);
-      padding: 12px 14px;
-      border-radius: 12px;
       border: 1px solid var(--admin-line);
+      border-radius: 12px;
     }
     .quick-row {
       display: flex;
@@ -170,40 +194,35 @@
       flex-wrap: wrap;
     }
     .quick-label {
-      font-size: .72rem;
+      font-size: .68rem;
+      text-transform: uppercase;
       font-weight: 700;
       color: var(--admin-muted);
-      text-transform: uppercase;
-      letter-spacing: .04em;
       margin-right: 4px;
     }
     .quick-pill {
-      background: rgba(166, 177, 221, 0.08);
-      border: 1px solid var(--admin-line);
+      background: rgba(121, 255, 247, 0.08);
+      border: 1px solid rgba(121, 255, 247, 0.25);
       color: var(--admin-cyan);
-      font-size: .72rem;
-      padding: 4px 9px;
+      font-size: .74rem;
+      padding: 3px 8px;
       border-radius: 6px;
       cursor: pointer;
       transition: all .15s ease;
     }
     .quick-pill:hover {
-      background: rgba(121, 255, 247, 0.15);
-      border-color: var(--admin-cyan);
-      transform: translateY(-1px);
+      background: rgba(121, 255, 247, 0.2);
     }
     .emoji-pill {
       background: transparent;
-      border: 1px solid transparent;
-      font-size: 1.1rem;
-      padding: 2px 5px;
+      border: 1px solid var(--admin-line);
+      font-size: .88rem;
+      padding: 2px 7px;
       border-radius: 6px;
       cursor: pointer;
-      transition: transform .15s ease;
-      line-height: 1;
+      transition: all .15s ease;
     }
     .emoji-pill:hover {
-      transform: scale(1.25);
       background: rgba(255,255,255,0.06);
     }
 
@@ -214,10 +233,10 @@
       padding: 20px;
       text-align: center;
       background: var(--admin-panel-2);
-      transition: border-color .2s, background .2s;
-      position: relative;
+      transition: all .2s ease;
+      cursor: pointer;
     }
-    .media-box.dragover {
+    .media-box:hover, .media-box.dragover {
       border-color: var(--admin-cyan);
       background: rgba(121, 255, 247, 0.04);
     }
@@ -226,26 +245,43 @@
       padding: 10px;
     }
     .media-preview-container {
-      position: relative;
-      max-width: 320px;
-      margin: 0 auto;
+      margin-top: 10px;
     }
-    .media-preview-img {
-      width: 100%;
-      max-height: 220px;
-      object-fit: cover;
+    .media-preview-img, .media-preview-video {
+      max-width: 100%;
+      max-height: 280px;
       border-radius: 10px;
+      object-fit: contain;
       border: 1px solid var(--admin-line);
-      display: block;
+      background: #000;
+    }
+    .carousel-thumbnails-row {
+      display: flex;
+      gap: 8px;
+      overflow-x: auto;
+      padding: 8px 0;
+      justify-content: center;
+      flex-wrap: wrap;
+    }
+    .carousel-thumb-item {
+      width: 55px;
+      height: 55px;
+      border-radius: 8px;
+      border: 2px solid var(--admin-line);
+      object-fit: cover;
+      cursor: pointer;
+    }
+    .carousel-thumb-item.active {
+      border-color: var(--admin-cyan);
     }
 
-    /* ---- Preview Card Stack ---- */
+    /* ---- Preview Card / Mockups ---- */
     .preview-card-wrapper {
       position: sticky;
       top: 24px;
       display: flex;
       flex-direction: column;
-      gap: 14px;
+      gap: 16px;
     }
     .preview-tab-row {
       display: flex;
@@ -261,167 +297,128 @@
       border: none;
       background: transparent;
       color: var(--admin-muted);
+      border-radius: 8px;
       font-size: .8rem;
       font-weight: 600;
-      border-radius: 8px;
       cursor: pointer;
       display: flex;
       align-items: center;
       justify-content: center;
       gap: 8px;
-      transition: all .2s ease;
+      transition: all .15s ease;
     }
     .preview-tab-btn.active.fb {
-      background: #1877f2;
-      color: #fff;
+      background: rgba(24, 119, 242, 0.16);
+      color: #1877f2;
     }
     .preview-tab-btn.active.ig {
-      background: linear-gradient(135deg, #833ab4, #fd1d1d, #fcb045);
-      color: #fff;
+      background: rgba(225, 48, 108, 0.16);
+      color: #e1306c;
     }
 
     /* Facebook Mockup */
     .fb-mockup {
-      background: #18191a;
-      border: 1px solid rgba(255, 255, 255, 0.1);
+      background: #242526;
+      border: 1px solid #3a3b3c;
       border-radius: 14px;
       overflow: hidden;
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
       color: #e4e6eb;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
     }
     .fb-header {
-      padding: 12px 14px;
+      padding: 12px 16px;
       display: flex;
       align-items: center;
       gap: 10px;
     }
-    .fb-avatar {
+    .fb-avatar img {
       width: 40px;
       height: 40px;
       border-radius: 50%;
-      background: #080a16;
-      border: 1px solid var(--admin-line);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      padding: 6px;
+      background: #3a3b3c;
     }
-    .fb-avatar img { width: 100%; height: 100%; object-fit: contain; }
     .fb-name-area { line-height: 1.25; }
-    .fb-name { font-size: .9rem; font-weight: 600; color: #e4e6eb; }
-    .fb-badge { color: #2e89ff; font-size: .8rem; margin-left: 3px; }
+    .fb-name { font-weight: 600; font-size: .88rem; display: flex; align-items: center; gap: 4px; }
+    .fb-badge { color: #2e89ff; font-size: .75rem; }
     .fb-time { font-size: .72rem; color: #b0b3b8; }
-    .fb-body {
-      padding: 0 14px 12px;
-      font-size: .9rem;
-      line-height: 1.45;
-      white-space: pre-wrap;
-      word-break: break-word;
-    }
-    .fb-media { width: 100%; max-height: 360px; object-fit: cover; display: block; background: #242526; }
-    .fb-stats {
-      padding: 10px 14px;
-      display: flex;
-      justify-content: space-between;
-      color: #b0b3b8;
-      font-size: .78rem;
-      border-bottom: 1px solid rgba(255, 255, 255, 0.08);
-    }
-    .fb-actions {
-      display: flex;
-      padding: 4px 6px;
-    }
-    .fb-action-btn {
-      flex: 1;
-      padding: 8px 0;
-      color: #b0b3b8;
-      font-size: .82rem;
-      font-weight: 600;
-      border: none;
-      background: transparent;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 6px;
-      border-radius: 6px;
-    }
+    .fb-body { padding: 4px 16px 12px; font-size: .88rem; line-height: 1.5; white-space: pre-wrap; word-break: break-word; }
+    .fb-media { width: 100%; max-height: 400px; object-fit: cover; display: block; background: #000; }
 
     /* Instagram Mockup */
     .ig-mockup {
       background: #000;
-      border: 1px solid rgba(255, 255, 255, 0.12);
+      border: 1px solid #262626;
       border-radius: 14px;
       overflow: hidden;
+      color: #fff;
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-      color: #f5f5f5;
     }
     .ig-header {
-      padding: 10px 14px;
+      padding: 12px 14px;
       display: flex;
       align-items: center;
       justify-content: space-between;
     }
-    .ig-header-left {
+    .ig-user-left {
       display: flex;
       align-items: center;
       gap: 10px;
     }
-    .ig-avatar-ring {
-      width: 36px;
-      height: 36px;
+    .ig-avatar img {
+      width: 32px;
+      height: 32px;
       border-radius: 50%;
-      background: linear-gradient(45deg, #f09433, #e6683c, #dc2743, #cc2366, #bc1888);
-      padding: 2px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
+      padding: 1.5px;
+      background: linear-gradient(45deg, #f09433 0%, #e6683c 25%, #dc2743 50%, #cc2366 75%, #bc1888 100%);
     }
-    .ig-avatar-inner {
+    .ig-username { font-weight: 600; font-size: .82rem; }
+    .ig-media-box {
       width: 100%;
-      height: 100%;
-      border-radius: 50%;
-      background: #080a16;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      padding: 5px;
-    }
-    .ig-avatar-inner img { width: 100%; height: 100%; object-fit: contain; }
-    .ig-username { font-size: .85rem; font-weight: 600; }
-    .ig-media {
-      width: 100%;
-      aspect-ratio: 1 / 1;
-      object-fit: cover;
-      display: block;
+      aspect-ratio: 1/1;
       background: #121212;
-    }
-    .ig-no-image-placeholder {
-      width: 100%;
-      aspect-ratio: 1 / 1;
       display: flex;
-      flex-direction: column;
       align-items: center;
       justify-content: center;
-      gap: 8px;
-      color: var(--admin-muted);
-      background: #121212;
-      font-size: .8rem;
+      overflow: hidden;
+      position: relative;
     }
+    .ig-media { width: 100%; height: 100%; object-fit: cover; }
     .ig-actions-bar {
       padding: 10px 14px;
       display: flex;
+      align-items: center;
       justify-content: space-between;
-      font-size: 1.15rem;
+      font-size: 1.25rem;
     }
-    .ig-actions-left { display: flex; gap: 14px; }
-    .ig-caption-block {
-      padding: 0 14px 14px;
-      font-size: .85rem;
-      line-height: 1.45;
-    }
-    .ig-caption-block strong { margin-right: 6px; }
+    .ig-actions-left { display: flex; gap: 16px; }
+    .ig-caption-block { padding: 0 14px 14px; font-size: .82rem; line-height: 1.45; word-break: break-word; }
 
-    /* ---- Post History Table ---- */
+    /* Batch Posting Styling */
+    .batch-post-card {
+      background: var(--admin-panel-2);
+      border: 1px solid var(--admin-line);
+      border-radius: 14px;
+      padding: 18px;
+      margin-bottom: 16px;
+      position: relative;
+    }
+    .batch-post-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 12px;
+      font-size: .85rem;
+      font-weight: 600;
+    }
+    .batch-badge {
+      background: rgba(121, 255, 247, 0.12);
+      color: var(--admin-cyan);
+      padding: 3px 8px;
+      border-radius: 6px;
+      font-size: .75rem;
+    }
+
+    /* History Table */
     .history-card {
       background: var(--admin-panel);
       border: 1px solid var(--admin-line);
@@ -434,168 +431,138 @@
       display: flex;
       align-items: center;
       justify-content: space-between;
-      margin-bottom: 18px;
+      margin-bottom: 20px;
+      padding-bottom: 12px;
+      border-bottom: 1px solid var(--admin-line);
     }
     .history-header h2 { margin: 0; font-size: 1.15rem; font-weight: 600; }
-    .history-table {
-      width: 100%;
-      border-collapse: collapse;
-      font-size: .82rem;
-    }
-    .history-table th {
-      text-align: left;
-      padding: 10px 14px;
-      border-bottom: 1px solid var(--admin-line);
-      color: var(--admin-muted);
-      font-weight: 600;
-    }
-    .history-table td {
-      padding: 14px;
-      border-bottom: 1px solid rgba(166, 177, 221, 0.08);
-      vertical-align: middle;
-    }
+    .history-table { width: 100%; border-collapse: collapse; font-size: .84rem; }
+    .history-table th { padding: 12px 14px; text-align: left; color: var(--admin-muted); font-size: .75rem; border-bottom: 1px solid var(--admin-line); }
+    .history-table td { padding: 14px; border-bottom: 1px solid var(--admin-line); vertical-align: middle; }
     .badge-channel {
-      font-size: .65rem;
-      font-weight: 700;
-      padding: 3px 8px;
-      border-radius: 999px;
       display: inline-flex;
       align-items: center;
       gap: 4px;
-      margin-right: 4px;
+      padding: 3px 8px;
+      border-radius: 6px;
+      font-size: .72rem;
+      font-weight: 600;
     }
-    .badge-channel.fb { background: rgba(24, 119, 242, 0.16); color: #1877f2; border: 1px solid rgba(24, 119, 242, 0.3); }
-    .badge-channel.ig { background: rgba(225, 48, 108, 0.16); color: #e1306c; border: 1px solid rgba(225, 48, 108, 0.3); }
+    .badge-channel.fb { background: rgba(24, 119, 242, 0.14); color: #1877f2; }
+    .badge-channel.ig { background: rgba(225, 48, 108, 0.14); color: #e1306c; }
+    .badge-type-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 3px 7px;
+      border-radius: 6px;
+      font-size: .7rem;
+      font-weight: 600;
+    }
+    .badge-type-pill.video { background: rgba(245, 158, 11, 0.16); color: #f59e0b; }
+    .badge-type-pill.carousel { background: rgba(139, 92, 246, 0.16); color: #a78bfa; }
+    .badge-type-pill.image { background: rgba(16, 185, 129, 0.16); color: #34d399; }
+    .badge-type-pill.text { background: rgba(148, 163, 184, 0.16); color: #94a3b8; }
     .badge-status-pill {
-      font-size: .68rem;
-      font-weight: 700;
-      padding: 3px 9px;
-      border-radius: 999px;
-      text-transform: uppercase;
+      display: inline-block;
+      padding: 3px 8px;
+      border-radius: 6px;
+      font-size: .72rem;
+      font-weight: 600;
+      text-transform: capitalize;
     }
-    .badge-status-pill.published { background: rgba(122, 219, 120, 0.15); color: #7adb78; border: 1px solid rgba(122, 219, 120, 0.3); }
-    .badge-status-pill.failed    { background: rgba(255, 107, 107, 0.15); color: #ff6b6b; border: 1px solid rgba(255, 107, 107, 0.3); }
-    .badge-status-pill.partial   { background: rgba(255, 186, 73, 0.15); color: #ffba49; border: 1px solid rgba(255, 186, 73, 0.3); }
+    .badge-status-pill.published { background: rgba(16, 185, 129, 0.14); color: #10b981; }
+    .badge-status-pill.partial { background: rgba(245, 158, 11, 0.14); color: #f59e0b; }
+    .badge-status-pill.failed { background: rgba(239, 68, 68, 0.14); color: #ef4444; }
   </style>
 </head>
 <body class="admin-page">
   {% include '_admin_shell_start.html' %}
 
-  <!-- TOPBAR -->
-  <header class="topbar">
-    <div>
-      <p class="eyebrow">Workspace / Social Command</p>
-      <h1 style="margin:0 0 4px;">Social Media Hub</h1>
-      <p class="topbar-subtitle" style="margin:0;">Publish updates directly to your Facebook Page and Instagram Business Account at once.</p>
-    </div>
-  </header>
-
-  {% with messages = get_flashed_messages(with_categories=true) %}
-    {% for category, message in messages %}
-      <div class="flash {{ category }}">
-        <i class="fa-solid {{ 'fa-circle-check' if category == 'success' else 'fa-circle-exclamation' }}"></i>
-        <span>{{ message }}</span>
-      </div>
-    {% endfor %}
-  {% endwith %}
-
-  {% if prefill %}
-    <div class="flash success" style="border-color:var(--admin-cyan); background:rgba(121,255,247,0.08); color:var(--admin-text); display:flex; justify-content:space-between; align-items:center;">
-      <div>
-        <i class="fa-solid fa-share-nodes" style="color:var(--admin-cyan); margin-right:8px;"></i>
-        <span>Pre-filled article: <strong>{{ prefill.title }}</strong>. Review the draft below and click publish!</span>
-      </div>
-      <a href="/social-media" style="color:var(--admin-muted); font-size:.78rem; text-decoration:underline;">Clear pre-fill</a>
-    </div>
-  {% endif %}
-
-  <!-- STATS OVERVIEW -->
-  <section class="social-stats-grid">
+  <!-- TOP STATS -->
+  <div class="social-stats-grid">
     <div class="social-stat-card">
       <div class="social-stat-icon meta"><i class="fa-brands fa-meta"></i></div>
       <div>
         <p class="social-stat-val">{{ stats.total }}</p>
-        <div class="social-stat-lbl">Total Posts Dispatched</div>
+        <span class="social-stat-lbl">Total Posts Dispatched</span>
       </div>
     </div>
     <div class="social-stat-card">
-      <div class="social-stat-icon fb"><i class="fa-brands fa-facebook-f"></i></div>
+      <div class="social-stat-icon fb"><i class="fa-brands fa-facebook"></i></div>
       <div>
         <p class="social-stat-val">{{ stats.facebook }}</p>
-        <div class="social-stat-lbl">Facebook Posts</div>
+        <span class="social-stat-lbl">Facebook Posts</span>
       </div>
     </div>
     <div class="social-stat-card">
       <div class="social-stat-icon ig"><i class="fa-brands fa-instagram"></i></div>
       <div>
         <p class="social-stat-val">{{ stats.instagram }}</p>
-        <div class="social-stat-lbl">Instagram Posts</div>
+        <span class="social-stat-lbl">Instagram Posts &amp; Reels</span>
       </div>
     </div>
-    <div class="social-stat-card" style="border-color:{% if settings.is_configured %}rgba(122,219,120,0.3){% else %}rgba(255,186,73,0.3){% endif %};">
-      <div class="social-stat-icon status" style="{% if settings.is_configured %}background:rgba(122,219,120,0.12);color:#7adb78;{% else %}background:rgba(255,186,73,0.14);color:#ffba49;{% endif %}">
-        <i class="fa-solid {% if settings.is_configured %}fa-link{% else %}fa-plug-circle-exclamation{% endif %}"></i>
-      </div>
+    <div class="social-stat-card">
+      <div class="social-stat-icon status"><i class="fa-solid fa-bolt"></i></div>
       <div>
-        <p class="social-stat-val" style="font-size:1.05rem; {% if settings.is_configured %}color:#7adb78;{% else %}color:#ffba49;{% endif %}">
-          {{ 'Live Connected' if settings.is_configured else 'Setup Required' }}
-        </p>
-        <div class="social-stat-lbl">
-          {% if settings.is_configured %}
-            Meta Active · {{ settings.facebook_page_name }} (@{{ settings.instagram_username }})
-          {% else %}
-            Configure META_* in Vercel
-          {% endif %}
-        </div>
+        <p class="social-stat-val">{% if settings.is_configured %}LIVE{% else %}SETUP{% endif %}</p>
+        <span class="social-stat-lbl">API Integration Status</span>
       </div>
     </div>
-  </section>
+  </div>
 
-  <!-- MAIN WORKSPACE: COMPOSER + LIVE PREVIEWS -->
-  <div class="social-workspace">
-    
+  <!-- MODE SELECTOR TABS -->
+  <div class="mode-tab-bar">
+    <button type="button" class="mode-tab-btn active" id="btnModeSingle" onclick="switchMode('single')">
+      <i class="fa-solid fa-pen-fancy"></i> Single Post Composer (Photos / Video / Carousel)
+    </button>
+    <button type="button" class="mode-tab-btn" id="btnModeBatch" onclick="switchMode('batch')">
+      <i class="fa-solid fa-layer-group"></i> Multiple Posts Batch Publisher (Queue &amp; Post All)
+    </button>
+  </div>
+
+  <!-- MAIN SINGLE POST WORKSPACE -->
+  <div class="social-workspace" id="workspaceSingle">
     <!-- LEFT: COMPOSER FORM -->
-    <form method="POST" action="/social-media/publish" enctype="multipart/form-data" class="composer-card" id="socialForm">
+    <form class="composer-card" id="socialForm" method="POST" action="/social-media/publish" enctype="multipart/form-data">
       <div class="composer-header">
-        <h2><i class="fa-solid fa-pen-nib" style="color:var(--admin-cyan);"></i> Multi-Channel Composer</h2>
-        <span style="font-size:.75rem; color:var(--admin-muted);">Cross-post to Facebook &amp; Instagram</span>
+        <h2><i class="fa-brands fa-meta" style="color:#0081fb;"></i> Compose &amp; Publish Update</h2>
+        <span style="font-size:.78rem; color:var(--admin-muted);">Direct to Facebook Page &amp; Instagram</span>
       </div>
 
-      <!-- CHANNEL SELECTOR -->
+      <!-- CHANNELS SELECTION -->
       <div>
         <label class="field-label" style="display:block; margin-bottom:8px; font-size:.78rem; font-weight:600;">
-          Target Social Accounts
+          Publish Channels <span style="color:#ff6b6b;">*</span>
         </label>
         <div class="channel-selector-row">
           <label class="channel-checkbox-label checked-fb" id="labelFb">
             <input type="checkbox" name="channels" value="facebook" checked onchange="toggleChannel(this, 'labelFb', 'checked-fb')">
-            <i class="fa-brands fa-facebook"></i>
-            <span>Facebook Page</span>
+            <i class="fa-brands fa-facebook"></i> Facebook Page
           </label>
           <label class="channel-checkbox-label checked-ig" id="labelIg">
             <input type="checkbox" name="channels" value="instagram" checked onchange="toggleChannel(this, 'labelIg', 'checked-ig')">
-            <i class="fa-brands fa-instagram"></i>
-            <span>Instagram Business <small style="font-size:.68rem; opacity:.85;">(Image required)</small></span>
+            <i class="fa-brands fa-instagram"></i> Instagram Business
           </label>
         </div>
       </div>
 
-      <!-- CAPTION -->
+      <!-- CAPTION FIELD -->
       <div class="caption-wrapper">
         <label class="field-label" for="captionInput" style="display:block; margin-bottom:8px; font-size:.78rem; font-weight:600;">
-          Post Caption / Text
+          Post Caption / Copy <span style="color:#ff6b6b;">*</span>
         </label>
         <textarea
           name="caption"
           id="captionInput"
-          required
           class="caption-textarea"
-          placeholder="Share something exciting with your audience... What are you building today?"
+          placeholder="Write your announcement, caption, and hashtags here..."
+          required
         >{{ prefill.caption if prefill else '' }}</textarea>
         <div class="caption-meta-bar">
           <span id="charCount">0 characters</span>
-          <span id="tagCount" class="field-hint" style="color:var(--admin-cyan);">0 / 30 hashtags</span>
-          <span id="igCharLimit" class="field-hint">Instagram max: 2,200 chars</span>
+          <span id="tagCount" style="color:var(--admin-cyan);">0 / 30 hashtags</span>
+          <span id="igCharLimit">Instagram max: 2,200 chars</span>
         </div>
       </div>
 
@@ -621,28 +588,41 @@
           <button type="button" class="emoji-pill" onclick="insertEmoji('🌐')">🌐</button>
           <button type="button" class="emoji-pill" onclick="insertEmoji('🎯')">🎯</button>
           <button type="button" class="emoji-pill" onclick="insertEmoji('📈')">📈</button>
+          <button type="button" class="emoji-pill" onclick="insertEmoji('🎬')">🎬</button>
           <button type="button" class="emoji-pill" onclick="insertEmoji('✅')">✅</button>
         </div>
       </div>
 
-      <!-- MEDIA ATTACHMENT -->
+      <!-- MEDIA ATTACHMENT: PHOTO / VIDEO / CAROUSEL -->
       <div>
-        <label class="field-label" style="display:block; margin-bottom:8px; font-size:.78rem; font-weight:600;">
-          Media Attachment <small class="field-hint">(Required for Instagram, recommended for Facebook)</small>
-        </label>
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+          <label class="field-label" style="font-size:.78rem; font-weight:600; margin:0;">
+            Media Attachment (Photos, Video, or Carousel)
+          </label>
+          <span id="detectedMediaTypeBadge" class="badge-type-pill text">No Media</span>
+        </div>
         
         <div class="media-box" id="mediaDropzone">
           <div class="upload-prompt-inner" id="uploadPrompt" style="display:{% if prefill and prefill.image_url %}none{% else %}block{% endif %};" onclick="triggerFileInput()">
-            <i class="fa-solid fa-cloud-arrow-up" style="font-size:1.8rem; color:var(--admin-cyan); margin-bottom:8px;"></i>
-            <p style="margin:0 0 4px; font-size:.85rem; font-weight:600;">Click to upload image or drag &amp; drop</p>
-            <span style="font-size:.72rem; color:var(--admin-muted);">JPG, PNG, WEBP up to 10MB</span>
+            <i class="fa-solid fa-cloud-arrow-up" style="font-size:2rem; color:var(--admin-cyan); margin-bottom:8px;"></i>
+            <p style="margin:0 0 4px; font-size:.88rem; font-weight:600;">Click to upload photos or video (or drag &amp; drop)</p>
+            <span style="font-size:.72rem; color:var(--admin-muted);">
+              Supports JPG, PNG, WEBP, or MP4/MOV Video (Select up to 10 photos for Carousel or 1 Video up to 15MB)
+            </span>
           </div>
 
           <div class="media-preview-container" id="mediaPreviewWrapper" style="display:{% if prefill and prefill.image_url %}block{% else %}none{% endif %};">
+            <!-- Video preview element -->
+            <video id="videoPreview" class="media-preview-video" controls style="display:none; margin:0 auto;"></video>
+            <!-- Image preview element -->
             <img src="{{ prefill.image_url if prefill else '' }}" id="mediaPreview" class="media-preview-img" alt="Uploaded Attachment Preview">
+            
+            <!-- Carousel thumbnails bar (shown if > 1 items) -->
+            <div id="carouselThumbsBar" class="carousel-thumbnails-row" style="display:none;"></div>
+
             <div style="display:flex; justify-content:center; gap:10px; margin-top:10px;">
               <button type="button" class="secondary-action" style="padding:5px 12px; font-size:.75rem;" onclick="triggerFileInput()">
-                <i class="fa-solid fa-arrows-rotate"></i> Change Image
+                <i class="fa-solid fa-arrows-rotate"></i> Change / Add Media
               </button>
               <button type="button" class="secondary-action" style="padding:5px 12px; font-size:.75rem; color:#ff6b6b; border-color:rgba(255,107,107,0.3);" onclick="removeMedia(event)">
                 <i class="fa-solid fa-trash"></i> Remove
@@ -650,28 +630,41 @@
             </div>
           </div>
 
-          <input type="file" name="image_file" id="imageFileInput" accept="image/jpeg,image/png,image/webp" style="display:none;" onchange="handleFileSelected(this)">
+          <input type="file" name="media_files" id="mediaFileInput" accept="image/jpeg,image/png,image/webp,video/mp4,video/quicktime,video/webm" multiple style="display:none;" onchange="handleFilesSelected(this)">
         </div>
 
-        <div id="aspectRatioTip" style="display:none; margin-top:8px; padding:9px 12px; border-radius:8px; font-size:.76rem;"></div>
-
-        <div style="margin-top:10px;">
-          <label style="font-size:.74rem; color:var(--admin-muted); display:block; margin-bottom:4px;">
-            Or use Public Image URL:
-          </label>
-          <input
-            type="url"
-            name="image_url"
-            id="imageUrlInput"
-            value="{{ prefill.image_url if prefill else '' }}"
-            placeholder="https://globsoft.vercel.app/social-preview.jpg"
-            oninput="handleImageUrlInput(this.value)"
-            style="width:100%; padding:9px 12px; border-radius:8px; font-size:.82rem; background:var(--admin-panel-2); border:1px solid var(--admin-line); color:var(--admin-text);"
-          >
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-top:12px;">
+          <div>
+            <label style="font-size:.74rem; color:var(--admin-muted); display:block; margin-bottom:4px;">
+              Public Photo / Carousel URLs:
+            </label>
+            <input
+              type="text"
+              name="image_url"
+              id="imageUrlInput"
+              value="{{ prefill.image_url if prefill else '' }}"
+              placeholder="https://... (or comma-separated for carousel)"
+              oninput="handleUrlInput(this.value, 'image')"
+              style="width:100%; padding:9px 12px; border-radius:8px; font-size:.82rem; background:var(--admin-panel-2); border:1px solid var(--admin-line); color:var(--admin-text);"
+            >
+          </div>
+          <div>
+            <label style="font-size:.74rem; color:var(--admin-muted); display:block; margin-bottom:4px;">
+              Public Video URL (MP4 / Reel / CDN):
+            </label>
+            <input
+              type="url"
+              name="video_url"
+              id="videoUrlInput"
+              placeholder="https://.../video.mp4"
+              oninput="handleUrlInput(this.value, 'video')"
+              style="width:100%; padding:9px 12px; border-radius:8px; font-size:.82rem; background:var(--admin-panel-2); border:1px solid var(--admin-line); color:var(--admin-text);"
+            >
+          </div>
         </div>
       </div>
 
-      <!-- OPTIONAL LINK URL (FOR FACEBOOK) -->
+      <!-- OPTIONAL ARTICLE LINK (FOR FACEBOOK) -->
       <div>
         <label class="field-label" for="linkUrlInput" style="display:block; margin-bottom:8px; font-size:.78rem; font-weight:600;">
           Website / Article Link <small class="field-hint">(Attached to Facebook post)</small>
@@ -689,7 +682,7 @@
       <!-- PUBLISH ACTION -->
       <div style="padding-top:12px; border-top:1px solid var(--admin-line);">
         <button type="submit" class="btn-submit" id="btnPublish" style="font-size:.95rem; padding:14px 28px; width:100%; display:flex; align-items:center; justify-content:center; gap:10px;">
-          <i class="fa-brands fa-meta"></i> Publish to Social Channels
+          <i class="fa-brands fa-meta"></i> Publish to Social Channels Now
         </button>
       </div>
     </form>
@@ -717,36 +710,36 @@
           </div>
         </div>
         <div class="fb-body" id="fbPreviewBody">{{ prefill.caption if prefill else 'Your post caption will appear here in real time...' }}</div>
-        <img src="{{ prefill.image_url if prefill else '' }}" id="fbPreviewImg" class="fb-media" alt="" style="display:{% if prefill and prefill.image_url %}block{% else %}none{% endif %};">
-        <div class="fb-stats">
-          <span>👍 ❤️ 24</span>
-          <span>3 comments · 1 share</span>
-        </div>
-        <div class="fb-actions">
-          <button type="button" class="fb-action-btn"><i class="fa-regular fa-thumbs-up"></i> Like</button>
-          <button type="button" class="fb-action-btn"><i class="fa-regular fa-comment"></i> Comment</button>
-          <button type="button" class="fb-action-btn"><i class="fa-solid fa-share"></i> Share</button>
+        
+        <div id="fbMediaContainer">
+          <video id="fbPreviewVideo" class="fb-media" controls style="display:none;"></video>
+          <img src="{{ prefill.image_url if prefill else '' }}" id="fbPreviewImg" class="fb-media" alt="" style="display:{% if prefill and prefill.image_url %}block{% else %}none{% endif %};">
         </div>
       </div>
 
       <!-- INSTAGRAM CARD PREVIEW -->
       <div class="ig-mockup" id="previewIgCard" style="display:none;">
         <div class="ig-header">
-          <div class="ig-header-left">
-            <div class="ig-avatar-ring">
-              <div class="ig-avatar-inner">
-                <img src="{{ url_for('static', filename='images/globsoft.svg') }}" alt="Globsoft">
-              </div>
+          <div class="ig-user-left">
+            <div class="ig-avatar">
+              <img src="{{ url_for('static', filename='images/globsoft.svg') }}" alt="Globsoft">
             </div>
             <span class="ig-username">{{ settings.instagram_username or 'globsoftech' }}</span>
           </div>
-          <i class="fa-solid fa-ellipsis" style="color:#a8a8a8; font-size:.9rem;"></i>
+          <i class="fa-solid fa-ellipsis" style="color:#a8a8a8;"></i>
         </div>
 
-        <img src="{{ prefill.image_url if prefill else '' }}" id="igPreviewImg" class="ig-media" alt="" style="display:{% if prefill and prefill.image_url %}block{% else %}none{% endif %};">
-        <div class="ig-no-image-placeholder" id="igNoImgPrompt" style="display:{% if prefill and prefill.image_url %}none{% else %}flex{% endif %};">
-          <i class="fa-regular fa-image" style="font-size:2rem; opacity:.4;"></i>
-          <span>Instagram requires an image</span>
+        <div class="ig-media-box">
+          <video id="igPreviewVideo" class="ig-media" controls style="display:none;"></video>
+          <img src="{{ prefill.image_url if prefill else '' }}" id="igPreviewImg" class="ig-media" alt="" style="display:{% if prefill and prefill.image_url %}block{% else %}none{% endif %};">
+          <div id="igNoImgPrompt" style="display:{% if prefill and prefill.image_url %}none{% else %}flex{% endif %}; flex-direction:column; align-items:center; gap:8px; color:#737373; font-size:.8rem;">
+            <i class="fa-solid fa-photo-film" style="font-size:2rem;"></i>
+            <span>Photo or Video required for Instagram</span>
+          </div>
+          <!-- Carousel dots badge -->
+          <div id="igCarouselIndicator" style="display:none; position:absolute; bottom:12px; right:12px; background:rgba(0,0,0,0.7); padding:4px 8px; border-radius:12px; font-size:.7rem; font-weight:600;">
+            <i class="fa-solid fa-clone"></i> <span id="igCarouselCount">1/1</span>
+          </div>
         </div>
 
         <div class="ig-actions-bar">
@@ -767,6 +760,69 @@
     </div>
   </div>
 
+  <!-- MULTIPLE POSTS BATCH PUBLISHER WORKSPACE -->
+  <div id="workspaceBatch" style="display:none; max-width:1200px; margin:0 auto 36px;">
+    <div class="composer-card">
+      <div class="composer-header">
+        <div>
+          <h2><i class="fa-solid fa-layer-group" style="color:var(--admin-cyan);"></i> Batch Multiple Posts Publisher</h2>
+          <p style="margin:4px 0 0; color:var(--admin-muted); font-size:.82rem;">
+            Draft multiple independent posts with separate captions and media, then publish them all in one operation.
+          </p>
+        </div>
+        <button type="button" class="btn-submit" onclick="addBatchPostCard()" style="font-size:.82rem; padding:8px 16px;">
+          <i class="fa-solid fa-plus"></i> Add Another Post
+        </button>
+      </div>
+
+      <div id="batchPostsList">
+        <!-- Default Post 1 -->
+        <div class="batch-post-card" id="batchPost_1">
+          <div class="batch-post-header">
+            <span class="batch-badge">Post #1</span>
+            <div style="display:flex; gap:10px; align-items:center;">
+              <label style="font-size:.75rem; cursor:pointer;"><input type="checkbox" class="batch-chan-fb" checked> FB</label>
+              <label style="font-size:.75rem; cursor:pointer;"><input type="checkbox" class="batch-chan-ig" checked> IG</label>
+            </div>
+          </div>
+          <textarea class="caption-textarea batch-caption" placeholder="Post caption & hashtags..." style="min-height:90px; margin-bottom:10px;"></textarea>
+          <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
+            <input type="url" class="batch-image-url" placeholder="Photo / Media URL..." style="padding:8px 10px; font-size:.8rem; background:var(--admin-panel); border:1px solid var(--admin-line); border-radius:8px; color:var(--admin-text);">
+            <input type="url" class="batch-video-url" placeholder="Video URL (optional)..." style="padding:8px 10px; font-size:.8rem; background:var(--admin-panel); border:1px solid var(--admin-line); border-radius:8px; color:var(--admin-text);">
+          </div>
+        </div>
+
+        <!-- Default Post 2 -->
+        <div class="batch-post-card" id="batchPost_2">
+          <div class="batch-post-header">
+            <span class="batch-badge">Post #2</span>
+            <div style="display:flex; gap:10px; align-items:center;">
+              <label style="font-size:.75rem; cursor:pointer;"><input type="checkbox" class="batch-chan-fb" checked> FB</label>
+              <label style="font-size:.75rem; cursor:pointer;"><input type="checkbox" class="batch-chan-ig" checked> IG</label>
+              <button type="button" onclick="removeBatchCard('batchPost_2')" style="background:none; border:none; color:#ff6b6b; cursor:pointer; font-size:.8rem;"><i class="fa-solid fa-trash"></i></button>
+            </div>
+          </div>
+          <textarea class="caption-textarea batch-caption" placeholder="Post caption & hashtags..." style="min-height:90px; margin-bottom:10px;"></textarea>
+          <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
+            <input type="url" class="batch-image-url" placeholder="Photo / Media URL..." style="padding:8px 10px; font-size:.8rem; background:var(--admin-panel); border:1px solid var(--admin-line); border-radius:8px; color:var(--admin-text);">
+            <input type="url" class="batch-video-url" placeholder="Video URL (optional)..." style="padding:8px 10px; font-size:.8rem; background:var(--admin-panel); border:1px solid var(--admin-line); border-radius:8px; color:var(--admin-text);">
+          </div>
+        </div>
+      </div>
+
+      <div id="batchProgressAlert" style="display:none; padding:12px; border-radius:8px; font-size:.85rem; background:rgba(121,255,247,0.1); border:1px solid var(--admin-cyan); color:var(--admin-cyan);"></div>
+
+      <div style="display:flex; justify-content:space-between; align-items:center; border-top:1px solid var(--admin-line); padding-top:16px;">
+        <button type="button" class="secondary-action" onclick="addBatchPostCard()">
+          <i class="fa-solid fa-plus"></i> Add Another Post
+        </button>
+        <button type="button" class="btn-submit" id="btnPublishBatch" onclick="submitBatchPosts()" style="padding:12px 28px; font-size:.9rem;">
+          <i class="fa-solid fa-paper-plane"></i> Publish All Batch Posts
+        </button>
+      </div>
+    </div>
+  </div>
+
   <!-- BOTTOM: RECENT PUBLISHED LOGS -->
   <section class="history-card">
     <div class="history-header">
@@ -779,7 +835,8 @@
       <table class="history-table">
         <thead>
           <tr>
-            <th>Thumbnail</th>
+            <th>Type</th>
+            <th>Media</th>
             <th>Caption</th>
             <th>Channels</th>
             <th>Status</th>
@@ -790,17 +847,33 @@
         <tbody>
           {% for post in posts %}
           <tr>
+            <td style="width:90px;">
+              {% set m_type = post.media_type or ('video' if post.video_url else ('image' if post.image_url else 'text')) %}
+              {% if m_type == 'video' %}
+                <span class="badge-type-pill video"><i class="fa-solid fa-video"></i> Video</span>
+              {% elif m_type == 'carousel' %}
+                <span class="badge-type-pill carousel"><i class="fa-solid fa-clone"></i> Carousel</span>
+              {% elif m_type == 'image' %}
+                <span class="badge-type-pill image"><i class="fa-solid fa-image"></i> Photo</span>
+              {% else %}
+                <span class="badge-type-pill text"><i class="fa-solid fa-font"></i> Text</span>
+              {% endif %}
+            </td>
             <td style="width:70px;">
               {% if post.image_url %}
-                <img src="{{ post.image_url }}" alt="" style="width:50px; height:50px; object-fit:cover; border-radius:8px; border:1px solid var(--admin-line);">
+                <img src="{{ post.image_url }}" alt="" style="width:48px; height:48px; object-fit:cover; border-radius:8px; border:1px solid var(--admin-line);">
+              {% elif post.video_url %}
+                <div style="width:48px; height:48px; border-radius:8px; background:rgba(245,158,11,0.15); color:#f59e0b; display:flex; align-items:center; justify-content:center; font-size:1.1rem;">
+                  <i class="fa-solid fa-play"></i>
+                </div>
               {% else %}
-                <div style="width:50px; height:50px; border-radius:8px; background:var(--admin-panel-2); display:flex; align-items:center; justify-content:center; color:var(--admin-muted); font-size:.9rem;">
+                <div style="width:48px; height:48px; border-radius:8px; background:var(--admin-panel-2); display:flex; align-items:center; justify-content:center; color:var(--admin-muted); font-size:.9rem;">
                   <i class="fa-solid fa-font"></i>
                 </div>
               {% endif %}
             </td>
             <td>
-              <div style="max-width:340px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; font-weight:500;">
+              <div style="max-width:320px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; font-weight:500;">
                 {{ post.caption }}
               </div>
               {% if post.link_url %}
@@ -840,15 +913,10 @@
                 </a>
               {% endif %}
               {% if post.instagram and post.instagram.url %}
-                <a href="{{ post.instagram.url }}" target="_blank" rel="noopener noreferrer" style="color:#e1306c; margin-right:12px;" title="View on Instagram">
+                <a href="{{ post.instagram.url }}" target="_blank" rel="noopener noreferrer" style="color:#e1306c; margin-right:8px;" title="View on Instagram">
                   <i class="fa-solid fa-arrow-up-right-from-square"></i> IG
                 </a>
               {% endif %}
-              <form method="POST" action="/social-media/posts/{{ post._id }}/delete" onsubmit="return confirm('Delete this social post log?');" style="display:inline;">
-                <button type="submit" style="background:none; border:none; color:#ff6b6b; cursor:pointer;" title="Delete log">
-                  <i class="fa-solid fa-trash"></i>
-                </button>
-              </form>
             </td>
           </tr>
           {% endfor %}
@@ -856,10 +924,10 @@
       </table>
     </div>
     {% else %}
-    <div class="empty-state" style="padding:40px 20px;">
-      <i class="fa-solid fa-share-nodes"></i>
-      <h2>No social posts dispatched yet</h2>
-      <p>Use the composer above to publish your first update to Facebook and Instagram.</p>
+    <div class="empty-state" style="padding:40px 20px; text-align:center;">
+      <i class="fa-solid fa-share-nodes" style="font-size:2rem; color:var(--admin-muted); margin-bottom:10px;"></i>
+      <h2 style="font-size:1.1rem;">No social posts dispatched yet</h2>
+      <p style="color:var(--admin-muted); font-size:.82rem;">Use the composer above to publish your first update to Facebook and Instagram.</p>
     </div>
     {% endif %}
   </section>
@@ -868,9 +936,31 @@
 
   <!-- LIVE SCRIPT -->
   <script>
+    let activeMediaItems = [];
+
+    // Switch between Single Composer & Batch Multi-Post Publisher
+    function switchMode(mode) {
+      const btnSingle = document.getElementById('btnModeSingle');
+      const btnBatch = document.getElementById('btnModeBatch');
+      const wsSingle = document.getElementById('workspaceSingle');
+      const wsBatch = document.getElementById('workspaceBatch');
+
+      if (mode === 'single') {
+        btnSingle.classList.add('active');
+        btnBatch.classList.remove('active');
+        wsSingle.style.display = 'grid';
+        wsBatch.style.display = 'none';
+      } else {
+        btnBatch.classList.add('active');
+        btnSingle.classList.remove('active');
+        wsSingle.style.display = 'none';
+        wsBatch.style.display = 'block';
+      }
+    }
+
     // Trigger hidden file input
     function triggerFileInput() {
-      const input = document.getElementById('imageFileInput');
+      const input = document.getElementById('mediaFileInput');
       if (input) input.click();
     }
 
@@ -893,7 +983,6 @@
         charCount.textContent = `${len} character${len === 1 ? '' : 's'}`;
       }
 
-      // Count hashtags (Instagram limits to 30)
       const tags = (text.match(/#[\w-]+/g) || []).length;
       const tagCountEl = document.getElementById('tagCount');
       if (tagCountEl) {
@@ -911,7 +1000,7 @@
       }
     }
 
-    // Insert Hashtag
+    // Insert Hashtag & Emoji
     function insertTag(tag) {
       const textarea = document.getElementById('captionInput');
       if (!textarea) return;
@@ -923,178 +1012,196 @@
       textarea.focus();
     }
 
-    // Insert Emoji
     function insertEmoji(emoji) {
       const textarea = document.getElementById('captionInput');
       if (!textarea) return;
       const start = textarea.selectionStart !== undefined ? textarea.selectionStart : textarea.value.length;
       const end = textarea.selectionEnd !== undefined ? textarea.selectionEnd : textarea.value.length;
-      const text = textarea.value || '';
-      textarea.value = text.substring(0, start) + emoji + text.substring(end);
-      const newPos = start + emoji.length;
-      textarea.selectionStart = textarea.selectionEnd = newPos;
+      const val = textarea.value;
+      textarea.value = val.substring(0, start) + emoji + val.substring(end);
+      textarea.selectionStart = textarea.selectionEnd = start + emoji.length;
       handleCaptionInput(textarea.value);
       textarea.focus();
     }
 
-    // Check image aspect ratio for Instagram compliance
-    function checkAspectRatio(imgSrc) {
-      const tipBox = document.getElementById('aspectRatioTip');
-      if (!tipBox) return;
+    // Handle files selection
+    function handleFilesSelected(input) {
+      const files = input.files;
+      if (!files || files.length === 0) return;
 
-      if (!imgSrc) {
-        tipBox.style.display = 'none';
+      activeMediaItems = [];
+      const isVideo = Array.from(files).some(f => f.type.startsWith('video/') || f.name.match(/\.(mp4|mov|webm)$/i));
+
+      for (let i = 0; i < files.length; i++) {
+        const file = files[i];
+        const isFileVideo = file.type.startsWith('video/') || file.name.match(/\.(mp4|mov|webm)$/i);
+        const objUrl = URL.createObjectURL(file);
+        activeMediaItems.push({
+          url: objUrl,
+          is_video: isFileVideo,
+          name: file.name
+        });
+      }
+
+      updateMediaPreviewUI();
+    }
+
+    // Handle manual URL inputs
+    function handleUrlInput(val, type) {
+      const clean = (val || '').trim();
+      if (!clean) {
+        const fileInput = document.getElementById('mediaFileInput');
+        if (!fileInput || !fileInput.files || fileInput.files.length === 0) {
+          activeMediaItems = [];
+          updateMediaPreviewUI();
+        }
         return;
       }
 
-      const img = new Image();
-      img.onload = function() {
-        if (!img.naturalWidth || !img.naturalHeight) return;
-        const ratio = img.naturalWidth / img.naturalHeight;
-        // Instagram supported range: 4:5 (0.8) to 1.91:1 (1.91)
-        if (ratio < 0.79) {
-          tipBox.style.display = 'block';
-          tipBox.style.background = 'rgba(255,186,73,0.12)';
-          tipBox.style.border = '1px solid rgba(255,186,73,0.3)';
-          tipBox.style.color = '#ffba49';
-          tipBox.innerHTML = `⚠️ <strong>Tall Image Alert:</strong> Aspect ratio is ${ratio.toFixed(2)}:1 (${img.naturalWidth}x${img.naturalHeight}). Instagram requires minimum 4:5 (0.80). This image may be cropped or rejected by Meta.`;
-        } else if (ratio > 1.95) {
-          tipBox.style.display = 'block';
-          tipBox.style.background = 'rgba(255,186,73,0.12)';
-          tipBox.style.border = '1px solid rgba(255,186,73,0.3)';
-          tipBox.style.color = '#ffba49';
-          tipBox.innerHTML = `⚠️ <strong>Wide Image Alert:</strong> Aspect ratio is ${ratio.toFixed(2)}:1 (${img.naturalWidth}x${img.naturalHeight}). Instagram requires maximum 1.91:1. This image may be cropped or rejected by Meta.`;
-        } else {
-          tipBox.style.display = 'block';
-          tipBox.style.background = 'rgba(122,219,120,0.12)';
-          tipBox.style.border = '1px solid rgba(122,219,120,0.3)';
-          tipBox.style.color = '#7adb78';
-          tipBox.innerHTML = `✓ <strong>Aspect Ratio Optimal:</strong> ${ratio.toFixed(2)}:1 (${img.naturalWidth}x${img.naturalHeight}) — compliant with Instagram feed specifications.`;
-        }
-      };
-      img.src = imgSrc;
-    }
-
-    // Local file upload handling
-    function handleFileSelected(input) {
-      if (input && input.files && input.files[0]) {
-        const file = input.files[0];
-        const reader = new FileReader();
-        reader.onload = function(e) {
-          const dataUrl = e.target.result;
-          
-          // Update media attachment box preview
-          const previewImg = document.getElementById('mediaPreview');
-          const wrapper = document.getElementById('mediaPreviewWrapper');
-          const uploadPrompt = document.getElementById('uploadPrompt');
-          
-          if (previewImg) previewImg.src = dataUrl;
-          if (wrapper) wrapper.style.display = 'block';
-          if (uploadPrompt) uploadPrompt.style.display = 'none';
-
-          // Update right-hand live previews
-          const fbImg = document.getElementById('fbPreviewImg');
-          const igImg = document.getElementById('igPreviewImg');
-          const igPrompt = document.getElementById('igNoImgPrompt');
-          if (fbImg) {
-            fbImg.src = dataUrl;
-            fbImg.style.display = 'block';
-          }
-          if (igImg) {
-            igImg.src = dataUrl;
-            igImg.style.display = 'block';
-          }
-          if (igPrompt) {
-            igPrompt.style.display = 'none';
-          }
-
-          checkAspectRatio(dataUrl);
-        };
-        reader.readAsDataURL(file);
+      if (type === 'video') {
+        activeMediaItems = [{ url: clean, is_video: true, name: 'Video URL' }];
+      } else {
+        const urls = clean.split(/[\r\n,]+/).map(u => u.trim()).filter(Boolean);
+        activeMediaItems = urls.map((u, i) => ({
+          url: u,
+          is_video: false,
+          name: `Image ${i+1}`
+        }));
       }
+
+      updateMediaPreviewUI();
     }
 
-    // Image URL Input
-    function handleImageUrlInput(url) {
-      const cleanUrl = (url || '').trim();
+    // Update Live Previews based on activeMediaItems
+    function updateMediaPreviewUI() {
       const previewImg = document.getElementById('mediaPreview');
+      const previewVideo = document.getElementById('videoPreview');
       const wrapper = document.getElementById('mediaPreviewWrapper');
       const uploadPrompt = document.getElementById('uploadPrompt');
+      const badge = document.getElementById('detectedMediaTypeBadge');
+      const thumbsBar = document.getElementById('carouselThumbsBar');
+
       const fbImg = document.getElementById('fbPreviewImg');
+      const fbVideo = document.getElementById('fbPreviewVideo');
       const igImg = document.getElementById('igPreviewImg');
+      const igVideo = document.getElementById('igPreviewVideo');
       const igPrompt = document.getElementById('igNoImgPrompt');
+      const igCarBadge = document.getElementById('igCarouselIndicator');
 
-      if (cleanUrl) {
-        if (previewImg) previewImg.src = cleanUrl;
-        if (wrapper) wrapper.style.display = 'block';
-        if (uploadPrompt) uploadPrompt.style.display = 'none';
+      if (!activeMediaItems || activeMediaItems.length === 0) {
+        if (wrapper) wrapper.style.display = 'none';
+        if (uploadPrompt) uploadPrompt.style.display = 'block';
+        if (badge) {
+          badge.className = 'badge-type-pill text';
+          badge.textContent = 'No Media';
+        }
+        if (fbImg) fbImg.style.display = 'none';
+        if (fbVideo) fbVideo.style.display = 'none';
+        if (igImg) igImg.style.display = 'none';
+        if (igVideo) igVideo.style.display = 'none';
+        if (igPrompt) igPrompt.style.display = 'flex';
+        if (igCarBadge) igCarBadge.style.display = 'none';
+        return;
+      }
 
-        if (fbImg) {
-          fbImg.src = cleanUrl;
-          fbImg.style.display = 'block';
+      if (wrapper) wrapper.style.display = 'block';
+      if (uploadPrompt) uploadPrompt.style.display = 'none';
+
+      const firstItem = activeMediaItems[0];
+      const isVideo = firstItem.is_video;
+      const isCarousel = activeMediaItems.length > 1;
+
+      if (isVideo) {
+        if (badge) {
+          badge.className = 'badge-type-pill video';
+          badge.innerHTML = '<i class="fa-solid fa-video"></i> Video (Reel)';
         }
-        if (igImg) {
-          igImg.src = cleanUrl;
-          igImg.style.display = 'block';
+        if (previewVideo) {
+          previewVideo.src = firstItem.url;
+          previewVideo.style.display = 'block';
         }
+        if (previewImg) previewImg.style.display = 'none';
+        if (thumbsBar) thumbsBar.style.display = 'none';
+
+        if (fbVideo) { fbVideo.src = firstItem.url; fbVideo.style.display = 'block'; }
+        if (fbImg) fbImg.style.display = 'none';
+        if (igVideo) { igVideo.src = firstItem.url; igVideo.style.display = 'block'; }
+        if (igImg) igImg.style.display = 'none';
         if (igPrompt) igPrompt.style.display = 'none';
+        if (igCarBadge) igCarBadge.style.display = 'none';
 
-        checkAspectRatio(cleanUrl);
-      } else {
-        const fileInput = document.getElementById('imageFileInput');
-        if (!fileInput || !fileInput.files || fileInput.files.length === 0) {
-          if (previewImg) previewImg.src = '';
-          if (wrapper) wrapper.style.display = 'none';
-          if (uploadPrompt) uploadPrompt.style.display = 'block';
-
-          if (fbImg) {
-            fbImg.src = '';
-            fbImg.style.display = 'none';
-          }
-          if (igImg) {
-            igImg.src = '';
-            igImg.style.display = 'none';
-          }
-          if (igPrompt) igPrompt.style.display = 'flex';
-
-          checkAspectRatio('');
+      } else if (isCarousel) {
+        if (badge) {
+          badge.className = 'badge-type-pill carousel';
+          badge.innerHTML = `<i class="fa-solid fa-clone"></i> Carousel (${activeMediaItems.length} photos)`;
         }
+        if (previewVideo) previewVideo.style.display = 'none';
+        if (previewImg) {
+          previewImg.src = firstItem.url;
+          previewImg.style.display = 'block';
+        }
+        if (thumbsBar) {
+          thumbsBar.innerHTML = '';
+          thumbsBar.style.display = 'flex';
+          activeMediaItems.forEach((item, idx) => {
+            const thumb = document.createElement('img');
+            thumb.src = item.url;
+            thumb.className = `carousel-thumb-item ${idx === 0 ? 'active' : ''}`;
+            thumb.onclick = () => {
+              previewImg.src = item.url;
+              if (fbImg) fbImg.src = item.url;
+              if (igImg) igImg.src = item.url;
+              document.querySelectorAll('.carousel-thumb-item').forEach(t => t.classList.remove('active'));
+              thumb.classList.add('active');
+              if (igCarBadge) document.getElementById('igCarouselCount').textContent = `${idx + 1}/${activeMediaItems.length}`;
+            };
+            thumbsBar.appendChild(thumb);
+          });
+        }
+
+        if (fbImg) { fbImg.src = firstItem.url; fbImg.style.display = 'block'; }
+        if (fbVideo) fbVideo.style.display = 'none';
+        if (igImg) { igImg.src = firstItem.url; igImg.style.display = 'block'; }
+        if (igVideo) igVideo.style.display = 'none';
+        if (igPrompt) igPrompt.style.display = 'none';
+        if (igCarBadge) {
+          igCarBadge.style.display = 'block';
+          document.getElementById('igCarouselCount').textContent = `1/${activeMediaItems.length}`;
+        }
+
+      } else {
+        if (badge) {
+          badge.className = 'badge-type-pill image';
+          badge.innerHTML = '<i class="fa-solid fa-image"></i> Photo Post';
+        }
+        if (previewVideo) previewVideo.style.display = 'none';
+        if (previewImg) {
+          previewImg.src = firstItem.url;
+          previewImg.style.display = 'block';
+        }
+        if (thumbsBar) thumbsBar.style.display = 'none';
+
+        if (fbImg) { fbImg.src = firstItem.url; fbImg.style.display = 'block'; }
+        if (fbVideo) fbVideo.style.display = 'none';
+        if (igImg) { igImg.src = firstItem.url; igImg.style.display = 'block'; }
+        if (igVideo) igVideo.style.display = 'none';
+        if (igPrompt) igPrompt.style.display = 'none';
+        if (igCarBadge) igCarBadge.style.display = 'none';
       }
     }
 
     // Remove media
     function removeMedia(e) {
-      if (e) {
-        e.preventDefault();
-        e.stopPropagation();
-      }
-      const fileInput = document.getElementById('imageFileInput');
+      if (e) { e.preventDefault(); e.stopPropagation(); }
+      const fileInput = document.getElementById('mediaFileInput');
       if (fileInput) fileInput.value = '';
-      const urlInput = document.getElementById('imageUrlInput');
-      if (urlInput) urlInput.value = '';
+      const imgUrlInput = document.getElementById('imageUrlInput');
+      if (imgUrlInput) imgUrlInput.value = '';
+      const vidUrlInput = document.getElementById('videoUrlInput');
+      if (vidUrlInput) vidUrlInput.value = '';
 
-      const previewImg = document.getElementById('mediaPreview');
-      const wrapper = document.getElementById('mediaPreviewWrapper');
-      const uploadPrompt = document.getElementById('uploadPrompt');
-      if (previewImg) previewImg.src = '';
-      if (wrapper) wrapper.style.display = 'none';
-      if (uploadPrompt) uploadPrompt.style.display = 'block';
-
-      const fbImg = document.getElementById('fbPreviewImg');
-      const igImg = document.getElementById('igPreviewImg');
-      const igPrompt = document.getElementById('igNoImgPrompt');
-      if (fbImg) {
-        fbImg.src = '';
-        fbImg.style.display = 'none';
-      }
-      if (igImg) {
-        igImg.src = '';
-        igImg.style.display = 'none';
-      }
-      if (igPrompt) {
-        igPrompt.style.display = 'flex';
-      }
-      checkAspectRatio('');
+      activeMediaItems = [];
+      updateMediaPreviewUI();
     }
 
     // Channel checkbox styling
@@ -1125,7 +1232,104 @@
       }
     }
 
-    // Initialize on DOM load
+    // ==========================================
+    // BATCH / MULTIPLE POSTS PUBLISHER SCRIPT
+    // ==========================================
+    let batchCounter = 2;
+
+    function addBatchPostCard() {
+      batchCounter++;
+      const list = document.getElementById('batchPostsList');
+      const card = document.createElement('div');
+      card.className = 'batch-post-card';
+      card.id = `batchPost_${batchCounter}`;
+      card.innerHTML = `
+        <div class="batch-post-header">
+          <span class="batch-badge">Post #${batchCounter}</span>
+          <div style="display:flex; gap:10px; align-items:center;">
+            <label style="font-size:.75rem; cursor:pointer;"><input type="checkbox" class="batch-chan-fb" checked> FB</label>
+            <label style="font-size:.75rem; cursor:pointer;"><input type="checkbox" class="batch-chan-ig" checked> IG</label>
+            <button type="button" onclick="removeBatchCard('batchPost_${batchCounter}')" style="background:none; border:none; color:#ff6b6b; cursor:pointer; font-size:.8rem;"><i class="fa-solid fa-trash"></i></button>
+          </div>
+        </div>
+        <textarea class="caption-textarea batch-caption" placeholder="Post caption & hashtags..." style="min-height:90px; margin-bottom:10px;"></textarea>
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
+          <input type="url" class="batch-image-url" placeholder="Photo / Media URL..." style="padding:8px 10px; font-size:.8rem; background:var(--admin-panel); border:1px solid var(--admin-line); border-radius:8px; color:var(--admin-text);">
+          <input type="url" class="batch-video-url" placeholder="Video URL (optional)..." style="padding:8px 10px; font-size:.8rem; background:var(--admin-panel); border:1px solid var(--admin-line); border-radius:8px; color:var(--admin-text);">
+        </div>
+      `;
+      list.appendChild(card);
+    }
+
+    function removeBatchCard(id) {
+      const card = document.getElementById(id);
+      if (card) card.remove();
+    }
+
+    async function submitBatchPosts() {
+      const cards = document.querySelectorAll('.batch-post-card');
+      const posts = [];
+
+      cards.forEach(c => {
+        const caption = c.querySelector('.batch-caption').value.trim();
+        const fbChecked = c.querySelector('.batch-chan-fb').checked;
+        const igChecked = c.querySelector('.batch-chan-ig').checked;
+        const imageUrl = c.querySelector('.batch-image-url').value.trim();
+        const videoUrl = c.querySelector('.batch-video-url').value.trim();
+
+        if (caption) {
+          const channels = [];
+          if (fbChecked) channels.push('facebook');
+          if (igChecked) channels.push('instagram');
+
+          posts.push({
+            caption: caption,
+            channels: channels,
+            image_url: imageUrl,
+            video_url: videoUrl,
+          });
+        }
+      });
+
+      if (posts.length === 0) {
+        alert('Please fill out at least one post caption in the batch.');
+        return;
+      }
+
+      const btn = document.getElementById('btnPublishBatch');
+      const progressBox = document.getElementById('batchProgressAlert');
+      btn.disabled = true;
+      btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Dispatching Batch to Meta...';
+      progressBox.style.display = 'block';
+      progressBox.textContent = `Publishing ${posts.length} posts sequentially to Facebook & Instagram...`;
+
+      try {
+        const response = await fetch('/social-media/publish-batch', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ posts: posts })
+        });
+
+        const res = await response.json();
+        if (res.success) {
+          progressBox.innerHTML = `🎉 Batch Complete! Successfully published <strong>${res.success_count} / ${res.total}</strong> posts! Refreshing history...`;
+          setTimeout(() => { window.location.reload(); }, 2000);
+        } else {
+          progressBox.style.color = '#ff6b6b';
+          progressBox.style.borderColor = '#ff6b6b';
+          progressBox.textContent = res.error || 'Encountered errors while publishing batch.';
+          btn.disabled = false;
+          btn.innerHTML = '<i class="fa-solid fa-paper-plane"></i> Publish All Batch Posts';
+        }
+      } catch (err) {
+        progressBox.style.color = '#ff6b6b';
+        progressBox.textContent = 'Network error publishing batch: ' + err.message;
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fa-solid fa-paper-plane"></i> Publish All Batch Posts';
+      }
+    }
+
+    // DOM Ready initialization
     document.addEventListener('DOMContentLoaded', () => {
       const captionInput = document.getElementById('captionInput');
       if (captionInput) {
@@ -1136,7 +1340,7 @@
         }
       }
 
-      // Drag and drop on mediaDropzone
+      // Drag and drop setup
       const dropzone = document.getElementById('mediaDropzone');
       if (dropzone) {
         dropzone.addEventListener('dragover', (e) => {
@@ -1147,28 +1351,28 @@
         dropzone.addEventListener('drop', (e) => {
           e.preventDefault();
           dropzone.classList.remove('dragover');
-          if (e.dataTransfer.files && e.dataTransfer.files[0]) {
-            const fileInput = document.getElementById('imageFileInput');
+          if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+            const fileInput = document.getElementById('mediaFileInput');
             fileInput.files = e.dataTransfer.files;
-            handleFileSelected(fileInput);
+            handleFilesSelected(fileInput);
           }
         });
       }
 
-      // Form submission validation & spinner
+      // Single Form Validation
       const socialForm = document.getElementById('socialForm');
       if (socialForm) {
         socialForm.addEventListener('submit', function(e) {
           const igCheckbox = document.querySelector('input[name="channels"][value="instagram"]');
           const isIgChecked = igCheckbox && igCheckbox.checked;
-          const imageFileInput = document.getElementById('imageFileInput');
-          const hasImageFile = imageFileInput && imageFileInput.files && imageFileInput.files.length > 0;
-          const imageUrlInput = document.getElementById('imageUrlInput');
-          const hasImageUrl = imageUrlInput && imageUrlInput.value.trim().length > 0;
+          const mediaInput = document.getElementById('mediaFileInput');
+          const hasFiles = mediaInput && mediaInput.files && mediaInput.files.length > 0;
+          const imgUrl = (document.getElementById('imageUrlInput')?.value || '').trim();
+          const vidUrl = (document.getElementById('videoUrlInput')?.value || '').trim();
 
-          if (isIgChecked && !hasImageFile && !hasImageUrl) {
+          if (isIgChecked && !hasFiles && !imgUrl && !vidUrl) {
             e.preventDefault();
-            alert('Instagram strictly requires an image. Please attach an image or provide a public Image URL, or deselect Instagram.');
+            alert('Instagram strictly requires photo(s) or video to publish. Please attach media or deselect Instagram.');
             return false;
           }
 
