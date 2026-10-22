@@ -50,9 +50,11 @@ def get_clerk_frontend_api(publishable_key):
 
 clerk_frontend_api = get_clerk_frontend_api(clerk_publishable_key)
 
-client = MongoClient(mongo_uri)
+client = MongoClient(mongo_uri) if mongo_uri else MongoClient("mongodb://localhost:27017")
 
 app = Flask(__name__)
+application = app
+handler = app
 app.secret_key = os.getenv("FLASK_SECRET_KEY") or "GlobSoftAdminWebAppSecureKey2026Production"
 is_production = os.getenv("VERCEL") == "1" or os.getenv("FLASK_ENV") != "development"
 app.config.update(
