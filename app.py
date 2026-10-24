@@ -762,8 +762,7 @@ def public_blog(slug):
 def blog_social_preview(slug):
     """
     Renders clean Open Graph and Twitter Card HTML metadata for social media scrapers
-    (Facebook, Instagram, WhatsApp, Twitter, LinkedIn, Telegram, Discord, etc.).
-    Includes meta refresh and immediate JS redirect for real users.
+    and search bots, while instantly redirecting real users to the SPA blog URL.
     """
     db = client["globsoft_db"]
     blog = db["blogs"].find_one({"slug": slug, "status": "published"}) or db["blogs"].find_one({"slug": slug})
@@ -783,11 +782,13 @@ def blog_social_preview(slug):
     <meta property="og:url" content="{frontend_base}/blog">
     <meta property="og:type" content="website">
     <meta name="twitter:card" content="summary_large_image">
-    <meta http-equiv="refresh" content="0;url={frontend_base}/blog">
+    <script>
+        if (!/bot|crawl|spider|slurp|googlebot|bingbot|duckduckbot|facebookexternalhit|meta-externalagent|facebot/i.test(navigator.userAgent)) {{
+            window.location.replace("{frontend_base}/blog");
+        }}
+    </script>
 </head>
-<body>
-    <script>window.location.replace("{frontend_base}/blog");</script>
-</body>
+<body></body>
 </html>""", 200, {"Content-Type": "text/html; charset=utf-8"}
 
     title = html.escape(str(blog.get("seo_title") or blog.get("title") or "Globsoft Tech Blog"))
@@ -835,9 +836,12 @@ def blog_social_preview(slug):
     <meta name="twitter:description" content="{desc}">
     <meta name="twitter:image" content="{image_url}">
 
-    <!-- Instant redirect for normal web browsers -->
-    <meta http-equiv="refresh" content="0;url={blog_url}">
-    <script>window.location.replace("{blog_url}");</script>
+    <!-- Conditional redirect: Real users get redirected instantly, search bots & scrapers stay to read metadata -->
+    <script>
+        if (!/bot|crawl|spider|slurp|googlebot|bingbot|duckduckbot|facebookexternalhit|meta-externalagent|facebot/i.test(navigator.userAgent)) {{
+            window.location.replace("{blog_url}");
+        }}
+    </script>
 </head>
 <body style="background:#0e0c15;color:#fff;font-family:sans-serif;padding:2rem;">
     <h2>{title}</h2>
@@ -846,9 +850,7 @@ def blog_social_preview(slug):
 </body>
 </html>"""
     return html_content, 200, {"Content-Type": "text/html; charset=utf-8"}
-
-
-
+    
 @app.route("/api/blogs/<slug>/related", methods=["GET"])
 @no_cache
 def related_blogs(slug):
