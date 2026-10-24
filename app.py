@@ -3366,6 +3366,46 @@ def delete_social_post(post_id):
         flash("Could not delete social post record.", "error")
     return redirect("/social-media")
 
+@app.route("/api/sitemap.xml", methods=["GET"])
+def generate_sitemap():
+    """Dynamically generate XML sitemap with homepage and all published blogs."""
+    site_base = get_site_base_url()
+    now_iso = datetime.utcnow().strftime("%Y-%m-%d")
+
+    urls = [
+        f"""  <url>
+    <loc>{site_base}/</loc>
+    <lastmod>{now_iso}</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>1.0</priority>
+  </url>""",
+        f"""  <url>
+    <loc>{site_base}/blog</loc>
+    <lastmod>{now_iso}</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>0.9</priority>
+  </url>"""
+    ]
+
+    blogs = client["globsoft_db"]["blogs"].find({"status": "published"}).sort("updated_at", -1)
+    for b in blogs:
+        slug = b.get("slug")
+        if not slug:
+            continue
+        mod_date = (b.get("updated_at") or b.get("published_at") or datetime.utcnow()).strftime("%Y-%m-%d")
+        urls.append(f"""  <url>
+    <loc>{site_base}/blog/{slug}</loc>
+    <lastmod>{mod_date}</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>""")
+
+    xml_content = f"""<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+{chr(10).join(urls)}
+</urlset>"""
+    return Response(xml_content, mimetype="application/xml")
+
 
 if __name__ == "__main__":
     app.run(debug=True, port=5000)
