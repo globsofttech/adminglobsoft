@@ -170,6 +170,70 @@
           </div>
 
           <div>
+            <label class="field-label" for="roleInput">
+              Professional Role / Title
+              <span class="field-hint" style="color:var(--admin-muted);font-size:.72rem;">(Shown on Our Team page)</span>
+            </label>
+            <input type="text" name="role" id="roleInput" maxlength="60"
+                   value="{{ author.role or 'Contributing Author' }}"
+                   placeholder="e.g. Software Engineer & Technical Writer"
+                   style="width:100%;padding:12px 14px;border:1px solid var(--admin-line);border-radius:10px;background:var(--admin-panel-2);color:var(--admin-text);font-size:.85rem;">
+          </div>
+
+          <div>
+            <label class="field-label" for="publicEmailInput">
+              Public Contact Email
+              <span class="field-hint" style="color:var(--admin-muted);font-size:.72rem;">(Shown on Our Team &amp; Author Cards)</span>
+            </label>
+            <input type="email" name="public_email" id="publicEmailInput"
+                   value="{{ author.public_email or author.email }}"
+                   placeholder="author@example.com"
+                   style="width:100%;padding:12px 14px;border:1px solid var(--admin-line);border-radius:10px;background:var(--admin-panel-2);color:var(--admin-text);font-size:.85rem;">
+          </div>
+
+          <!-- SOCIAL MEDIA SECTION -->
+          <div style="border-top:1px solid var(--admin-line); padding-top:16px;">
+            <label class="field-label" style="margin-bottom:10px; display:block;">
+              Social Media Links
+              <span class="field-hint" style="color:var(--admin-cyan);font-size:.72rem;">(Clickable links on Our Team &amp; blogs)</span>
+            </label>
+            
+            <div style="display:flex; flex-direction:column; gap:10px;">
+              <div style="display:flex; align-items:center; gap:10px;">
+                <span style="width:34px; height:34px; border-radius:8px; background:rgba(225,48,108,0.12); border:1px solid rgba(225,48,108,0.3); color:#e1306c; display:flex; align-items:center; justify-content:center; flex-shrink:0;">
+                  <i class="fa-brands fa-instagram"></i>
+                </span>
+                <input type="url" name="social_instagram" value="{{ (author.socials or {}).get('instagram', '') }}" placeholder="https://instagram.com/yourhandle"
+                       style="flex:1; padding:9px 12px; border:1px solid var(--admin-line); border-radius:8px; background:var(--admin-panel-2); color:var(--admin-text); font-size:.82rem;">
+              </div>
+
+              <div style="display:flex; align-items:center; gap:10px;">
+                <span style="width:34px; height:34px; border-radius:8px; background:rgba(10,102,194,0.12); border:1px solid rgba(10,102,194,0.3); color:#0a66c2; display:flex; align-items:center; justify-content:center; flex-shrink:0;">
+                  <i class="fa-brands fa-linkedin"></i>
+                </span>
+                <input type="url" name="social_linkedin" value="{{ (author.socials or {}).get('linkedin', '') }}" placeholder="https://linkedin.com/in/yourprofile"
+                       style="flex:1; padding:9px 12px; border:1px solid var(--admin-line); border-radius:8px; background:var(--admin-panel-2); color:var(--admin-text); font-size:.82rem;">
+              </div>
+
+              <div style="display:flex; align-items:center; gap:10px;">
+                <span style="width:34px; height:34px; border-radius:8px; background:rgba(255,255,255,0.06); border:1px solid var(--admin-line); color:var(--admin-text); display:flex; align-items:center; justify-content:center; flex-shrink:0;">
+                  <i class="fa-brands fa-github"></i>
+                </span>
+                <input type="url" name="social_github" value="{{ (author.socials or {}).get('github', '') }}" placeholder="https://github.com/yourusername"
+                       style="flex:1; padding:9px 12px; border:1px solid var(--admin-line); border-radius:8px; background:var(--admin-panel-2); color:var(--admin-text); font-size:.82rem;">
+              </div>
+
+              <div style="display:flex; align-items:center; gap:10px;">
+                <span style="width:34px; height:34px; border-radius:8px; background:rgba(29,161,242,0.12); border:1px solid rgba(29,161,242,0.3); color:#1da1f2; display:flex; align-items:center; justify-content:center; flex-shrink:0;">
+                  <i class="fa-brands fa-x-twitter"></i>
+                </span>
+                <input type="url" name="social_twitter" value="{{ (author.socials or {}).get('twitter', '') }}" placeholder="https://x.com/yourhandle"
+                       style="flex:1; padding:9px 12px; border:1px solid var(--admin-line); border-radius:8px; background:var(--admin-panel-2); color:var(--admin-text); font-size:.82rem;">
+              </div>
+            </div>
+          </div>
+
+          <div>
             <label class="field-label">Google Account Email</label>
             <input type="text" value="{{ author.email }}" readonly
                    style="width:100%;padding:10px 14px;border:1px solid var(--admin-line);border-radius:10px;background:rgba(255,255,255,0.03);color:var(--admin-muted);font-size:.85rem;cursor:not-allowed;">

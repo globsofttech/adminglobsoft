@@ -163,7 +163,7 @@ def get_public_blog(document):
         "comments_count": len(document.get("comments", [])),
         "published_at": document.get("published_at").isoformat() if document.get("published_at") else None,
         "updated_at": document.get("updated_at").isoformat() if document.get("updated_at") else None,
-        "image_url": f"/api/blog-images/{document['_id']}" if document.get("image_data") else None,
+        "image_url": f"/api/blog-images/{document['_id']}" if document.get("image_data") else (document.get("image_url") or None),
         "seo_title": document.get("seo_title") or document["title"],
         "seo_description": document.get("seo_description") or document["excerpt"],
     }
@@ -338,20 +338,175 @@ DEFAULT_SITE_CONTENT = {
         {"id": "2", "name": "Everest Auto Repair", "logo": "/src/assets/notification/image-3.png", "url": "https://globsofttech.github.io/EverestAutoRepair/"},
         {"id": "3", "name": "Our Bakery", "logo": "/src/assets/notification/image-2.png", "url": "https://our-bakery.github.io/"},
     ],
+    "testimonials": [
+        {
+            "id": "0",
+            "name": "Samira Sharma",
+            "role": "Owner & Host",
+            "company": "Samira Homestay",
+            "avatar": "/src/assets/notification/image-5.png",
+            "quote": "Globsoft Tech built an exceptional website for our homestay. Inquiries from international and domestic guests increased dramatically right after launching!",
+            "rating": 5,
+            "url": "https://samirahomestay.com/"
+        },
+        {
+            "id": "1",
+            "name": "Arpan Sharma",
+            "role": "Editor-in-Chief",
+            "company": "News Arpan",
+            "avatar": "/src/assets/notification/image-4.png",
+            "quote": "Our news portal requires lightning-fast load times and high stability under heavy daily traffic. Globsoft Tech delivered a rock-solid, mobile-optimized experience.",
+            "rating": 5,
+            "url": "https://newsarpan.rf.gd/"
+        },
+        {
+            "id": "2",
+            "name": "Bikash Thapa",
+            "role": "Managing Director",
+            "company": "Everest Auto Repair",
+            "avatar": "/src/assets/notification/image-3.png",
+            "quote": "Partnering with Globsoft Tech revolutionized our digital presence. Our customers now easily discover our auto services and book repair appointments directly online.",
+            "rating": 5,
+            "url": "https://globsofttech.github.io/EverestAutoRepair/"
+        },
+        {
+            "id": "3",
+            "name": "Sunita Adhikari",
+            "role": "Founder & Head Baker",
+            "company": "Our Bakery",
+            "avatar": "/src/assets/notification/image-2.png",
+            "quote": "The team at Globsoft crafted a delightful, appetizing website for Our Bakery. It makes showcasing our bakery menu and catering offerings effortless.",
+            "rating": 5,
+            "url": "https://our-bakery.github.io/"
+        }
+    ],
+    "team": [
+        {
+            "id": "1",
+            "name": "Rajan Poudel",
+            "role": "Founder & CEO",
+            "bio": "Self-taught software developer, and Founder of Globsoft Tech.",
+            "image": "/src/assets/rajan.jpg",
+            "email": "rajanpoudel.np@gmail.com",
+            "socials": {
+                "instagram": "https://www.instagram.com/_rajanpoudel",
+                "linkedin": "https://www.linkedin.com/in/rajanpoudel-np/",
+                "github": "https://github.com/rajan-poudel",
+            },
+        },
+        {
+            "id": "2",
+            "name": "Sourya Poudel",
+            "role": "Chief Technology Officer",
+            "bio": "Full-stack architect specializing in distributed cloud systems, cybersecurity, and high-performance web apps.",
+            "image": "/src/assets/sourya.png",
+            "email": "souryapoudel.np@gmail.com",
+            "socials": {
+                "instagram": "https://www.instagram.com/sourya_poudel_",
+                "linkedin": "https://www.linkedin.com/in/sourya-poudel/",
+                "github": "https://github.com/sourya-poudel",
+            },
+        },
+        {
+            "id": "3",
+            "name": "Ankit Lamsal",
+            "role": "Finance Head",
+            "bio": "Oversees Globsoft Tech's finances, managing cash flow, budgeting, and financial planning to keep the company stable and growing.",
+            "image": "/src/assets/ankit.jpg",
+            "socials": {
+                "instagram": "https://www.instagram.com/ankiit9638",
+            },
+        },
+    ],
 }
 
 
 def get_site_content():
-    content = client["globsoft_db"]["site_content"].find_one({"_id": "homepage"})
+    content = None
+    try:
+        content = client["globsoft_db"]["site_content"].find_one({"_id": "homepage"})
+    except Exception as e:
+        app.logger.warning("Could not fetch site_content from database: %s", e)
     return {
         "pricing": content.get("pricing", DEFAULT_SITE_CONTENT["pricing"]) if content else DEFAULT_SITE_CONTENT["pricing"],
         "clients": content.get("clients", DEFAULT_SITE_CONTENT["clients"]) if content else DEFAULT_SITE_CONTENT["clients"],
+        "testimonials": content.get("testimonials", DEFAULT_SITE_CONTENT["testimonials"]) if content else DEFAULT_SITE_CONTENT["testimonials"],
+        "team": content.get("team", DEFAULT_SITE_CONTENT["team"]) if content else DEFAULT_SITE_CONTENT["team"],
     }
+
+
+def get_team_members():
+    content = get_site_content()
+    base_team = list(content.get("team") or DEFAULT_SITE_CONTENT["team"])
+    existing_identifiers = set()
+    for m in base_team:
+        if m.get("email"):
+            existing_identifiers.add(m.get("email").strip().lower())
+        if m.get("name"):
+            existing_identifiers.add(m.get("name").strip().lower())
+
+    try:
+        authors_col = client["globsoft_db"]["authors"]
+        blogs_col = client["globsoft_db"]["blogs"]
+        active_authors = list(authors_col.find({"active": True}))
+
+        for a in active_authors:
+            # Check if this author has been hidden from the team page by admin
+            if a.get("show_on_team") is False:
+                continue
+
+            a_id = str(a["_id"])
+            a_email = (a.get("email") or "").strip().lower()
+
+            # Count published blogs by this author (must have at least 1 published article)
+            pub_count = blogs_col.count_documents({
+                "status": "published",
+                "$or": [
+                    {"author_id": a_id},
+                    {"author_email": a_email},
+                    {"created_by": a_email},
+                ]
+            })
+
+            # Strictly require at least 1 published article
+            if pub_count < 1:
+                continue
+
+            # Skip if author is already in base team
+            if a_email in existing_identifiers or (a.get("name") or "").strip().lower() in existing_identifiers:
+                continue
+
+            socials = a.get("socials") or {}
+            base_team.append({
+                "id": f"author-{a_id}",
+                "name": a.get("name") or "Contributing Author",
+                "role": a.get("role") or "Contributing Author",
+                "bio": a.get("bio") or f"Published author at Globsoft Tech with {pub_count} {'articles' if pub_count > 1 else 'article'}.",
+                "image": a.get("avatar_url") or "",
+                "email": a.get("public_email") or a_email,
+                "socials": socials,
+                "is_author": True,
+                "post_count": pub_count,
+            })
+    except Exception as e:
+        app.logger.exception("Error gathering author team members: %s", e)
+
+    return base_team
 
 
 @app.route("/api/site-content", methods=["GET"])
 def site_content():
-    response = jsonify(get_site_content())
+    data = get_site_content()
+    data["team_with_authors"] = get_team_members()
+    response = jsonify(data)
+    response.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0"
+    response.headers["Pragma"] = "no-cache"
+    return response
+
+
+@app.route("/api/team", methods=["GET"])
+def api_team():
+    response = jsonify(get_team_members())
     response.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0"
     response.headers["Pragma"] = "no-cache"
     return response
@@ -511,6 +666,10 @@ def api_order():
         phone = str(data.get("phone", "")).strip()
         company = str(data.get("company", "")).strip()
         service = str(data.get("service", "")).strip()
+        package = str(data.get("package", "")).strip()
+        price = str(data.get("price", "")).strip()
+        if not service and package:
+            service = package
         message = str(data.get("message", "")).strip()
         turnstile_token = str(data.get("turnstile_token", "")).strip()
 
@@ -523,11 +682,12 @@ def api_order():
             return jsonify({"success": False, "error": "A valid email address is required."}), 400
         if not phone:
             return jsonify({"success": False, "error": "Phone number is required."}), 400
-        if not service:
+        if not service and not package:
             return jsonify({"success": False, "error": "Service selection is required."}), 400
         if not message:
             return jsonify({"success": False, "error": "Project details are required."}), 400
 
+        pkg_desc = f"Package: {package or service}" + (f" (रु {price})" if price else "")
         customer_doc = {
             "name": name,
             "email": email,
@@ -536,8 +696,10 @@ def api_order():
             "location": company or "Website Order",
             "source": "Order Form",
             "type": "order",
-            "service": service,
-            "remark": f"Service: {service} | Company: {company or 'N/A'}\nProject Details: {message}",
+            "service": service or package,
+            "package": package or service,
+            "price": price,
+            "remark": f"{pkg_desc} | Company: {company or 'N/A'}\nProject Details: {message}",
             "project_details": message,
             "status_call": False,
             "status_sms": False,
@@ -551,8 +713,9 @@ def api_order():
         db = client["customer_db"]
         res = db["customers"].insert_one(customer_doc)
 
-        email_subj = f"🎉 New Order Received: {service} - {name}"
-        email_text = f"New Project Order received on Globsoft Tech!\n\nClient Name: {name}\nEmail: {email}\nPhone: {phone}\nCompany: {company or 'N/A'}\nService: {service}\n\nProject Details:\n{message}\n\nView in Admin: https://adminglobsoft.vercel.app/customer"
+        pkg_display = f"{package} (रु {price})" if (package and price) else (package or service)
+        email_subj = f"🎉 New Order Received: {pkg_display} - {name}"
+        email_text = f"New Project Order received on Globsoft Tech!\n\nClient Name: {name}\nEmail: {email}\nPhone: {phone}\nCompany: {company or 'N/A'}\nPackage / Service: {pkg_display}\n\nProject Details:\n{message}\n\nView in Admin: https://adminglobsoft.vercel.app/customer"
         send_admin_alert(email_subj, email_text)
 
         return jsonify({
@@ -669,10 +832,12 @@ def save_site_content_field(field_name, value):
         {"_id": "homepage"},
         {
             "_id": "homepage",
-            "pricing": current["pricing"],
-            "clients": current["clients"],
+            "pricing": current.get("pricing", DEFAULT_SITE_CONTENT["pricing"]),
+            "clients": current.get("clients", DEFAULT_SITE_CONTENT["clients"]),
+            "testimonials": current.get("testimonials", DEFAULT_SITE_CONTENT["testimonials"]),
+            "team": current.get("team", DEFAULT_SITE_CONTENT["team"]),
             "updated_at": datetime.now(),
-            "updated_by": session["user"],
+            "updated_by": session.get("user", "admin"),
         },
         upsert=True,
     )
@@ -728,6 +893,58 @@ def manage_client_content():
     return render_template(
         "clients_content.html",
         clients_json=json.dumps(content["clients"], indent=2, ensure_ascii=False),
+    )
+
+
+@app.route("/site-content/testimonials", methods=["GET", "POST"])
+@no_cache
+def manage_testimonials_content():
+    if not is_admin():
+        return redirect("/blogs" if session.get("role") == "author" else "/")
+
+    if request.method == "POST":
+        try:
+            testimonials = json.loads(request.form.get("testimonials_json", "[]"))
+            if not isinstance(testimonials, list):
+                raise ValueError("Testimonials content must be an array.")
+            save_site_content_field("testimonials", testimonials)
+            flash("Testimonials updated successfully.", "success")
+        except (TypeError, ValueError, json.JSONDecodeError, RuntimeError) as error:
+            app.logger.exception("Testimonials content save failed: %s", error)
+            flash("Could not save testimonials. Check that the JSON is a valid array.", "error")
+        return redirect("/site-content/testimonials")
+
+    content = get_site_content()
+    return render_template(
+        "testimonials_content.html",
+        testimonials_json=json.dumps(content.get("testimonials", DEFAULT_SITE_CONTENT["testimonials"]), indent=2, ensure_ascii=False),
+        testimonials=content.get("testimonials", DEFAULT_SITE_CONTENT["testimonials"]),
+    )
+
+
+@app.route("/site-content/team", methods=["GET", "POST"])
+@no_cache
+def manage_team_content():
+    if not is_admin():
+        return redirect("/blogs" if session.get("role") == "author" else "/")
+
+    if request.method == "POST":
+        try:
+            team = json.loads(request.form.get("team_json", "[]"))
+            if not isinstance(team, list):
+                raise ValueError("Team content must be an array.")
+            save_site_content_field("team", team)
+            flash("Core team members updated successfully.", "success")
+        except (TypeError, ValueError, json.JSONDecodeError, RuntimeError) as error:
+            app.logger.exception("Team content save failed: %s", error)
+            flash("Could not save team members. Check that the JSON is a valid array.", "error")
+        return redirect("/site-content/team")
+
+    content = get_site_content()
+    return render_template(
+        "team_content.html",
+        team_json=json.dumps(content.get("team", DEFAULT_SITE_CONTENT["team"]), indent=2, ensure_ascii=False),
+        team=content.get("team", DEFAULT_SITE_CONTENT["team"]),
     )
 
 
@@ -1129,19 +1346,27 @@ def blog_form_values():
 
 def apply_blog_image(document):
     image = request.files.get("cover_image")
-    if not image or not image.filename:
-        if request.form.get("remove_cover_image") == "1":
-            document["image_data"] = None
-            document["image_mime"] = None
+    cover_image_url = request.form.get("cover_image_url", "").strip()
+    if request.form.get("remove_cover_image") == "1":
+        document["image_data"] = None
+        document["image_mime"] = None
+        document["image_url"] = None
         return
-    image_data = image.read()
-    if len(image_data) > BLOG_IMAGE_MAX_BYTES:
-        raise ValueError(f"Cover image must be {BLOG_IMAGE_MAX_BYTES // (1024 * 1024)} MB or smaller.")
-    mime = normalize_image_mime(image.mimetype, image.filename)
-    if not mime:
-        raise ValueError("Use a JPG, PNG, WEBP, GIF, or SVG cover image.")
-    document["image_data"] = image_data
-    document["image_mime"] = mime
+
+    if image and image.filename:
+        image_data = image.read()
+        if len(image_data) > BLOG_IMAGE_MAX_BYTES:
+            raise ValueError(f"Cover image must be {BLOG_IMAGE_MAX_BYTES // (1024 * 1024)} MB or smaller.")
+        mime = normalize_image_mime(image.mimetype, image.filename)
+        if not mime:
+            raise ValueError("Use a JPG, PNG, WEBP, GIF, or SVG cover image.")
+        document["image_data"] = image_data
+        document["image_mime"] = mime
+        document["image_url"] = None
+    elif cover_image_url:
+        document["image_url"] = cover_image_url
+        document["image_data"] = None
+        document["image_mime"] = None
 
 
 def get_authors_for_blog_form():
@@ -1493,6 +1718,26 @@ def toggle_author(author_id):
     return redirect("/authors")
 
 
+@app.route("/authors/<author_id>/toggle-team", methods=["POST"])
+@no_cache
+def toggle_author_team(author_id):
+    if not is_admin():
+        return redirect("/")
+    try:
+        collection = client["globsoft_db"]["authors"]
+        author = collection.find_one({"_id": ObjectId(author_id)})
+        if author:
+            # show_on_team defaults to True unless explicitly False
+            current_status = author.get("show_on_team", True)
+            new_status = not current_status
+            collection.update_one({"_id": author["_id"]}, {"$set": {"show_on_team": new_status}})
+            action = "visible on Our Team page" if new_status else "removed from Our Team page"
+            flash(f"Author {author.get('name')} is now {action}.", "success")
+    except Exception:
+        flash("Could not update author team visibility.", "error")
+    return redirect("/authors")
+
+
 @app.route("/authors/<author_id>/delete", methods=["POST"])
 @no_cache
 def delete_author(author_id):
@@ -1531,14 +1776,31 @@ def author_profile():
     if request.method == "POST":
         new_name = request.form.get("name", "").strip()
         bio = request.form.get("bio", "").strip()
+        public_email = request.form.get("public_email", "").strip().lower()
+        role = request.form.get("role", "").strip()
+        socials = {
+            "instagram": request.form.get("social_instagram", "").strip(),
+            "linkedin": request.form.get("social_linkedin", "").strip(),
+            "github": request.form.get("social_github", "").strip(),
+            "twitter": request.form.get("social_twitter", "").strip(),
+        }
+
         if not new_name or len(new_name) > 60:
             flash("Display name must be between 1 and 60 characters.", "error")
         else:
             old_name = author.get("name")
             if author.get("_id"):
+                update_fields = {
+                    "name": new_name,
+                    "bio": bio,
+                    "public_email": public_email,
+                    "role": role,
+                    "socials": socials,
+                    "updated_at": datetime.utcnow(),
+                }
                 authors_col.update_one(
                     {"_id": author["_id"]},
-                    {"$set": {"name": new_name, "bio": bio, "updated_at": datetime.utcnow()}}
+                    {"$set": update_fields}
                 )
             session["author_name"] = new_name
             a_email = (author.get("email") or session.get("author_email") or session.get("user") or "").strip().lower()
@@ -1554,7 +1816,7 @@ def author_profile():
                 },
                 {"$set": {"author": new_name}}
             )
-            flash("Profile updated! Your new display name is now active on all your articles.", "success")
+            flash("Profile updated! Your new details and social links have been saved.", "success")
             return redirect("/author/profile")
 
     return render_template("author_profile.html", author=author, is_admin=is_admin())
@@ -2855,11 +3117,14 @@ def social_media_hub():
                     raw_tags = [t.strip().replace(" ", "").replace("-", "") for t in blog.get("tags", "").split(",") if t.strip()]
                     tags_str = " ".join([f"#{t}" for t in raw_tags if not t.startswith("#")])
 
-                caption = f"🚀 New on the Globsoft Tech Blog:\n\"{blog.get('title')}\"\n\n{blog.get('excerpt', '')}\n\n👉 Read full article: {blog_url}\n\n{tags_str or settings.get('default_hashtags', '')}"
+                # Caption strictly with title, Read more... and tags
+                caption = f"{blog.get('title')}\n\nRead more... {blog_url}\n\n{tags_str}".strip()
 
                 image_url = ""
                 if blog.get("image_data"):
                     image_url = f"{admin_base}/api/blog-images/{blog['_id']}"
+                elif blog.get("image_url"):
+                    image_url = blog.get("image_url")
 
                 prefill = {
                     "blog_id": str(blog["_id"]),
@@ -2867,6 +3132,7 @@ def social_media_hub():
                     "caption": caption.strip(),
                     "link_url": blog_url,
                     "image_url": image_url,
+                    "is_blog_share": True,
                 }
         except Exception:
             pass
@@ -2895,7 +3161,7 @@ def social_media_hub():
     )
 
 
-def _process_and_publish_single_post(caption, channels, link_url="", media_files=None, image_url="", video_url="", media_urls_raw="", settings=None):
+def _process_and_publish_single_post(caption, channels, link_url="", media_files=None, image_url="", video_url="", media_urls_raw="", settings=None, fb_use_meta=True):
     """Internal helper to publish a single post to Facebook and/or Instagram."""
     if not settings:
         settings = get_social_settings()
@@ -3029,11 +3295,16 @@ def _process_and_publish_single_post(caption, channels, link_url="", media_files
                 settings=settings
             )
         else:
+            # If sharing a blog with link and fb_use_meta is active, do not attach photo for FB so preview is directly generated from meta tags
+            use_fb_meta = bool(fb_use_meta and link_url)
+            fb_img_bytes = None if use_fb_meta else first_image_bytes
+            fb_img_mime = None if use_fb_meta else first_image_mime
+            fb_img_url = None if use_fb_meta else primary_image_url
             fb_res = post_to_facebook_page(
                 caption=caption,
-                image_bytes=first_image_bytes,
-                image_mime=first_image_mime,
-                image_url=primary_image_url,
+                image_bytes=fb_img_bytes,
+                image_mime=fb_img_mime,
+                image_url=fb_img_url,
                 link_url=link_url,
                 settings=settings
             )
@@ -3115,6 +3386,7 @@ def publish_social_post():
     image_url = request.form.get("image_url", "").strip()
     video_url = request.form.get("video_url", "").strip()
     media_urls = request.form.get("media_urls", "").strip()
+    fb_use_meta = request.form.get("fb_use_meta", "1") == "1"
 
     if not channels:
         flash("Please select at least one channel (Facebook or Instagram) to publish to.", "error")
@@ -3138,7 +3410,8 @@ def publish_social_post():
         media_files=files,
         image_url=image_url,
         video_url=video_url,
-        media_urls_raw=media_urls
+        media_urls_raw=media_urls,
+        fb_use_meta=fb_use_meta
     )
 
     if request.headers.get("X-Requested-With") == "XMLHttpRequest" or request.is_json:
@@ -3407,6 +3680,147 @@ def generate_sitemap():
 {chr(10).join(urls)}
 </urlset>"""
     return Response(xml_content, mimetype="application/xml")
+
+
+# ==================== NOTIFICATION CENTER ====================
+
+def get_admin_notifications(limit=60):
+    notifications = []
+    try:
+        cust_db = client["customer_db"]
+        glob_db = client["globsoft_db"]
+
+        # 1. Orders
+        orders = list(cust_db["customers"].find({
+            "$or": [{"type": "order"}, {"source": "Order Form"}]
+        }).sort("date_added", -1).limit(limit))
+
+        for o in orders:
+            pkg = o.get("package") or o.get("service") or "Website Order"
+            price = o.get("price")
+            price_str = f" (रु {price})" if price else ""
+            notifications.append({
+                "id": str(o.get("_id")),
+                "type": "order",
+                "badge": "Order",
+                "icon": "fa-solid fa-cart-shopping",
+                "color": "#79fff7",
+                "title": f"New Order: {pkg}{price_str}",
+                "description": f"{o.get('name', 'Client')} ({o.get('email', '')}) ordered {pkg}. Company: {o.get('company', 'N/A')}",
+                "timestamp": o.get("date_added") or datetime.utcnow(),
+                "link": "/customer",
+            })
+
+        # 2. Contact Messages
+        messages = list(cust_db["customers"].find({
+            "$or": [{"type": "inquiry"}, {"source": "Contact Form"}]
+        }).sort("date_added", -1).limit(limit))
+
+        for m in messages:
+            msg_snippet = (m.get("remark") or m.get("message") or "")[:120]
+            notifications.append({
+                "id": str(m.get("_id")),
+                "type": "message",
+                "badge": "Message",
+                "icon": "fa-solid fa-envelope",
+                "color": "#bca0ff",
+                "title": f"New Message from {m.get('name', 'Visitor')}",
+                "description": f"{m.get('email', '')}: \"{msg_snippet}...\"",
+                "timestamp": m.get("date_added") or datetime.utcnow(),
+                "link": "/customer",
+            })
+
+        # 3. Blogs Posted
+        blogs = list(glob_db["blogs"].find({
+            "status": "published"
+        }).sort("published_at", -1).limit(limit))
+
+        for b in blogs:
+            pub_date = b.get("published_at") or b.get("updated_at") or b.get("created_at")
+            author_name = b.get("author") or "Globsoft Writer"
+            notifications.append({
+                "id": str(b.get("_id")),
+                "type": "blog",
+                "badge": "Blog Posted",
+                "icon": "fa-solid fa-newspaper",
+                "color": "#7adb78",
+                "title": f"Blog Posted: {b.get('title')}",
+                "description": f"Published by {author_name} · Category: {b.get('category', 'Technology')}",
+                "timestamp": pub_date or datetime.utcnow(),
+                "link": f"/blogs/{b.get('_id')}/edit",
+            })
+
+        def get_ts(item):
+            ts = item.get("timestamp")
+            if isinstance(ts, str):
+                try:
+                    return datetime.fromisoformat(ts.replace("Z", "+00:00")).replace(tzinfo=None)
+                except Exception:
+                    return datetime.min
+            elif isinstance(ts, datetime):
+                return ts
+            return datetime.min
+
+        notifications.sort(key=get_ts, reverse=True)
+    except Exception as e:
+        app.logger.exception("Error gathering notifications: %s", e)
+
+    return notifications[:limit]
+
+
+@app.context_processor
+def inject_notifications_meta():
+    if not session.get("user") or not is_admin():
+        return {"notification_count": 0}
+    try:
+        recent = get_admin_notifications(20)
+        return {"notification_count": len(recent)}
+    except Exception:
+        return {"notification_count": 0}
+
+
+@app.route("/notifications", methods=["GET"])
+@no_cache
+def admin_notifications_page():
+    if not is_admin():
+        return redirect("/blogs" if session.get("role") == "author" else "/")
+
+    all_notifications = get_admin_notifications(100)
+    filter_type = request.args.get("filter", "all")
+    if filter_type in ["order", "message", "blog"]:
+        filtered = [n for n in all_notifications if n["type"] == filter_type]
+    else:
+        filtered = all_notifications
+
+    counts = {
+        "all": len(all_notifications),
+        "order": sum(1 for n in all_notifications if n["type"] == "order"),
+        "message": sum(1 for n in all_notifications if n["type"] == "message"),
+        "blog": sum(1 for n in all_notifications if n["type"] == "blog"),
+    }
+
+    return render_template(
+        "notifications.html",
+        notifications=filtered,
+        counts=counts,
+        current_filter=filter_type,
+    )
+
+
+@app.route("/api/admin/notifications", methods=["GET"])
+@no_cache
+def api_admin_notifications():
+    if not is_admin():
+        return jsonify({"success": False, "error": "Unauthorized"}), 401
+
+    notifications = get_admin_notifications(30)
+    serialized = []
+    for n in notifications:
+        item = dict(n)
+        if isinstance(item.get("timestamp"), datetime):
+            item["timestamp"] = item["timestamp"].isoformat()
+        serialized.append(item)
+    return jsonify({"success": True, "notifications": serialized})
 
 
 if __name__ == "__main__":

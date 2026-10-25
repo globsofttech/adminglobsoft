@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="shortcut icon" type="image/svg+xml" href="{{ url_for('static', filename='images/globsoft.svg') }}">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/admin.css') }}">
+  <title>Notification Center - Globsoft Tech</title>
+  <style>
+    .notif-container {
+      max-width: 1000px;
+      margin: 0 auto;
+    }
+    .notif-filter-bar {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin-bottom: 24px;
+    }
+    .notif-filter-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 9px 18px;
+      border-radius: 999px;
+      border: 1px solid var(--admin-line);
+      background: var(--admin-panel-2);
+      color: var(--admin-muted);
+      font: 600 .82rem "Sora", sans-serif;
+      text-decoration: none;
+      transition: all .2s ease;
+    }
+    .notif-filter-btn:hover {
+      color: var(--admin-text);
+      border-color: rgba(121, 255, 247, 0.4);
+    }
+    .notif-filter-btn.active {
+      background: rgba(121, 255, 247, 0.12);
+      color: var(--admin-cyan);
+      border-color: var(--admin-cyan);
+    }
+    .notif-count-badge {
+      display: inline-block;
+      padding: 2px 7px;
+      border-radius: 999px;
+      font-size: .7rem;
+      background: rgba(255, 255, 255, 0.08);
+      color: var(--admin-text);
+    }
+    .notif-filter-btn.active .notif-count-badge {
+      background: var(--admin-cyan);
+      color: #0b0f19;
+      font-weight: 700;
+    }
+    .notif-list {
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+    .notif-card {
+      background: var(--admin-panel);
+      border: 1px solid var(--admin-line);
+      border-radius: 14px;
+      padding: 18px 22px;
+      display: flex;
+      align-items: flex-start;
+      gap: 16px;
+      transition: all .2s ease;
+      position: relative;
+    }
+    .notif-card:hover {
+      border-color: rgba(121, 255, 247, 0.3);
+      transform: translateY(-1px);
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.25);
+    }
+    .notif-icon-box {
+      width: 44px;
+      height: 44px;
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.1rem;
+      flex-shrink: 0;
+    }
+    .notif-icon-box.order {
+      background: rgba(121, 255, 247, 0.12);
+      color: var(--admin-cyan);
+      border: 1px solid rgba(121, 255, 247, 0.3);
+    }
+    .notif-icon-box.message {
+      background: rgba(188, 160, 255, 0.12);
+      color: #bca0ff;
+      border: 1px solid rgba(188, 160, 255, 0.3);
+    }
+    .notif-icon-box.blog {
+      background: rgba(122, 219, 120, 0.12);
+      color: #7adb78;
+      border: 1px solid rgba(122, 219, 120, 0.3);
+    }
+    .notif-content {
+      flex: 1;
+      min-width: 0;
+    }
+    .notif-header-line {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      margin-bottom: 4px;
+      flex-wrap: wrap;
+    }
+    .notif-title {
+      font-size: .95rem;
+      font-weight: 600;
+      color: var(--admin-text);
+      margin: 0;
+    }
+    .notif-badge-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 3px 9px;
+      border-radius: 999px;
+      font-size: .68rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: .5px;
+    }
+    .notif-badge-pill.order {
+      background: rgba(121, 255, 247, 0.1);
+      color: var(--admin-cyan);
+      border: 1px solid rgba(121, 255, 247, 0.25);
+    }
+    .notif-badge-pill.message {
+      background: rgba(188, 160, 255, 0.1);
+      color: #bca0ff;
+      border: 1px solid rgba(188, 160, 255, 0.25);
+    }
+    .notif-badge-pill.blog {
+      background: rgba(122, 219, 120, 0.1);
+      color: #7adb78;
+      border: 1px solid rgba(122, 219, 120, 0.25);
+    }
+    .notif-desc {
+      margin: 0 0 10px;
+      font-size: .83rem;
+      color: var(--admin-muted);
+      line-height: 1.5;
+    }
+    .notif-footer-line {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+    }
+    .notif-time {
+      font-size: .73rem;
+      color: var(--admin-muted);
+      display: flex;
+      align-items: center;
+      gap: 5px;
+    }
+    .notif-action-link {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      font-size: .76rem;
+      font-weight: 600;
+      color: var(--admin-cyan);
+      text-decoration: none;
+      transition: .2s;
+    }
+    .notif-action-link:hover {
+      text-decoration: underline;
+      color: #fff;
+    }
+    .notif-empty {
+      text-align: center;
+      padding: 60px 20px;
+      background: var(--admin-panel);
+      border: 1px dashed var(--admin-line);
+      border-radius: 16px;
+      color: var(--admin-muted);
+    }
+  </style>
+</head>
+<body class="admin-page">
+  {% include '_admin_shell_start.html' %}
+  <div class="notif-container">
+    <header class="topbar">
+      <div>
+        <p class="eyebrow">Workspace Center</p>
+        <h1>Notification Center</h1>
+        <p class="topbar-subtitle">Real-time alerts for customer package orders, website contact messages, and published articles.</p>
+      </div>
+      <div class="topbar-badge">
+        <i class="fa-solid fa-bell"></i> Live Feed
+      </div>
+    </header>
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% for category, message in messages %}
+        <div class="flash {{ category }}">{{ message }}</div>
+      {% endfor %}
+    {% endwith %}
+
+    <!-- Filter Bar -->
+    <div class="notif-filter-bar">
+      <a href="/notifications?filter=all" class="notif-filter-btn {% if current_filter == 'all' %}active{% endif %}">
+        <i class="fa-solid fa-layer-group"></i> All Alerts
+        <span class="notif-count-badge">{{ counts.all }}</span>
+      </a>
+      <a href="/notifications?filter=order" class="notif-filter-btn {% if current_filter == 'order' %}active{% endif %}">
+        <i class="fa-solid fa-cart-shopping"></i> Customer Orders
+        <span class="notif-count-badge">{{ counts.order }}</span>
+      </a>
+      <a href="/notifications?filter=message" class="notif-filter-btn {% if current_filter == 'message' %}active{% endif %}">
+        <i class="fa-solid fa-envelope"></i> Contact Inquiries
+        <span class="notif-count-badge">{{ counts.message }}</span>
+      </a>
+      <a href="/notifications?filter=blog" class="notif-filter-btn {% if current_filter == 'blog' %}active{% endif %}">
+        <i class="fa-solid fa-newspaper"></i> Blogs Published
+        <span class="notif-count-badge">{{ counts.blog }}</span>
+      </a>
+    </div>
+
+    <!-- Notification Feed -->
+    {% if notifications %}
+      <div class="notif-list">
+        {% for item in notifications %}
+          <div class="notif-card">
+            <div class="notif-icon-box {{ item.type }}">
+              <i class="{{ item.icon }}"></i>
+            </div>
+            <div class="notif-content">
+              <div class="notif-header-line">
+                <h3 class="notif-title">{{ item.title }}</h3>
+                <span class="notif-badge-pill {{ item.type }}">
+                  <i class="fa-solid fa-circle" style="font-size:.4rem;"></i> {{ item.badge }}
+                </span>
+              </div>
+              <p class="notif-desc">{{ item.description }}</p>
+              <div class="notif-footer-line">
+                <span class="notif-time">
+                  <i class="fa-regular fa-clock"></i>
+                  {% if item.timestamp %}
+                    {{ item.timestamp.strftime('%b %d, %Y · %I:%M %p') if item.timestamp.strftime is defined else item.timestamp }}
+                  {% else %}
+                    Recently
+                  {% endif %}
+                </span>
+                <a href="{{ item.link }}" class="notif-action-link">
+                  View Details <i class="fa-solid fa-arrow-right"></i>
+                </a>
+              </div>
+            </div>
+          </div>
+        {% endfor %}
+      </div>
+    {% else %}
+      <div class="notif-empty">
+        <i class="fa-regular fa-bell-slash" style="font-size:2.8rem; margin-bottom:12px; color:var(--admin-muted); display:block;"></i>
+        <h3 style="margin:0 0 6px; color:var(--admin-text);">No notifications found</h3>
+        <p style="margin:0; font-size:.85rem;">There are no activity logs matching your selected filter at the moment.</p>
+      </div>
+    {% endif %}
+  </div>
+  {% include '_admin_shell_end.html' %}
+</body>
+</html>

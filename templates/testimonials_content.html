@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="shortcut icon" type="image/svg+xml" href="{{ url_for('static', filename='images/globsoft.svg') }}">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/admin.css') }}">
+  <title>Client Testimonials - Globsoft Tech</title>
+  <style>
+    .testimonial-cards-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+      gap: 20px;
+      margin-bottom: 25px;
+    }
+    .testi-card {
+      background: var(--admin-panel-2);
+      border: 1px solid var(--admin-line);
+      border-radius: 14px;
+      padding: 20px;
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      gap: 15px;
+    }
+    .testi-header {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .testi-avatar {
+      width: 44px;
+      height: 44px;
+      border-radius: 50%;
+      object-fit: cover;
+      background: rgba(121, 255, 247, 0.1);
+      border: 1.5px solid var(--admin-cyan);
+    }
+    .testi-meta h4 {
+      margin: 0;
+      font-size: .95rem;
+      color: var(--admin-text);
+    }
+    .testi-meta p {
+      margin: 2px 0 0;
+      font-size: .75rem;
+      color: var(--admin-muted);
+    }
+    .testi-quote {
+      font-size: .85rem;
+      line-height: 1.6;
+      color: var(--admin-text);
+      font-style: italic;
+      background: rgba(0, 0, 0, 0.2);
+      padding: 12px;
+      border-radius: 8px;
+      border-left: 3px solid var(--admin-cyan);
+    }
+    .testi-stars {
+      color: #ffc876;
+      font-size: .8rem;
+    }
+    .testi-footer {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding-top: 10px;
+      border-top: 1px solid var(--admin-line);
+    }
+    .testi-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      font-size: .72rem;
+      color: var(--admin-cyan);
+      background: rgba(121, 255, 247, 0.1);
+      padding: 3px 8px;
+      border-radius: 999px;
+    }
+  </style>
+</head>
+<body class="admin-page">
+  {% include '_admin_shell_start.html' %}
+  <header class="topbar">
+    <a class="back-link" href="/site-content"><i class="fa-solid fa-arrow-left"></i> Homepage Content</a>
+    <p class="eyebrow">Client section / Testimonials</p>
+    <h1>Client Testimonials</h1>
+    <p class="topbar-subtitle">Manage client success stories and testimonials from businesses we helped grow online.</p>
+  </header>
+
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% for category, message in messages %}
+      <div class="flash {{ category }}">{{ message }}</div>
+    {% endfor %}
+  {% endwith %}
+
+  <!-- Active Testimonials Preview -->
+  <section class="card" style="margin-bottom: 24px;">
+    <div class="section-heading">
+      <div>
+        <p class="eyebrow">Current Live Reviews</p>
+        <h2>Testimonials Showcase ({{ testimonials|length }} Active)</h2>
+      </div>
+      <button type="button" class="btn-submit" onclick="toggleJsonEditor()" style="padding: 8px 16px; font-size: .8rem;">
+        <i class="fa-solid fa-code"></i> Edit JSON Directly
+      </button>
+    </div>
+
+    <div class="testimonial-cards-grid">
+      {% for item in testimonials %}
+        <div class="testi-card">
+          <div>
+            <div class="testi-header">
+              {% if item.avatar %}
+                <img src="{{ item.avatar }}" alt="{{ item.name }}" class="testi-avatar" onerror="this.src='/static/images/globsoft.svg'">
+              {% else %}
+                <div class="testi-avatar" style="display:flex;align-items:center;justify-content:center;color:var(--admin-cyan);font-weight:700;">
+                  {{ (item.name or 'C')[:1]|upper }}
+                </div>
+              {% endif %}
+              <div class="testi-meta">
+                <h4>{{ item.name }}</h4>
+                <p>{{ item.role }} · <strong style="color:var(--admin-cyan);">{{ item.company }}</strong></p>
+              </div>
+            </div>
+            <p class="testi-quote">"{{ item.quote }}"</p>
+          </div>
+          <div class="testi-footer">
+            <div class="testi-stars">
+              {% for i in range(item.rating or 5) %}
+                <i class="fa-solid fa-star"></i>
+              {% endfor %}
+            </div>
+            {% if item.url %}
+              <a href="{{ item.url }}" target="_blank" class="testi-badge">
+                <i class="fa-solid fa-arrow-up-right-from-square"></i> Visit Site
+              </a>
+            {% endif %}
+          </div>
+        </div>
+      {% endfor %}
+    </div>
+  </section>
+
+  <!-- JSON Code Editor Form -->
+  <form method="POST" class="content-editor" id="jsonEditorSection">
+    <section class="card">
+      <div class="section-heading">
+        <div>
+          <p class="eyebrow">Editable fields</p>
+          <h2>Testimonials JSON Array</h2>
+        </div>
+      </div>
+      <p class="editor-help">
+        Each item has <code>id</code>, <code>name</code> (person), <code>role</code>, <code>company</code> (business we helped grow online), <code>quote</code>, <code>rating</code> (1-5), <code>avatar</code> (image link/path), and <code>url</code> (company website).
+      </p>
+      <textarea name="testimonials_json" id="testimonialsJsonInput" rows="22" spellcheck="false" required>{{ testimonials_json }}</textarea>
+    </section>
+    <div style="display:flex; gap:12px; align-items:center;">
+      <button class="btn-submit" type="submit"><i class="fa-solid fa-floppy-disk"></i> Save Testimonials</button>
+      <a href="/site-content" class="secondary-action">Cancel</a>
+    </div>
+  </form>
+
+  {% include '_admin_shell_end.html' %}
+
+  <script>
+    function toggleJsonEditor() {
+      const el = document.getElementById('jsonEditorSection');
+      el.scrollIntoView({ behavior: 'smooth' });
+      document.getElementById('testimonialsJsonInput').focus();
+    }
+  </script>
+</body>
+</html>

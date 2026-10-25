@@ -6,7 +6,17 @@
     <img src="{{ url_for('static', filename='images/globsoft.svg') }}" alt="Globsoft Tech">
     <span><strong>Globsoft</strong><small>{% if session.get('role') == 'author' %}AUTHOR{% else %}ADMIN{% endif %}</small></span>
   </a>
-  <div class="admin-mobile-user">
+  <div class="admin-mobile-user" style="display:flex; align-items:center; gap:12px;">
+    {% if session.get('role') != 'author' %}
+    <a href="/notifications" style="color:var(--admin-cyan); font-size:1.15rem; position:relative; text-decoration:none;" aria-label="Notifications">
+      <i class="fa-solid fa-bell"></i>
+      {% if notification_count %}
+        <span style="position:absolute; top:-5px; right:-8px; background:#ff6b6b; color:#fff; font-size:.62rem; font-weight:700; width:16px; height:16px; border-radius:50%; display:flex; align-items:center; justify-content:center;">
+          {{ notification_count if notification_count < 100 else '99+' }}
+        </span>
+      {% endif %}
+    </a>
+    {% endif %}
     {% if session.get('avatar') %}
       <img src="{{ session.get('avatar') }}" alt="" class="mobile-avatar-img">
     {% else %}
@@ -43,7 +53,8 @@
       <a class="nav-item {% if request.path.startswith('/blogs') %}active{% endif %}" href="/blogs"><i class="fa-solid fa-blog"></i><span>Blogs</span></a>
       <a class="nav-item {% if request.path.startswith('/authors') %}active{% endif %}" href="/authors"><i class="fa-solid fa-user-pen"></i><span>Authors</span></a>
       <a class="nav-item {% if request.path.startswith('/social-media') %}active{% endif %}" href="/social-media"><i class="fa-brands fa-meta"></i><span>Social Media</span></a>
-      <a class="nav-item {% if request.path.startswith('/site-content') %}active{% endif %}" href="/site-content"><i class="fa-solid fa-pen-to-square"></i><span>Homepage Content</span></a>
+      <a class="nav-item {% if request.path == '/site-content' or request.path.startswith('/site-content/') %}active{% endif %}" href="/site-content"><i class="fa-solid fa-pen-to-square"></i><span>Homepage Content</span></a>
+      <a class="nav-item {% if request.path == '/notifications' %}active{% endif %}" href="/notifications"><i class="fa-solid fa-bell"></i><span>Notifications</span>{% if notification_count %}<span style="background:var(--admin-cyan);color:#0b0f19;font-weight:700;font-size:.68rem;padding:2px 7px;border-radius:999px;margin-left:auto;">{{ notification_count }}</span>{% endif %}</a>
       <a class="nav-item {% if request.path == '/system-status' %}active{% endif %}" href="/system-status"><i class="fa-solid fa-signal"></i><span>System Status</span></a>
       {% endif %}
     </nav>

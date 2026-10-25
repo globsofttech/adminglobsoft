@@ -479,6 +479,19 @@
 <body class="admin-page">
   {% include '_admin_shell_start.html' %}
 
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+      <div style="max-width:1200px; margin:0 auto 20px;">
+        {% for category, message in messages %}
+          <div class="flash {{ category }}" style="display:flex; align-items:center; gap:12px; padding:16px 20px; border-radius:12px; margin-bottom:12px; font-size:.9rem; font-weight:600;">
+            <i class="fa-solid {{ 'fa-circle-check' if category == 'success' else 'fa-circle-exclamation' }}" style="font-size:1.2rem;"></i>
+            <span>{{ message }}</span>
+          </div>
+        {% endfor %}
+      </div>
+    {% endif %}
+  {% endwith %}
+
   <!-- TOP STATS -->
   <div class="social-stats-grid">
     <div class="social-stat-card">
@@ -677,6 +690,10 @@
           placeholder="https://globsoft.vercel.app/blog/..."
           style="width:100%; padding:10px 12px; border-radius:8px; font-size:.82rem; background:var(--admin-panel-2); border:1px solid var(--admin-line); color:var(--admin-text);"
         >
+        <label style="display:flex; align-items:center; gap:8px; margin-top:8px; font-size:.76rem; color:var(--admin-cyan); cursor:pointer;">
+          <input type="checkbox" name="fb_use_meta" value="1" checked>
+          <span><strong>Facebook Meta Preview:</strong> Facebook automatically generates rich card from meta tags (Instagram strictly uses the attached image).</span>
+        </label>
       </div>
 
       <!-- PUBLISH ACTION -->

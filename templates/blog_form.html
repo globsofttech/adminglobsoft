@@ -416,43 +416,73 @@
         <div class="quill-wrapper">
           <div id="quillEditor"></div>
         </div>
-        <span class="field-hint" style="margin-top:6px; display:block;">
-          <i class="fa-solid fa-circle-info" style="color:var(--admin-cyan);"></i> You can drag &amp; drop images directly into the editor or click the image icon in the toolbar. Images are stored securely in MongoDB.
-        </span>
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-top:8px; font-size:.73rem; color:var(--admin-muted); flex-wrap:wrap; gap:8px;">
+          <span id="liveStatsIndicator"><i class="fa-solid fa-chart-simple" style="color:var(--admin-cyan);"></i> <span id="wordCountNum">0</span> words · <span id="charCountNum">0</span> characters · <span id="readTimeNum">1</span> min read</span>
+          <div style="display:flex; align-items:center; gap:12px;">
+            <button type="button" class="secondary-action" style="padding:4px 10px; font-size:.72rem;" onclick="insertWebImageQuill()"><i class="fa-solid fa-link"></i> Insert Image from URL</button>
+            <span id="localDraftStatus" style="font-size:.7rem; color:var(--admin-muted);"><i class="fa-solid fa-floppy-disk"></i> Local draft synced</span>
+          </div>
+        </div>
       </div>
 
       <!-- COVER IMAGE SECTION -->
       <div class="form-group" style="margin-top: 24px;">
-        <span class="field-label">Featured Cover Image <span class="field-hint">(JPG, PNG, WEBP, GIF, SVG · max 10 MB)</span></span>
+        <span class="field-label">Featured Cover Image <span class="field-hint">(Upload file or paste web image link · JPG, PNG, WEBP, GIF, SVG)</span></span>
         <input type="hidden" name="remove_cover_image" id="removeCoverInput" value="0">
+        
+        <!-- Toggle Mode: Upload vs Web URL -->
+        <div style="display:flex; gap:8px; margin-bottom:12px;">
+          <button type="button" class="secondary-action" id="btnModeUpload" style="padding:6px 14px; font-size:.76rem; border-color:var(--admin-cyan); color:var(--admin-cyan);" onclick="setCoverMode('upload')">
+            <i class="fa-solid fa-cloud-arrow-up"></i> Upload File
+          </button>
+          <button type="button" class="secondary-action" id="btnModeUrl" style="padding:6px 14px; font-size:.76rem;" onclick="setCoverMode('url')">
+            <i class="fa-solid fa-globe"></i> Image Link from Web
+          </button>
+        </div>
+
+        <!-- Mode 1: File Upload (hidden file input) -->
         <input type="file" name="cover_image" id="coverImageInput"
                accept="image/jpeg,image/png,image/webp,image/gif,image/svg+xml"
                style="display:none"
                onchange="handleCoverSelected(this)">
 
+        <!-- Mode 2: Web URL Input -->
+        <div id="coverUrlInputWrapper" style="display:{% if blog and blog.image_url and not blog.image_data %}block{% else %}none{% endif %}; margin-bottom:14px;">
+          <input type="url" name="cover_image_url" id="coverImageUrlInput"
+                 value="{{ blog.image_url if blog and not blog.image_data else '' }}"
+                 placeholder="https://images.unsplash.com/... or paste any direct image link from internet"
+                 oninput="handleCoverUrlChange(this.value)"
+                 style="width:100%; padding:11px 14px; border-radius:10px; border:1px solid var(--admin-line); background:var(--admin-panel-2); color:var(--admin-text); font-size:.85rem;">
+          <p style="margin:5px 0 0; font-size:.72rem; color:var(--admin-muted);">
+            <i class="fa-solid fa-circle-info" style="color:var(--admin-cyan);"></i> Paste any direct internet image link. It will preview live below and generate Open Graph cards automatically.
+          </p>
+        </div>
+
         <div class="cover-dropzone-container" id="coverDropzone">
           <!-- Dropzone Prompt (shown when no cover image exists) -->
           <div id="dropzonePrompt" class="cover-dropzone-prompt"
-               style="{% if blog and blog.image_data %}display:none;{% endif %}"
-               onclick="document.getElementById('coverImageInput').click()">
+               style="{% if blog and (blog.image_data or blog.image_url) %}display:none;{% endif %}"
+               onclick="triggerCoverPick()">
             <i class="fa-solid fa-cloud-arrow-up" style="font-size:2rem; color:var(--admin-cyan); margin-bottom:10px; display:block;"></i>
             <span style="font-weight:600; color:var(--admin-text); font-size:.9rem; display:block;">
-              Click to browse or drag &amp; drop your cover photo
+              Click to browse file or drag &amp; drop your cover photo
             </span>
             <span class="field-hint" style="display:block; margin-top:6px;">
-              Used for the featured banner and Open Graph social sharing cards (1200×630 recommended).
+              Used for the featured banner and Open Graph social sharing cards (1200×630 recommended). Or use "Image Link from Web" above.
             </span>
           </div>
 
           <!-- Cover Image Preview (shown when image exists) -->
-          <div id="coverPreviewBox" style="{% if not blog or not blog.image_data %}display:none;{% endif %}">
+          <div id="coverPreviewBox" style="{% if not blog or (not blog.image_data and not blog.image_url) %}display:none;{% endif %}">
             {% if blog and blog.image_data %}
               <img src="/api/blog-images/{{ blog._id }}" alt="Cover" class="cover-image-preview" id="coverPreview">
+            {% elif blog and blog.image_url %}
+              <img src="{{ blog.image_url }}" alt="Cover" class="cover-image-preview" id="coverPreview">
             {% else %}
               <img src="" alt="Cover preview" class="cover-image-preview" id="coverPreview">
             {% endif %}
             <div style="margin-top:12px; display:flex; gap:10px; justify-content:center;">
-              <button type="button" class="secondary-action" style="padding:7px 14px; font-size:.74rem;" onclick="document.getElementById('coverImageInput').click();">
+              <button type="button" class="secondary-action" style="padding:7px 14px; font-size:.74rem;" onclick="triggerCoverPick();">
                 <i class="fa-solid fa-arrows-rotate"></i> Change image
               </button>
               <button type="button" class="secondary-action" style="padding:7px 14px; font-size:.74rem; color:#ff98e2;" onclick="removeCoverImage();">
@@ -552,8 +582,28 @@
   <!-- Quill JS Library -->
   <script src="https://cdn.quilljs.com/1.3.7/quill.min.js"></script>
   <script>
-    // ---- 1. QUILL IMAGE UPLOADER ----
+    // ---- 1. QUILL IMAGE UPLOADER (Supports Web Image URLs & Direct File Uploads) ----
+    function insertWebImageQuill() {
+      const url = prompt('Enter direct Image URL from internet (e.g. https://images.unsplash.com/...):');
+      if (url && url.trim()) {
+        const range = quill.getSelection(true) || { index: quill.getLength() };
+        quill.insertEmbed(range.index, 'image', url.trim());
+        quill.setSelection(range.index + 1);
+        updateMetrics();
+      }
+    }
+
     function quillImageHandler() {
+      const choice = prompt('Insert image from internet URL? Enter the link below, or leave blank & click OK to upload from your computer:');
+      if (choice === null) return; // User cancelled
+      if (choice.trim()) {
+        const range = quill.getSelection(true) || { index: quill.getLength() };
+        quill.insertEmbed(range.index, 'image', choice.trim());
+        quill.setSelection(range.index + 1);
+        updateMetrics();
+        return;
+      }
+
       const fileInput = document.createElement('input');
       fileInput.setAttribute('type', 'file');
       fileInput.setAttribute('accept', 'image/jpeg,image/png,image/webp,image/gif,image/svg+xml');
@@ -586,6 +636,7 @@
           if (data.success && data.url) {
             quill.insertEmbed(range.index, 'image', data.url);
             quill.setSelection(range.index + 1);
+            updateMetrics();
           } else {
             alert(data.error || 'Could not upload image. Please try again.');
           }
@@ -772,11 +823,62 @@
     }
 
     // ---- 7. COVER IMAGE HANDLER ----
+    function setCoverMode(mode) {
+      const btnUpload = document.getElementById('btnModeUpload');
+      const btnUrl = document.getElementById('btnModeUrl');
+      const urlWrapper = document.getElementById('coverUrlInputWrapper');
+
+      if (mode === 'url') {
+        btnUrl.style.borderColor = 'var(--admin-cyan)';
+        btnUrl.style.color = 'var(--admin-cyan)';
+        btnUpload.style.borderColor = 'var(--admin-line)';
+        btnUpload.style.color = 'var(--admin-muted)';
+        urlWrapper.style.display = 'block';
+        document.getElementById('coverImageUrlInput').focus();
+      } else {
+        btnUpload.style.borderColor = 'var(--admin-cyan)';
+        btnUpload.style.color = 'var(--admin-cyan)';
+        btnUrl.style.borderColor = 'var(--admin-line)';
+        btnUrl.style.color = 'var(--admin-muted)';
+        urlWrapper.style.display = 'none';
+        document.getElementById('coverImageInput').click();
+      }
+    }
+
+    function triggerCoverPick() {
+      const urlWrapper = document.getElementById('coverUrlInputWrapper');
+      if (urlWrapper && urlWrapper.style.display !== 'none') {
+        document.getElementById('coverImageUrlInput').focus();
+      } else {
+        document.getElementById('coverImageInput').click();
+      }
+    }
+
+    function handleCoverUrlChange(val) {
+      const preview = document.getElementById('coverPreview');
+      const previewBox = document.getElementById('coverPreviewBox');
+      const promptBox = document.getElementById('dropzonePrompt');
+      const trimmed = (val || '').trim();
+
+      if (trimmed) {
+        preview.src = trimmed;
+        previewBox.style.display = 'block';
+        promptBox.style.display = 'none';
+        document.getElementById('removeCoverInput').value = '0';
+        document.getElementById('coverImageInput').value = '';
+      } else if (!document.getElementById('coverImageInput').files[0]) {
+        preview.src = '';
+        previewBox.style.display = 'none';
+        promptBox.style.display = 'block';
+      }
+    }
+
     function handleCoverSelected(input) {
       const preview = document.getElementById('coverPreview');
       const previewBox = document.getElementById('coverPreviewBox');
       const promptBox = document.getElementById('dropzonePrompt');
       document.getElementById('removeCoverInput').value = '0';
+      document.getElementById('coverImageUrlInput').value = '';
 
       if (input.files && input.files[0]) {
         const file = input.files[0];
@@ -797,11 +899,52 @@
 
     function removeCoverImage() {
       document.getElementById('coverImageInput').value = '';
+      document.getElementById('coverImageUrlInput').value = '';
       document.getElementById('removeCoverInput').value = '1';
       document.getElementById('coverPreview').src = '';
       document.getElementById('coverPreviewBox').style.display = 'none';
       document.getElementById('dropzonePrompt').style.display = 'block';
     }
+
+    // ---- 8. LIVE METRICS & LOCAL DRAFT AUTO-SAVE ----
+    function updateMetrics() {
+      const text = quill.getText().trim();
+      const words = text ? text.split(/\s+/).filter(Boolean).length : 0;
+      const chars = text.length;
+      const readTime = Math.max(1, Math.ceil(words / 200));
+
+      const wordEl = document.getElementById('wordCountNum');
+      const charEl = document.getElementById('charCountNum');
+      const readEl = document.getElementById('readTimeNum');
+      if (wordEl) wordEl.textContent = words;
+      if (charEl) charEl.textContent = chars;
+      if (readEl) readEl.textContent = readTime;
+    }
+
+    function saveLocalDraft() {
+      try {
+        const draftKey = 'globsoft_draft_{{ blog._id if blog else "new" }}';
+        const draftData = {
+          title: document.getElementById('titleInput')?.value || '',
+          excerpt: document.getElementById('excerptInput')?.value || '',
+          content: quill.root.innerHTML,
+          savedAt: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+        };
+        localStorage.setItem(draftKey, JSON.stringify(draftData));
+        const statusEl = document.getElementById('localDraftStatus');
+        if (statusEl) {
+          statusEl.innerHTML = `<i class="fa-solid fa-cloud-arrow-up" style="color:var(--admin-cyan);"></i> Draft saved ${draftData.savedAt}`;
+        }
+      } catch (e) {}
+    }
+
+    quill.on('text-change', () => {
+      updateMetrics();
+      saveLocalDraft();
+    });
+
+    // Initial metrics calculation
+    setTimeout(updateMetrics, 400);
 
     // Drag & drop on cover dropzone
     const dropzone = document.getElementById('coverDropzone');

@@ -597,6 +597,13 @@
           <div class="author-meta-sub">
             <span style="color:var(--admin-cyan);font-weight:500;"><i class="fa-regular fa-envelope"></i> {{ author.email }}</span>
             <span><i class="fa-solid fa-file-lines"></i> <strong>{{ author.post_count or 0 }}</strong> articles</span>
+            {% if (author.post_count or 0) > 0 %}
+              {% if author.show_on_team is not sameas false %}
+                <span style="color:#7adb78;"><i class="fa-solid fa-users"></i> On /team Page</span>
+              {% else %}
+                <span style="color:#ff6b6b;"><i class="fa-solid fa-user-xmark"></i> Hidden from /team</span>
+              {% endif %}
+            {% endif %}
             {% if author.created_at %}
               <span><i class="fa-regular fa-calendar"></i> Joined {{ author.created_at.strftime('%b %d, %Y') if author.created_at.strftime is defined else 'Recently' }}</span>
             {% endif %}
@@ -605,6 +612,19 @@
       </div>
 
       <div class="author-actions">
+        {% if (author.post_count or 0) > 0 %}
+          <form method="POST" action="/authors/{{ author._id }}/toggle-team" style="display:inline;">
+            {% if author.show_on_team is not sameas false %}
+              <button type="submit" class="secondary-action" style="padding:6px 11px; font-size:.74rem; color:#ff98e2; border-color:rgba(255,152,226,0.3);" title="Exclude this author from appearing on Our Team page">
+                <i class="fa-solid fa-eye-slash"></i> Hide from Team
+              </button>
+            {% else %}
+              <button type="submit" class="secondary-action" style="padding:6px 11px; font-size:.74rem; color:var(--admin-cyan); border-color:rgba(121,255,247,0.3);" title="Show this author on Our Team page">
+                <i class="fa-solid fa-eye"></i> Show on Team
+              </button>
+            {% endif %}
+          </form>
+        {% endif %}
         {% if not author.active %}
           <form method="POST" action="/authors/{{ author._id }}/approve" style="display:inline;">
             <button type="submit" class="btn-approve">
