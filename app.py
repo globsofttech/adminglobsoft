@@ -4545,11 +4545,28 @@ def generate_sitemap():
 
 # ==================== NOTIFICATION CENTER ====================
 
-def get_admin_notifications(limit=60):
+def get_admin_notifications_state():
+    """Retrieve global notification read tracking state from MongoDB."""
+    try:
+        glob_db = client["globsoft_db"]
+        state = glob_db["admin_notifications_state"].find_one({"_id": "global_state"}) or {}
+        return {
+            "last_read_all_at": state.get("last_read_all_at"),
+            "read_ids": set(state.get("read_ids") or [])
+        }
+    except Exception:
+        return {"last_read_all_at": None, "read_ids": set()}
+
+
+def get_admin_notifications(limit=100):
     notifications = []
     try:
         cust_db = client["customer_db"]
         glob_db = client["globsoft_db"]
+
+        state = get_admin_notifications_state()
+        last_read_all_at = state.get("last_read_all_at")
+        read_ids = state.get("read_ids") or set()
 
         # 0. Hardware Shop COD Orders
         try:
@@ -4566,71 +4583,82 @@ def get_admin_notifications(limit=60):
                     "description": f"{cust_info.get('name', 'Customer')} ({cust_info.get('phone', '')}) ordered {len(so.get('items', []))} item(s) to {cust_info.get('city', '')}.",
                     "timestamp": so.get("created_at") or datetime.utcnow(),
                     "link": "/shop/orders",
+                    "is_read": bool(so.get("is_read")),
                 })
         except Exception:
             pass
 
-
-
         # 1. Orders
-        orders = list(cust_db["customers"].find({
-            "$or": [{"type": "order"}, {"source": "Order Form"}]
-        }).sort("date_added", -1).limit(limit))
+        try:
+            orders = list(cust_db["customers"].find({
+                "$or": [{"type": "order"}, {"source": "Order Form"}]
+            }).sort("date_added", -1).limit(limit))
 
-        for o in orders:
-            pkg = o.get("package") or o.get("service") or "Website Order"
-            price = o.get("price")
-            price_str = f" (रु {price})" if price else ""
-            notifications.append({
-                "id": str(o.get("_id")),
-                "type": "order",
-                "badge": "Order",
-                "icon": "fa-solid fa-cart-shopping",
-                "color": "#79fff7",
-                "title": f"New Order: {pkg}{price_str}",
-                "description": f"{o.get('name', 'Client')} ({o.get('email', '')}) ordered {pkg}. Company: {o.get('company', 'N/A')}",
-                "timestamp": o.get("date_added") or datetime.utcnow(),
-                "link": "/customer",
-            })
+            for o in orders:
+                pkg = o.get("package") or o.get("service") or "Website Order"
+                price = o.get("price")
+                price_str = f" (रु {price})" if price else ""
+                notifications.append({
+                    "id": str(o.get("_id")),
+                    "type": "order",
+                    "badge": "Order",
+                    "icon": "fa-solid fa-cart-shopping",
+                    "color": "#79fff7",
+                    "title": f"New Order: {pkg}{price_str}",
+                    "description": f"{o.get('name', 'Client')} ({o.get('email', '')}) ordered {pkg}. Company: {o.get('company', 'N/A')}",
+                    "timestamp": o.get("date_added") or datetime.utcnow(),
+                    "link": "/customer",
+                    "is_read": bool(o.get("is_read")),
+                })
+        except Exception:
+            pass
 
         # 2. Contact Messages
-        messages = list(cust_db["customers"].find({
-            "$or": [{"type": "inquiry"}, {"source": "Contact Form"}]
-        }).sort("date_added", -1).limit(limit))
+        try:
+            messages = list(cust_db["customers"].find({
+                "$or": [{"type": "inquiry"}, {"source": "Contact Form"}]
+            }).sort("date_added", -1).limit(limit))
 
-        for m in messages:
-            msg_snippet = (m.get("remark") or m.get("message") or "")[:120]
-            notifications.append({
-                "id": str(m.get("_id")),
-                "type": "message",
-                "badge": "Message",
-                "icon": "fa-solid fa-envelope",
-                "color": "#bca0ff",
-                "title": f"New Message from {m.get('name', 'Visitor')}",
-                "description": f"{m.get('email', '')}: \"{msg_snippet}...\"",
-                "timestamp": m.get("date_added") or datetime.utcnow(),
-                "link": "/customer",
-            })
+            for m in messages:
+                msg_snippet = (m.get("remark") or m.get("message") or "")[:120]
+                notifications.append({
+                    "id": str(m.get("_id")),
+                    "type": "message",
+                    "badge": "Message",
+                    "icon": "fa-solid fa-envelope",
+                    "color": "#bca0ff",
+                    "title": f"New Message from {m.get('name', 'Visitor')}",
+                    "description": f"{m.get('email', '')}: \"{msg_snippet}...\"",
+                    "timestamp": m.get("date_added") or datetime.utcnow(),
+                    "link": "/customer",
+                    "is_read": bool(m.get("is_read")),
+                })
+        except Exception:
+            pass
 
         # 3. Blogs Posted
-        blogs = list(glob_db["blogs"].find({
-            "status": "published"
-        }).sort("published_at", -1).limit(limit))
+        try:
+            blogs = list(glob_db["blogs"].find({
+                "status": "published"
+            }).sort("published_at", -1).limit(limit))
 
-        for b in blogs:
-            pub_date = b.get("published_at") or b.get("updated_at") or b.get("created_at")
-            author_name = b.get("author") or "Globsoft Writer"
-            notifications.append({
-                "id": str(b.get("_id")),
-                "type": "blog",
-                "badge": "Blog Posted",
-                "icon": "fa-solid fa-newspaper",
-                "color": "#7adb78",
-                "title": f"Blog Posted: {b.get('title')}",
-                "description": f"Published by {author_name} · Category: {b.get('category', 'Technology')}",
-                "timestamp": pub_date or datetime.utcnow(),
-                "link": f"/blogs/{b.get('_id')}/edit",
-            })
+            for b in blogs:
+                pub_date = b.get("published_at") or b.get("updated_at") or b.get("created_at")
+                author_name = b.get("author") or "Globsoft Writer"
+                notifications.append({
+                    "id": str(b.get("_id")),
+                    "type": "blog",
+                    "badge": "Blog Posted",
+                    "icon": "fa-solid fa-newspaper",
+                    "color": "#7adb78",
+                    "title": f"Blog Posted: {b.get('title')}",
+                    "description": f"Published by {author_name} · Category: {b.get('category', 'Technology')}",
+                    "timestamp": pub_date or datetime.utcnow(),
+                    "link": f"/blogs/{b.get('_id')}/edit",
+                    "is_read": bool(b.get("is_read")),
+                })
+        except Exception:
+            pass
 
         def get_ts(item):
             ts = item.get("timestamp")
@@ -4642,6 +4670,16 @@ def get_admin_notifications(limit=60):
             elif isinstance(ts, datetime):
                 return ts
             return datetime.min
+
+        # Apply global read state logic
+        for item in notifications:
+            ts = get_ts(item)
+            if item.get("id") in read_ids or item.get("is_read") is True:
+                item["is_read"] = True
+            elif last_read_all_at and ts and ts <= last_read_all_at:
+                item["is_read"] = True
+            else:
+                item["is_read"] = False
 
         notifications.sort(key=get_ts, reverse=True)
     except Exception as e:
@@ -4655,8 +4693,9 @@ def inject_notifications_meta():
     if not session.get("user") or not is_admin():
         return {"notification_count": 0}
     try:
-        recent = get_admin_notifications(20)
-        return {"notification_count": len(recent)}
+        notifications = get_admin_notifications(limit=100)
+        unread_count = sum(1 for n in notifications if not n.get("is_read"))
+        return {"notification_count": unread_count}
     except Exception:
         return {"notification_count": 0}
 
@@ -4669,13 +4708,18 @@ def admin_notifications_page():
 
     all_notifications = get_admin_notifications(100)
     filter_type = request.args.get("filter", "all")
-    if filter_type in ["order", "message", "blog"]:
+
+    if filter_type == "unread":
+        filtered = [n for n in all_notifications if not n.get("is_read")]
+    elif filter_type in ["shop_order", "order", "message", "blog"]:
         filtered = [n for n in all_notifications if n["type"] == filter_type]
     else:
         filtered = all_notifications
 
     counts = {
         "all": len(all_notifications),
+        "unread": sum(1 for n in all_notifications if not n.get("is_read")),
+        "shop_order": sum(1 for n in all_notifications if n["type"] == "shop_order"),
         "order": sum(1 for n in all_notifications if n["type"] == "order"),
         "message": sum(1 for n in all_notifications if n["type"] == "message"),
         "blog": sum(1 for n in all_notifications if n["type"] == "blog"),
@@ -4687,6 +4731,121 @@ def admin_notifications_page():
         counts=counts,
         current_filter=filter_type,
     )
+
+
+@app.route("/api/admin/notifications/mark-read", methods=["POST"])
+@no_cache
+def api_admin_mark_notification_read():
+    if not is_admin():
+        return jsonify({"success": False, "error": "Unauthorized"}), 401
+
+    try:
+        data = request.get_json(silent=True) or request.form or {}
+        notif_id = str(data.get("id") or request.args.get("id") or "").strip()
+        notif_type = str(data.get("type") or request.args.get("type") or "").strip()
+
+        if not notif_id:
+            return jsonify({"success": False, "error": "Notification ID is required"}), 400
+
+        glob_db = client["globsoft_db"]
+        cust_db = client["customer_db"]
+        now = datetime.utcnow()
+
+        # Add to global read_ids set
+        glob_db["admin_notifications_state"].update_one(
+            {"_id": "global_state"},
+            {"$addToSet": {"read_ids": notif_id}},
+            upsert=True
+        )
+
+        # Update document directly if ObjectId is valid
+        try:
+            from bson import ObjectId
+            oid = ObjectId(notif_id)
+            if notif_type == "shop_order":
+                glob_db["shop_orders"].update_one({"_id": oid}, {"$set": {"is_read": True, "read_at": now}})
+            elif notif_type in ["order", "message"]:
+                cust_db["customers"].update_one({"_id": oid}, {"$set": {"is_read": True, "read_at": now}})
+            elif notif_type == "blog":
+                glob_db["blogs"].update_one({"_id": oid}, {"$set": {"is_read": True, "read_at": now}})
+            else:
+                glob_db["shop_orders"].update_one({"_id": oid}, {"$set": {"is_read": True, "read_at": now}})
+                cust_db["customers"].update_one({"_id": oid}, {"$set": {"is_read": True, "read_at": now}})
+                glob_db["blogs"].update_one({"_id": oid}, {"$set": {"is_read": True, "read_at": now}})
+        except Exception:
+            pass
+
+        # Calculate new unread count
+        recent = get_admin_notifications(limit=100)
+        unread_count = sum(1 for n in recent if not n.get("is_read"))
+
+        return jsonify({
+            "success": True,
+            "marked_id": notif_id,
+            "unread_count": unread_count
+        })
+    except Exception as e:
+        app.logger.exception("Error marking notification read: %s", e)
+        return jsonify({"success": False, "error": str(e)}), 500
+
+
+@app.route("/api/admin/notifications/mark-all-read", methods=["POST"])
+@no_cache
+def api_admin_mark_all_notifications_read():
+    if not is_admin():
+        return jsonify({"success": False, "error": "Unauthorized"}), 401
+
+    try:
+        glob_db = client["globsoft_db"]
+        cust_db = client["customer_db"]
+        now = datetime.utcnow()
+
+        # Update last_read_all_at
+        glob_db["admin_notifications_state"].update_one(
+            {"_id": "global_state"},
+            {"$set": {"last_read_all_at": now}},
+            upsert=True
+        )
+
+        try:
+            glob_db["shop_orders"].update_many({"is_read": {"$ne": True}}, {"$set": {"is_read": True, "read_at": now}})
+            cust_db["customers"].update_many({"is_read": {"$ne": True}}, {"$set": {"is_read": True, "read_at": now}})
+            glob_db["blogs"].update_many({"is_read": {"$ne": True}}, {"$set": {"is_read": True, "read_at": now}})
+        except Exception as bexc:
+            app.logger.warning(f"Batch mark all error: {bexc}")
+
+        return jsonify({
+            "success": True,
+            "unread_count": 0,
+            "message": "All notifications marked as read."
+        })
+    except Exception as e:
+        app.logger.exception("Error marking all notifications read: %s", e)
+        return jsonify({"success": False, "error": str(e)}), 500
+
+
+@app.route("/notifications/mark-all-read", methods=["POST"])
+@no_cache
+def admin_mark_all_notifications_read_form():
+    """Form fallback for mark all as read."""
+    if not is_admin():
+        return redirect("/")
+    try:
+        glob_db = client["globsoft_db"]
+        cust_db = client["customer_db"]
+        now = datetime.utcnow()
+        glob_db["admin_notifications_state"].update_one(
+            {"_id": "global_state"},
+            {"$set": {"last_read_all_at": now}},
+            upsert=True
+        )
+        glob_db["shop_orders"].update_many({"is_read": {"$ne": True}}, {"$set": {"is_read": True, "read_at": now}})
+        cust_db["customers"].update_many({"is_read": {"$ne": True}}, {"$set": {"is_read": True, "read_at": now}})
+        glob_db["blogs"].update_many({"is_read": {"$ne": True}}, {"$set": {"is_read": True, "read_at": now}})
+        flash("All notifications have been marked as read.", "success")
+    except Exception as e:
+        flash(f"Error marking notifications as read: {e}", "error")
+    return redirect("/notifications")
 
 
 @app.route("/api/admin/notifications", methods=["GET"])
@@ -4707,4 +4866,3 @@ def api_admin_notifications():
 
 if __name__ == "__main__":
     app.run(debug=True, port=5000)
-

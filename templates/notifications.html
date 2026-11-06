@@ -9,7 +9,7 @@
   <title>Notification Center - Globsoft Tech</title>
   <style>
     .notif-container {
-      max-width: 1000px;
+      max-width: 1050px;
       margin: 0 auto;
     }
     .notif-filter-bar {
@@ -47,6 +47,7 @@
       font-size: .7rem;
       background: rgba(255, 255, 255, 0.08);
       color: var(--admin-text);
+      transition: all .2s ease;
     }
     .notif-filter-btn.active .notif-count-badge {
       background: var(--admin-cyan);
@@ -68,11 +69,31 @@
       gap: 16px;
       transition: all .2s ease;
       position: relative;
+      cursor: pointer;
     }
     .notif-card:hover {
-      border-color: rgba(121, 255, 247, 0.3);
+      border-color: rgba(121, 255, 247, 0.35);
       transform: translateY(-1px);
       box-shadow: 0 4px 20px rgba(0, 0, 0, 0.25);
+    }
+    .notif-card.unread {
+      border-left: 3px solid var(--admin-cyan);
+      background: rgba(121, 255, 247, 0.03);
+    }
+    .notif-card.read {
+      opacity: 0.72;
+    }
+    .notif-card.read:hover {
+      opacity: 1;
+    }
+    .notif-unread-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--admin-cyan);
+      box-shadow: 0 0 8px var(--admin-cyan);
+      display: inline-block;
+      flex-shrink: 0;
     }
     .notif-icon-box {
       width: 44px;
@@ -83,6 +104,11 @@
       justify-content: center;
       font-size: 1.1rem;
       flex-shrink: 0;
+    }
+    .notif-icon-box.shop_order {
+      background: rgba(255, 200, 118, 0.12);
+      color: #ffc876;
+      border: 1px solid rgba(255, 200, 118, 0.3);
     }
     .notif-icon-box.order {
       background: rgba(121, 255, 247, 0.12);
@@ -128,6 +154,11 @@
       text-transform: uppercase;
       letter-spacing: .5px;
     }
+    .notif-badge-pill.shop_order {
+      background: rgba(255, 200, 118, 0.1);
+      color: #ffc876;
+      border: 1px solid rgba(255, 200, 118, 0.25);
+    }
     .notif-badge-pill.order {
       background: rgba(121, 255, 247, 0.1);
       color: var(--admin-cyan);
@@ -154,6 +185,7 @@
       align-items: center;
       justify-content: space-between;
       gap: 10px;
+      flex-wrap: wrap;
     }
     .notif-time {
       font-size: .73rem;
@@ -161,6 +193,48 @@
       display: flex;
       align-items: center;
       gap: 5px;
+    }
+    .notif-actions {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .notif-mark-read-btn {
+      background: transparent;
+      border: 1px solid var(--admin-line);
+      color: var(--admin-muted);
+      font-size: .72rem;
+      padding: 4px 10px;
+      border-radius: 6px;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      transition: all .2s ease;
+    }
+    .notif-mark-read-btn:hover {
+      background: rgba(121, 255, 247, 0.1);
+      color: var(--admin-cyan);
+      border-color: var(--admin-cyan);
+    }
+    .notif-mark-all-btn {
+      background: rgba(121, 255, 247, 0.12);
+      border: 1px solid rgba(121, 255, 247, 0.4);
+      color: var(--admin-cyan);
+      font-size: .8rem;
+      font-weight: 600;
+      padding: 8px 16px;
+      border-radius: 999px;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      transition: all .2s ease;
+    }
+    .notif-mark-all-btn:hover {
+      background: var(--admin-cyan);
+      color: #0b0f19;
+      box-shadow: 0 0 16px rgba(121, 255, 247, 0.35);
     }
     .notif-action-link {
       display: inline-flex;
@@ -175,6 +249,13 @@
     .notif-action-link:hover {
       text-decoration: underline;
       color: #fff;
+    }
+    .notif-read-status {
+      font-size: .74rem;
+      color: var(--admin-muted);
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
     }
     .notif-empty {
       text-align: center;
@@ -193,10 +274,17 @@
       <div>
         <p class="eyebrow">Workspace Center</p>
         <h1>Notification Center</h1>
-        <p class="topbar-subtitle">Real-time alerts for customer package orders, website contact messages, and published articles.</p>
+        <p class="topbar-subtitle">Real-time alerts for hardware COD orders, customer package orders, website messages, and published articles.</p>
       </div>
-      <div class="topbar-badge">
-        <i class="fa-solid fa-bell"></i> Live Feed
+      <div style="display:flex; align-items:center; gap:12px; flex-wrap:wrap;">
+        <form id="markAllForm" action="/notifications/mark-all-read" method="POST" style="margin:0;">
+          <button type="button" id="markAllReadBtn" class="notif-mark-all-btn" title="Mark all notifications as read" {% if counts.unread == 0 %}style="display:none;"{% endif %}>
+            <i class="fa-solid fa-check-double"></i> Mark All as Read
+          </button>
+        </form>
+        <div class="topbar-badge">
+          <i class="fa-solid fa-bell"></i> Live Feed
+        </div>
       </div>
     </header>
 
@@ -210,7 +298,15 @@
     <div class="notif-filter-bar">
       <a href="/notifications?filter=all" class="notif-filter-btn {% if current_filter == 'all' %}active{% endif %}">
         <i class="fa-solid fa-layer-group"></i> All Alerts
-        <span class="notif-count-badge">{{ counts.all }}</span>
+        <span class="notif-count-badge" id="filterCountAll">{{ counts.all }}</span>
+      </a>
+      <a href="/notifications?filter=unread" class="notif-filter-btn {% if current_filter == 'unread' %}active{% endif %}">
+        <i class="fa-solid fa-envelope-open"></i> Unread
+        <span class="notif-count-badge" id="filterCountUnread" style="{% if counts.unread > 0 %}background:#ff6b6b; color:#fff; font-weight:700;{% endif %}">{{ counts.unread }}</span>
+      </a>
+      <a href="/notifications?filter=shop_order" class="notif-filter-btn {% if current_filter == 'shop_order' %}active{% endif %}">
+        <i class="fa-solid fa-cart-flatbed"></i> Hardware Orders (COD)
+        <span class="notif-count-badge">{{ counts.shop_order }}</span>
       </a>
       <a href="/notifications?filter=order" class="notif-filter-btn {% if current_filter == 'order' %}active{% endif %}">
         <i class="fa-solid fa-cart-shopping"></i> Customer Orders
@@ -230,16 +326,27 @@
     {% if notifications %}
       <div class="notif-list">
         {% for item in notifications %}
-          <div class="notif-card">
+          <div class="notif-card {% if not item.is_read %}unread{% else %}read{% endif %}"
+               id="notifCard-{{ item.id }}"
+               data-id="{{ item.id }}"
+               data-type="{{ item.type }}"
+               data-is-read="{{ '1' if item.is_read else '0' }}">
             <div class="notif-icon-box {{ item.type }}">
               <i class="{{ item.icon }}"></i>
             </div>
             <div class="notif-content">
               <div class="notif-header-line">
-                <h3 class="notif-title">{{ item.title }}</h3>
-                <span class="notif-badge-pill {{ item.type }}">
-                  <i class="fa-solid fa-circle" style="font-size:.4rem;"></i> {{ item.badge }}
-                </span>
+                <div style="display:flex; align-items:center; gap:8px;">
+                  {% if not item.is_read %}
+                    <span class="notif-unread-dot" id="dot-{{ item.id }}" title="Unread notification"></span>
+                  {% endif %}
+                  <h3 class="notif-title">{{ item.title }}</h3>
+                </div>
+                <div style="display:flex; align-items:center; gap:8px;">
+                  <span class="notif-badge-pill {{ item.type }}">
+                    <i class="fa-solid fa-circle" style="font-size:.4rem;"></i> {{ item.badge }}
+                  </span>
+                </div>
               </div>
               <p class="notif-desc">{{ item.description }}</p>
               <div class="notif-footer-line">
@@ -251,9 +358,20 @@
                     Recently
                   {% endif %}
                 </span>
-                <a href="{{ item.link }}" class="notif-action-link">
-                  View Details <i class="fa-solid fa-arrow-right"></i>
-                </a>
+                <div class="notif-actions">
+                  {% if not item.is_read %}
+                    <button type="button" class="notif-mark-read-btn" data-id="{{ item.id }}" data-type="{{ item.type }}" title="Mark as Read">
+                      <i class="fa-regular fa-circle-check"></i> Mark as Read
+                    </button>
+                  {% else %}
+                    <span class="notif-read-status">
+                      <i class="fa-solid fa-check" style="color:var(--admin-cyan);"></i> Read
+                    </span>
+                  {% endif %}
+                  <a href="{{ item.link }}" class="notif-action-link" data-id="{{ item.id }}" data-type="{{ item.type }}">
+                    View Details <i class="fa-solid fa-arrow-right"></i>
+                  </a>
+                </div>
               </div>
             </div>
           </div>
@@ -263,10 +381,178 @@
       <div class="notif-empty">
         <i class="fa-regular fa-bell-slash" style="font-size:2.8rem; margin-bottom:12px; color:var(--admin-muted); display:block;"></i>
         <h3 style="margin:0 0 6px; color:var(--admin-text);">No notifications found</h3>
-        <p style="margin:0; font-size:.85rem;">There are no activity logs matching your selected filter at the moment.</p>
+        <p style="margin:0; font-size:.85rem;">There are no activity alerts matching your selected filter at the moment.</p>
       </div>
     {% endif %}
   </div>
   {% include '_admin_shell_end.html' %}
+
+  <script>
+  (function() {
+    function updateBadges(unreadCount) {
+      const topBadge = document.getElementById('topbarNotifBadge');
+      const sideBadge = document.getElementById('sidebarNotifBadge');
+      const unreadFilter = document.getElementById('filterCountUnread');
+      const markAllBtn = document.getElementById('markAllReadBtn');
+
+      if (unreadCount > 0) {
+        const badgeText = unreadCount < 100 ? String(unreadCount) : '99+';
+        if (topBadge) {
+          topBadge.textContent = badgeText;
+          topBadge.style.display = 'flex';
+        }
+        if (sideBadge) {
+          sideBadge.textContent = String(unreadCount);
+          sideBadge.style.display = 'inline-block';
+        }
+        if (unreadFilter) {
+          unreadFilter.textContent = String(unreadCount);
+          unreadFilter.style.background = '#ff6b6b';
+          unreadFilter.style.color = '#fff';
+          unreadFilter.style.fontWeight = '700';
+        }
+        if (markAllBtn) markAllBtn.style.display = 'inline-flex';
+      } else {
+        if (topBadge) {
+          topBadge.textContent = '0';
+          topBadge.style.display = 'none';
+        }
+        if (sideBadge) {
+          sideBadge.textContent = '0';
+          sideBadge.style.display = 'none';
+        }
+        if (unreadFilter) {
+          unreadFilter.textContent = '0';
+          unreadFilter.style.background = 'rgba(255,255,255,0.08)';
+          unreadFilter.style.color = 'var(--admin-text)';
+          unreadFilter.style.fontWeight = 'normal';
+        }
+        if (markAllBtn) markAllBtn.style.display = 'none';
+      }
+    }
+
+    // Mark single notification as read
+    async function markNotificationAsRead(id, type, card) {
+      if (!id || !card || card.classList.contains('read')) return;
+
+      // Immediate UI update
+      card.classList.remove('unread');
+      card.classList.add('read');
+      card.setAttribute('data-is-read', '1');
+
+      const dot = document.getElementById('dot-' + id);
+      if (dot) dot.remove();
+
+      const btn = card.querySelector('.notif-mark-read-btn');
+      if (btn) {
+        btn.outerHTML = '<span class="notif-read-status"><i class="fa-solid fa-check" style="color:var(--admin-cyan);"></i> Read</span>';
+      }
+
+      // Optimistically decrement counter by 1
+      const sideBadge = document.getElementById('sidebarNotifBadge');
+      let curCount = 0;
+      if (sideBadge && sideBadge.textContent) {
+        curCount = Math.max(0, parseInt(sideBadge.textContent, 10) || 0);
+      }
+      if (curCount > 0) {
+        updateBadges(curCount - 1);
+      }
+
+      try {
+        const resp = await fetch('/api/admin/notifications/mark-read', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ id: id, type: type })
+        });
+        const data = await resp.json();
+        if (data && data.success && typeof data.unread_count === 'number') {
+          updateBadges(data.unread_count);
+        }
+      } catch (e) {
+        console.error('Error marking read:', e);
+      }
+    }
+
+    // Attach listeners to cards
+    document.querySelectorAll('.notif-card').forEach(card => {
+      const id = card.getAttribute('data-id');
+      const type = card.getAttribute('data-type');
+
+      // 1. Mark as Read button
+      const markBtn = card.querySelector('.notif-mark-read-btn');
+      if (markBtn) {
+        markBtn.addEventListener('click', function(e) {
+          e.preventDefault();
+          e.stopPropagation();
+          markNotificationAsRead(id, type, card);
+        });
+      }
+
+      // 2. Action link ("View Details")
+      const link = card.querySelector('.notif-action-link');
+      if (link) {
+        link.addEventListener('click', function() {
+          if (card.classList.contains('unread')) {
+            fetch('/api/admin/notifications/mark-read', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ id: id, type: type }),
+              keepalive: true
+            }).catch(() => {});
+          }
+        });
+      }
+
+      // 3. Clicking anywhere on unread card
+      card.addEventListener('click', function(e) {
+        if (e.target.closest('a') || e.target.closest('button')) return;
+        if (card.classList.contains('unread')) {
+          markNotificationAsRead(id, type, card);
+        }
+      });
+    });
+
+    // Mark All as Read button
+    const markAllBtn = document.getElementById('markAllReadBtn');
+    if (markAllBtn) {
+      markAllBtn.addEventListener('click', async function(e) {
+        e.preventDefault();
+        markAllBtn.disabled = true;
+        markAllBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Marking...';
+
+        try {
+          const resp = await fetch('/api/admin/notifications/mark-all-read', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' }
+          });
+          const data = await resp.json();
+          if (data && data.success) {
+            // Update all cards on page
+            document.querySelectorAll('.notif-card.unread').forEach(card => {
+              card.classList.remove('unread');
+              card.classList.add('read');
+              card.setAttribute('data-is-read', '1');
+              const dot = card.querySelector('.notif-unread-dot');
+              if (dot) dot.remove();
+              const btn = card.querySelector('.notif-mark-read-btn');
+              if (btn) {
+                btn.outerHTML = '<span class="notif-read-status"><i class="fa-solid fa-check" style="color:var(--admin-cyan);"></i> Read</span>';
+              }
+            });
+            updateBadges(0);
+          } else {
+            document.getElementById('markAllForm').submit();
+          }
+        } catch (err) {
+          console.error('Error marking all read:', err);
+          document.getElementById('markAllForm').submit();
+        } finally {
+          markAllBtn.disabled = false;
+          markAllBtn.style.display = 'none';
+        }
+      });
+    }
+  })();
+  </script>
 </body>
 </html>
