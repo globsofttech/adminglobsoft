@@ -40,8 +40,8 @@
         <i class="fa-solid fa-xmark"></i>
       </button>
     </div>
-    <div class="sidebar-label">Workspace</div>
     <nav class="sidebar-nav" aria-label="Admin tools">
+      <div class="sidebar-label">{% if session.get('role') == 'author' %}Author Studio{% else %}Workspace{% endif %}</div>
      {% if session.get('role') == 'author' %}
       <a class="nav-item {% if request.path == '/' %}active{% endif %}" href="/"><i class="fa-solid fa-table-cells-large"></i><span>Overview</span></a>
       <a class="nav-item {% if request.path.startswith('/blogs') %}active{% endif %}" href="/blogs"><i class="fa-solid fa-file-pen"></i><span>My Articles</span></a>
@@ -68,24 +68,29 @@
     </button>
     <div class="sidebar-footer">
       {% if session.get('role') == 'author' %}
-      <div class="sidebar-user-info" style="display:flex;align-items:center;gap:10px;padding:8px 0;margin-bottom:8px;border-bottom:1px solid var(--admin-line);">
+      <div class="sidebar-user-info">
         {% if session.get('avatar') %}
-          <img src="{{ session.get('avatar') }}" alt="" style="width:34px;height:34px;border-radius:50%;object-fit:cover;border:1.5px solid var(--admin-cyan);">
+          <img src="{{ session.get('avatar') }}" alt="" class="user-avatar-img">
         {% else %}
-          <div style="width:34px;height:34px;border-radius:50%;background:rgba(121,255,247,0.15);color:var(--admin-cyan);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:.85rem;">
+          <div class="user-avatar-placeholder">
             {{ (session.get('author_name') or 'A')[:1]|upper }}
           </div>
         {% endif %}
-        <div style="overflow:hidden;line-height:1.2;">
-          <strong style="display:block;font-size:.8rem;color:var(--admin-text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">{{ session.get('author_name') or 'Author' }}</strong>
-          <span style="font-size:.67rem;color:var(--admin-cyan);font-weight:600;"><i class="fa-solid fa-circle" style="font-size:.45rem;vertical-align:middle;margin-right:3px;"></i>Author</span>
+        <div class="user-details">
+          <strong class="user-name">{{ session.get('author_name') or 'Author' }}</strong>
+          <span class="user-badge"><i class="fa-solid fa-circle"></i>Author</span>
         </div>
       </div>
       {% else %}
-      <span class="status-indicator"><i></i> Admin workspace</span>
+      <div class="sidebar-status-box">
+        <span class="status-indicator"><i></i> Admin workspace</span>
+      </div>
       {% endif %}
-      <form action="/logout" method="POST">
-        <button type="submit" class="logout-link"><i class="fa-solid fa-arrow-right-from-bracket"></i> Logout</button>
+      <form action="/logout" method="POST" class="logout-form">
+        <button type="submit" class="logout-link" title="Logout">
+          <i class="fa-solid fa-arrow-right-from-bracket"></i>
+          <span>Logout</span>
+        </button>
       </form>
     </div>
   </aside>

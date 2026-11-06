@@ -190,7 +190,7 @@
                     <i class="fa-solid fa-cart-flatbed"></i>
                 </div>
                 <div class="stat-info">
-                    <h3>{{ total_orders }}</h3>
+                    <h3>{{ total_orders or 0 }}</h3>
                     <span>Total Orders</span>
                 </div>
             </div>
@@ -199,7 +199,7 @@
                     <i class="fa-solid fa-clock-rotate-left"></i>
                 </div>
                 <div class="stat-info">
-                    <h3>{{ pending_orders }}</h3>
+                    <h3>{{ pending_orders or 0 }}</h3>
                     <span>Pending Verification</span>
                 </div>
             </div>
@@ -208,7 +208,7 @@
                     <i class="fa-solid fa-truck-fast"></i>
                 </div>
                 <div class="stat-info">
-                    <h3>{{ active_dispatch }}</h3>
+                    <h3>{{ active_dispatch or 0 }}</h3>
                     <span>Confirmed / Shipped</span>
                 </div>
             </div>
@@ -217,7 +217,7 @@
                     <i class="fa-solid fa-money-bill-wave"></i>
                 </div>
                 <div class="stat-info">
-                    <h3>रु {{ "{:,.0f}".format(total_revenue) }}</h3>
+                    <h3>रु {{ "{:,.0f}".format(total_revenue or 0) }}</h3>
                     <span>Total COD Volume</span>
                 </div>
             </div>
