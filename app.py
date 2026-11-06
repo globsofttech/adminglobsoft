@@ -2659,7 +2659,21 @@ def admin_shop_orders():
         db = client["globsoft_db"]
         orders = list(db["shop_orders"].find().sort("created_at", -1))
         for o in orders:
-            o["_id"] = str(o["_id"])
+            o["_id"] = str(o.get("_id", ""))
+            ca = o.get("created_at")
+            if isinstance(ca, datetime):
+                o["created_date"] = ca.strftime('%Y-%m-%d')
+                o["created_time"] = ca.strftime('%H:%M')
+            elif isinstance(ca, str):
+                o["created_date"] = ca[:10]
+                o["created_time"] = ca[11:16] if len(ca) > 16 else ""
+            else:
+                o["created_date"] = "Recent"
+                o["created_time"] = ""
+            if "items" not in o or not isinstance(o.get("items"), list):
+                o["items"] = []
+            if "customer" not in o or not isinstance(o.get("customer"), dict):
+                o["customer"] = {}
     except Exception as exc:
         app.logger.warning(f"Error fetching orders: {exc}")
         orders = []
