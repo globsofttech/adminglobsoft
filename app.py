@@ -2056,7 +2056,7 @@ DEFAULT_SHOP_PRODUCTS = [
     {
         "id": "pro-rgb-gaming-mouse",
         "name": "Globsoft Pulsar Pro RGB Optical Gaming Mouse",
-        "category": "Mice",
+        "category": "Mouse",
         "price": 1899,
         "compare_at_price": 2499,
         "badge": "High Performance",
@@ -2081,7 +2081,7 @@ DEFAULT_SHOP_PRODUCTS = [
     {
         "id": "wireless-silent-ergonomic-mouse",
         "name": "Globsoft Stealth Silent Dual-Mode Wireless Mouse",
-        "category": "Mice",
+        "category": "Mouse",
         "price": 1499,
         "compare_at_price": 1999,
         "badge": "Office & Devs",
@@ -2506,7 +2506,14 @@ def api_place_shop_order():
                 applied_discount_amount = disc_amt
                 validated_code = disc_obj.get("code")
 
-        total_amount = max(0.0, server_subtotal - applied_discount_amount)
+        # Delivery fee & delivery zone processing
+        try:
+            shipping_fee = max(0.0, float(data.get("shipping_fee") if data.get("shipping_fee") is not None else data.get("delivery_fee") or 0.0))
+        except (ValueError, TypeError):
+            shipping_fee = 0.0
+        delivery_zone = str(data.get("delivery_zone") or "standard").strip()
+
+        total_amount = max(0.0, server_subtotal - applied_discount_amount + shipping_fee)
 
         # Generate unique order number (e.g. GST-COD-18924)
         order_num = f"GST-COD-{int(time.time()) % 100000:05d}"
@@ -2527,7 +2534,8 @@ def api_place_shop_order():
             "subtotal": server_subtotal,
             "discount_code": validated_code,
             "discount_amount": applied_discount_amount,
-            "shipping_fee": 0.0,
+            "shipping_fee": shipping_fee,
+            "delivery_zone": delivery_zone,
             "total_amount": total_amount,
             "payment_method": "Cash on Delivery (COD)",
             "status": "Pending",
@@ -2691,6 +2699,40 @@ def admin_shop_orders():
         active_dispatch=active_dispatch,
         total_revenue=total_revenue
     )
+
+
+@app.route("/shop/orders/<order_id>/delivery-fee", methods=['POST'])
+@no_cache
+def admin_update_order_delivery_fee(order_id):
+    """Update delivery fee and recalculate order total in admin portal."""
+    if not is_admin():
+        return redirect("/")
+
+    try:
+        new_fee = max(0.0, float(request.form.get("delivery_fee") or 0.0))
+        db = client["globsoft_db"]
+        order = db["shop_orders"].find_one({"order_id": order_id})
+        if not order:
+            flash(f"Order #{order_id} not found.", "error")
+            return redirect("/shop/orders")
+
+        subtotal = float(order.get("subtotal") or order.get("total_amount") or 0.0)
+        discount = float(order.get("discount_amount") or 0.0)
+        new_total = max(0.0, subtotal - discount + new_fee)
+
+        db["shop_orders"].update_one(
+            {"order_id": order_id},
+            {"$set": {
+                "shipping_fee": new_fee,
+                "total_amount": new_total,
+                "updated_at": datetime.now()
+            }}
+        )
+        flash(f"Order #{order_id} delivery fee updated to रु {new_fee:,.0f} (New Total: रु {new_total:,.0f}).", "success")
+    except Exception as exc:
+        flash(f"Could not update delivery fee: {exc}", "error")
+
+    return redirect("/shop/orders")
 
 
 @app.route("/shop/orders/<order_id>/status", methods=['POST'])
