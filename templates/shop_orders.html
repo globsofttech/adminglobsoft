@@ -308,7 +308,7 @@
                                         {% if order.shipping_fee and order.shipping_fee > 0 %}
                                             + रु {{ "{:,.0f}".format(order.shipping_fee) }} delivery
                                         {% else %}
-                                            Free Delivery
+                                            COD Order
                                         {% endif %}
                                     </span>
                                 </td>
@@ -479,24 +479,13 @@
                     ` : ''}
                     <div class="d-flex justify-content-between mb-2 text-info" style="font-size:0.85rem;">
                         <span>Shipping & Delivery (COD):</span>
-                        <strong>${Number(order.shipping_fee || 0) > 0 ? `रु ${Number(order.shipping_fee).toLocaleString()}` : 'FREE'}</strong>
+                        <strong>${Number(order.shipping_fee || 0) > 0 ? `रु ${Number(order.shipping_fee).toLocaleString()}` : 'रु 0'}</strong>
                     </div>
                     <hr style="border-color:rgba(255,255,255,0.1); margin:8px 0;">
                     <div class="d-flex justify-content-between align-items-center">
                         <span style="font-size:1.1rem; font-weight:700;">Cash to Collect on Delivery:</span>
                         <span style="font-size:1.3rem; font-weight:700; color:#7adb78;">रु ${Number(order.total_amount).toLocaleString()}</span>
                     </div>
-
-                    <!-- Admin Delivery Fee Quick Adjust Form -->
-                    <form method="POST" action="/shop/orders/${order.order_id}/delivery-fee" class="mt-3 pt-2 border-top d-flex align-items-center justify-content-between gap-2" style="border-color:rgba(255,255,255,0.08) !important;">
-                        <span style="font-size:0.75rem; color:var(--admin-muted);">
-                            <i class="fa-solid fa-truck me-1"></i>Adjust Delivery Fee (रु):
-                        </span>
-                        <div class="d-flex align-items-center gap-1">
-                            <input type="number" name="delivery_fee" min="0" step="10" value="${order.shipping_fee || 0}" class="form-control form-control-sm" style="width:90px; height:28px; font-size:0.75rem; background:var(--admin-panel-2); color:#fff; border:1px solid var(--admin-line);">
-                            <button type="submit" class="btn btn-sm" style="height:28px; padding:0 8px; font-size:0.72rem; background:rgba(121,255,247,0.15); color:var(--admin-cyan); border:1px solid rgba(121,255,247,0.3);">Update</button>
-                        </div>
-                    </form>
                     <div class="mt-2 text-warning" style="font-size:0.75rem;">
                         <i class="fa-solid fa-circle-info me-1"></i>Payment Mode: Cash on Delivery (COD). Courier will collect exact cash upon hand-off.
                     </div>
