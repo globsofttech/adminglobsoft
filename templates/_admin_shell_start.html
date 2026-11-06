@@ -56,6 +56,11 @@
       <a class="nav-item {% if request.path == '/site-content' or request.path.startswith('/site-content/') %}active{% endif %}" href="/site-content"><i class="fa-solid fa-pen-to-square"></i><span>Homepage Content</span></a>
       <a class="nav-item {% if request.path == '/notifications' %}active{% endif %}" href="/notifications"><i class="fa-solid fa-bell"></i><span>Notifications</span>{% if notification_count %}<span style="background:var(--admin-cyan);color:#0b0f19;font-weight:700;font-size:.68rem;padding:2px 7px;border-radius:999px;margin-left:auto;">{{ notification_count }}</span>{% endif %}</a>
       <a class="nav-item {% if request.path == '/system-status' %}active{% endif %}" href="/system-status"><i class="fa-solid fa-signal"></i><span>System Status</span></a>
+      
+      <div class="sidebar-label" style="margin-top:16px;">Hardware Shop</div>
+      <a class="nav-item {% if request.path.startswith('/shop/orders') %}active{% endif %}" href="/shop/orders"><i class="fa-solid fa-cart-flatbed"></i><span>Shop Orders</span></a>
+      <a class="nav-item {% if request.path.startswith('/shop/products') or request.path == '/products-manager' %}active{% endif %}" href="/shop/products"><i class="fa-solid fa-box-open"></i><span>Shop Products</span></a>
+      <a class="nav-item {% if request.path.startswith('/shop/discounts') %}active{% endif %}" href="/shop/discounts"><i class="fa-solid fa-ticket"></i><span>Discount Codes</span></a>
       {% endif %}
     </nav>
     <button type="button" class="sidebar-toggle" id="sidebarToggle" aria-label="Collapse navigation" aria-expanded="true">

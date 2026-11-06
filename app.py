@@ -50,7 +50,7 @@ def get_clerk_frontend_api(publishable_key):
 
 clerk_frontend_api = get_clerk_frontend_api(clerk_publishable_key)
 
-client = MongoClient(mongo_uri) if mongo_uri else MongoClient("mongodb://localhost:27017")
+client = MongoClient(mongo_uri, serverSelectionTimeoutMS=2500) if mongo_uri else MongoClient("mongodb://localhost:27017", serverSelectionTimeoutMS=1500)
 
 app = Flask(__name__)
 application = app
@@ -2020,95 +2020,930 @@ def clerk_proxy(subpath):
     return jsonify({"error": "The 'requests' library is required for Clerk proxy."}), 500
 
 
-# ==================== PRODUCTS ====================
+# ==================== HARDWARE SHOP & COD ORDERS ====================
 
+DEFAULT_SHOP_PRODUCTS = [
+    {
+        "id": "custom-mouse-pad-desk-mat",
+        "name": "Custom Desk Mat & Gaming Mouse Pad (Extended)",
+        "category": "Mouse Pads",
+        "price": 999,
+        "compare_at_price": 1499,
+        "badge": "Best Seller",
+        "is_customizable": True,
+        "rating": 4.9,
+        "reviews_count": 84,
+        "stock": 50,
+        "in_stock": True,
+        "image": "https://images.unsplash.com/photo-1616440347437-b1c73416efc2?auto=format&fit=crop&w=800&q=80",
+        "description": "Ultra-smooth precision desk mat crafted from high-density micro-weave cloth. Customize with your own design, artwork, anime, logo, or clean minimalist texture. Features anti-fray precision stitched edges and an anti-skid natural rubber base.",
+        "specs": [
+            "Dimensions: 900 x 400 x 4mm (Extended XXL)",
+            "Surface: Ultra-smooth micro-weave speed/control hybrid",
+            "Base: 4mm Heavy textured natural rubber",
+            "Edges: Double-stitched anti-fray 360° border",
+            "Printing: 300+ DPI thermal sublimation (fade-proof, washable)",
+            "Water-resistant splash guard coating"
+        ],
+        "custom_options": {
+            "sizes": ["900 x 400 x 4mm (XXL Extended)", "800 x 300 x 3mm (Standard Desk)", "450 x 400 x 4mm (Esports Square)"],
+            "surfaces": ["Speed (Silky Smooth)", "Control (Textured Precision)"],
+            "stitching": ["Edge-to-Edge Print", "Black Stitched Border"]
+        },
+        "order": 1,
+        "created_at": datetime(2026, 1, 1)
+    },
+    {
+        "id": "pro-rgb-gaming-mouse",
+        "name": "Globsoft Pulsar Pro RGB Optical Gaming Mouse",
+        "category": "Mice",
+        "price": 1899,
+        "compare_at_price": 2499,
+        "badge": "High Performance",
+        "is_customizable": False,
+        "rating": 4.8,
+        "reviews_count": 62,
+        "stock": 35,
+        "in_stock": True,
+        "image": "https://images.unsplash.com/photo-1615663245857-ac93bb7c39e7?auto=format&fit=crop&w=800&q=80",
+        "description": "Tournament-grade optical gaming mouse engineered for lightning response and pixel-perfect tracking. Features an ultra-lightweight ergonomic shell, 12,800 DPI optical sensor, Huano 20M click switches, and 16.8M customizable RGB illumination.",
+        "specs": [
+            "Sensor: PixArt 3327 Optical Sensor",
+            "DPI: 800 - 12,800 DPI (6 on-the-fly stages)",
+            "Polling Rate: 1000Hz (1ms response time)",
+            "Weight: 68g Featherweight Honeycomb Body",
+            "Switches: Huano Mechanical (20 Million clicks rating)",
+            "Cable: 1.8m Ultra-flexible paracord cable"
+        ],
+        "order": 2,
+        "created_at": datetime(2026, 1, 1)
+    },
+    {
+        "id": "wireless-silent-ergonomic-mouse",
+        "name": "Globsoft Stealth Silent Dual-Mode Wireless Mouse",
+        "category": "Mice",
+        "price": 1499,
+        "compare_at_price": 1999,
+        "badge": "Office & Devs",
+        "is_customizable": False,
+        "rating": 4.7,
+        "reviews_count": 47,
+        "stock": 28,
+        "in_stock": True,
+        "image": "https://images.unsplash.com/photo-1629429408209-1f912961dbd8?auto=format&fit=crop&w=800&q=80",
+        "description": "Whisper-quiet clicks and seamless productivity. Connects across 3 devices via Bluetooth 5.2 and 2.4GHz wireless dongle. Ergonomic contour thumb-rest prevents wrist fatigue during long coding and design sessions.",
+        "specs": [
+            "Connectivity: Bluetooth 5.2 + 2.4GHz Wireless USB",
+            "Noise: 90% Noise Reduction Silent Micro-switches",
+            "Battery: Built-in 500mAh USB-C Rechargeable (up to 45 days)",
+            "DPI: 1000 / 1600 / 2400 / 3200 DPI",
+            "Multi-device pairing with quick toggle switch",
+            "Compatible with Windows, macOS, Linux, iPadOS, Android"
+        ],
+        "order": 3,
+        "created_at": datetime(2026, 1, 1)
+    },
+    {
+        "id": "rgb-mechanical-keyboard-75",
+        "name": "Globsoft CyberForge 75% Hot-Swappable Mechanical Keyboard",
+        "category": "Keyboards",
+        "price": 4499,
+        "compare_at_price": 5999,
+        "badge": "Top Rated",
+        "is_customizable": False,
+        "rating": 5.0,
+        "reviews_count": 95,
+        "stock": 20,
+        "in_stock": True,
+        "image": "https://images.unsplash.com/photo-1587829741301-dc798b83add3?auto=format&fit=crop&w=800&q=80",
+        "description": "Compact 75% mechanical keyboard designed for maximum desk space and ergonomic posture. Features full hot-swappable 3/5-pin switch sockets, south-facing per-key RGB backlighting, sound-dampening EVA foam, and PBT double-shot keycaps.",
+        "specs": [
+            "Layout: 75% Compact (84 keys + Multi-function Volume Knob)",
+            "Hot-Swap: 5-Pin & 3-Pin Universal Switch Sockets",
+            "Switches: Factory-Lubed Linear Red or Tactile Brown Switches",
+            "Keycaps: Premium OEM Profile Double-Shot PBT (Oil-Resistant)",
+            "Lighting: 18 South-facing RGB backlight modes with audio sync",
+            "Structure: Gasket-mount feel with dual sound-dampening foam",
+            "Connectivity: Detachable Braided Type-C cable"
+        ],
+        "order": 4,
+        "created_at": datetime(2026, 1, 1)
+    },
+    {
+        "id": "custom-cyberpunk-mouse-pad",
+        "name": "Custom Neon Cyberpunk Speed Mouse Pad",
+        "category": "Mouse Pads",
+        "price": 1199,
+        "compare_at_price": 1699,
+        "badge": "Trending",
+        "is_customizable": True,
+        "rating": 4.9,
+        "reviews_count": 38,
+        "stock": 40,
+        "in_stock": True,
+        "image": "https://images.unsplash.com/photo-1542751371-adc38448a05e?auto=format&fit=crop&w=800&q=80",
+        "description": "Futuristic cyberpunk aesthetic desk mat. Customize with your gamer tag, logo, or high-definition cyber/synthwave artwork. Coated with low-friction nano-fabric for ultra-fast flick shots and tracking.",
+        "specs": [
+            "Dimensions: 900 x 400 x 4mm",
+            "Surface: Ultra-low friction nano-silk speed cloth",
+            "Personalization: Add custom GamerTag / Username or artwork",
+            "Edge: Dense 5mm locked anti-peel border",
+            "Spill-proof and machine-washable"
+        ],
+        "custom_options": {
+            "sizes": ["900 x 400 x 4mm", "800 x 300 x 3mm"],
+            "surfaces": ["Speed (Gliding)", "Control"],
+            "stitching": ["Edge-to-Edge Print", "Reinforced Black Stitch"]
+        },
+        "order": 5,
+        "created_at": datetime(2026, 1, 1)
+    },
+    {
+        "id": "coiled-aviator-keyboard-cable",
+        "name": "Custom Coiled Aviator Keyboard Cable (Type-C to USB-A)",
+        "category": "Accessories",
+        "price": 899,
+        "compare_at_price": 1299,
+        "badge": "Aesthetic",
+        "is_customizable": False,
+        "rating": 4.8,
+        "reviews_count": 29,
+        "stock": 25,
+        "in_stock": True,
+        "image": "https://images.unsplash.com/photo-1595225476474-87563907a212?auto=format&fit=crop&w=800&q=80",
+        "description": "Level up your battle station aesthetic with a double-sleeved coiled keyboard cable featuring a heavy-duty zinc alloy GX12 4-pin aviator connector. Ultra-durable PET mesh over 550 paracord.",
+        "specs": [
+            "Connector: GX12 4-Pin Aviator quick-detach mechanism",
+            "Cable: Double-sleeved (Paracord + PET Mesh)",
+            "Length: 1.5m straight host side + 15cm reverse coiled side",
+            "Terminations: Gold-plated USB Type-C to USB 2.0 Type-A",
+            "High-speed charging & zero-latency signal transmission"
+        ],
+        "order": 6,
+        "created_at": datetime(2026, 1, 1)
+    },
+    {
+        "id": "ergonomic-cooling-gel-wrist-rest",
+        "name": "Ergonomic Memory Foam Keyboard Wrist Rest (Cooling Gel)",
+        "category": "Accessories",
+        "price": 699,
+        "compare_at_price": 999,
+        "badge": "Ergonomics",
+        "is_customizable": False,
+        "rating": 4.9,
+        "reviews_count": 33,
+        "stock": 30,
+        "in_stock": True,
+        "image": "https://images.unsplash.com/photo-1587202372775-e229f172b9d7?auto=format&fit=crop&w=800&q=80",
+        "description": "Protect wrists from strain, carpal tunnel, and fatigue. Infused with therapeutic cooling gel and high-resilience memory foam covered in breathable Lycra fabric.",
+        "specs": [
+            "Material: High-density slow-rebound memory foam with cooling gel",
+            "Size: 360 x 75 x 20mm (Fits 60%, 65%, 75%, TKL keyboards)",
+            "Base: Non-slip textured PU grip base",
+            "Ergonomic incline slope aligns wrists naturally"
+        ],
+        "order": 7,
+        "created_at": datetime(2026, 1, 1)
+    }
+]
+
+DEFAULT_DISCOUNT_CODES = [
+    {
+        "code": "WELCOME10",
+        "type": "percentage",
+        "value": 10,
+        "min_order": 0,
+        "max_uses": 1000,
+        "uses_count": 0,
+        "is_active": True,
+        "description": "Welcome 10% discount on all gear",
+        "created_at": datetime(2026, 1, 1)
+    },
+    {
+        "code": "GLOBSOFT500",
+        "type": "fixed",
+        "value": 500,
+        "min_order": 2500,
+        "max_uses": 500,
+        "uses_count": 0,
+        "is_active": True,
+        "description": "रु 500 flat discount on orders over रु 2,500",
+        "created_at": datetime(2026, 1, 1)
+    },
+    {
+        "code": "CUSTOMPAD",
+        "type": "percentage",
+        "value": 15,
+        "min_order": 999,
+        "max_uses": 300,
+        "uses_count": 0,
+        "is_active": True,
+        "description": "15% off for custom desk mats and mouse pads",
+        "created_at": datetime(2026, 1, 1)
+    }
+]
+
+_shop_cache = {
+    "products": None,
+    "products_time": None,
+    "discounts": None,
+    "discounts_time": None,
+}
+
+def get_all_shop_products():
+    """Retrieve all shop products with caching and fallback to DEFAULT_SHOP_PRODUCTS."""
+    now = datetime.now()
+    if _shop_cache["products"] and _shop_cache["products_time"] and (now - _shop_cache["products_time"]).total_seconds() < 60:
+        return [dict(p) for p in _shop_cache["products"]]
+
+    try:
+        db = client["globsoft_db"]
+        col = db["shop_products"]
+        prods = list(col.find().sort("order", 1))
+        if not prods:
+            try:
+                for p in DEFAULT_SHOP_PRODUCTS:
+                    doc = dict(p)
+                    col.insert_one(doc)
+                prods = list(col.find().sort("order", 1))
+            except Exception:
+                _shop_cache["products"] = DEFAULT_SHOP_PRODUCTS
+                _shop_cache["products_time"] = now
+                return [dict(p) for p in DEFAULT_SHOP_PRODUCTS]
+        
+        for p in prods:
+            if "_id" in p:
+                p["_id"] = str(p["_id"])
+        _shop_cache["products"] = prods
+        _shop_cache["products_time"] = now
+        return prods
+    except Exception as exc:
+        app.logger.warning(f"Error reading shop_products: {exc}")
+        _shop_cache["products"] = DEFAULT_SHOP_PRODUCTS
+        _shop_cache["products_time"] = now
+        return [dict(p) for p in DEFAULT_SHOP_PRODUCTS]
+
+
+def get_all_discount_codes():
+    """Retrieve all discount codes with caching and fallback to DEFAULT_DISCOUNT_CODES."""
+    now = datetime.now()
+    if _shop_cache["discounts"] and _shop_cache["discounts_time"] and (now - _shop_cache["discounts_time"]).total_seconds() < 60:
+        return [dict(d) for d in _shop_cache["discounts"]]
+
+    try:
+        db = client["globsoft_db"]
+        col = db["discount_codes"]
+        discounts = list(col.find().sort("created_at", -1))
+        if not discounts:
+            try:
+                for d in DEFAULT_DISCOUNT_CODES:
+                    doc = dict(d)
+                    col.insert_one(doc)
+                discounts = list(col.find().sort("created_at", -1))
+            except Exception:
+                _shop_cache["discounts"] = DEFAULT_DISCOUNT_CODES
+                _shop_cache["discounts_time"] = now
+                return [dict(d) for d in DEFAULT_DISCOUNT_CODES]
+        
+        for d in discounts:
+            if "_id" in d:
+                d["_id"] = str(d["_id"])
+        _shop_cache["discounts"] = discounts
+        _shop_cache["discounts_time"] = now
+        return discounts
+    except Exception as exc:
+        app.logger.warning(f"Error reading discount_codes: {exc}")
+        _shop_cache["discounts"] = DEFAULT_DISCOUNT_CODES
+        _shop_cache["discounts_time"] = now
+        return [dict(d) for d in DEFAULT_DISCOUNT_CODES]
+
+
+def validate_discount_code(code_str, subtotal):
+    """Validate a promo code against active codes and subtotal requirements."""
+    code_clean = str(code_str or "").strip().upper()
+    if not code_clean:
+        return False, "No promo code provided.", 0, None
+
+    all_discounts = get_all_discount_codes()
+    discount = next((d for d in all_discounts if d.get("code", "").upper() == code_clean), None)
+    
+    if not discount:
+        return False, f"Coupon code '{code_clean}' is invalid.", 0, None
+
+    if not discount.get("is_active", True):
+        return False, f"Coupon code '{code_clean}' is no longer active.", 0, None
+
+    max_uses = int(discount.get("max_uses") or 0)
+    uses_count = int(discount.get("uses_count") or 0)
+    if max_uses > 0 and uses_count >= max_uses:
+        return False, f"Coupon code '{code_clean}' has reached its maximum redemptions.", 0, None
+
+    min_order = float(discount.get("min_order") or 0)
+    if subtotal < min_order:
+        return False, f"Coupon code requires a minimum order amount of रु {min_order:,.0f}.", 0, None
+
+    dtype = discount.get("type", "percentage")
+    val = float(discount.get("value", 0))
+
+    if dtype == "percentage":
+        discount_amount = round(subtotal * (val / 100.0), 2)
+    else:
+        discount_amount = min(val, float(subtotal))
+
+    discount_amount = max(0.0, min(discount_amount, float(subtotal)))
+    return True, f"Promo code '{code_clean}' applied successfully!", discount_amount, discount
+
+
+# ==================== PUBLIC SHOP APIS ====================
+
+@app.route("/api/shop/products", methods=['GET'])
 @app.route("/api/products", methods=['GET'])
-def get_products():
-    global _products_cache
-    
-    if (_products_cache["data"] and _products_cache["timestamp"] and 
-        datetime.now() - _products_cache["timestamp"] < timedelta(minutes=5)):
-        response = jsonify(_products_cache["data"])
-        response.headers['Cache-Control'] = 'public, max-age=300'
-        response.headers['Access-Control-Allow-Origin'] = '*'
-        return response
-    
-    db = client["globsoft_db"]
-    collection = db["products"]
-    products = list(collection.find().sort("order", 1))
-    
-    # Convert ObjectId to string
-    for product in products:
-        product['_id'] = str(product['_id'])
-    
-    _products_cache["data"] = products
-    _products_cache["timestamp"] = datetime.now()
-    
-    response = jsonify(products)
-    response.headers['Cache-Control'] = 'public, max-age=300'
-    response.headers['Access-Control-Allow-Origin'] = '*'
-    return response
+def api_get_shop_products():
+    """Return all active products in the shop."""
+    products = get_all_shop_products()
+    resp = jsonify(products)
+    resp.headers['Cache-Control'] = 'public, max-age=60'
+    resp.headers['Access-Control-Allow-Origin'] = '*'
+    return resp
 
 
-@app.route("/products-manager", methods=['GET', 'POST'])
+@app.route("/api/shop/products/<product_id>", methods=['GET'])
+def api_get_shop_product(product_id):
+    """Return single product details."""
+    products = get_all_shop_products()
+    prod = next((p for p in products if p.get("id") == product_id or str(p.get("_id", "")) == product_id), None)
+    if not prod:
+        return jsonify({"success": False, "error": "Product not found"}), 404
+    resp = jsonify({"success": True, "product": prod})
+    resp.headers['Access-Control-Allow-Origin'] = '*'
+    return resp
+
+
+@app.route("/api/shop/discount/validate", methods=['POST', 'OPTIONS'])
+def api_validate_discount():
+    """Validate a discount code and return calculated discount and new total."""
+    if request.method == "OPTIONS":
+        return "", 204
+
+    data = request.get_json(silent=True) or {}
+    code = data.get("code", "")
+    try:
+        subtotal = float(data.get("subtotal", 0))
+    except (ValueError, TypeError):
+        subtotal = 0.0
+
+    valid, msg, discount_amount, discount_obj = validate_discount_code(code, subtotal)
+    
+    if not valid:
+        return jsonify({
+            "valid": False,
+            "error": msg,
+            "discount_amount": 0,
+            "subtotal": subtotal,
+            "new_total": subtotal
+        }), 400
+
+    new_total = max(0.0, subtotal - discount_amount)
+    return jsonify({
+        "valid": True,
+        "message": msg,
+        "code": discount_obj.get("code"),
+        "type": discount_obj.get("type"),
+        "value": discount_obj.get("value"),
+        "discount_amount": discount_amount,
+        "subtotal": subtotal,
+        "new_total": new_total
+    })
+
+
+@app.route("/api/shop/order", methods=['POST', 'OPTIONS'])
+def api_place_shop_order():
+    """Process incoming Cash on Delivery (COD) hardware orders."""
+    if request.method == "OPTIONS":
+        return "", 204
+
+    try:
+        client_ip = get_client_ip()
+        if is_rate_limited(client_ip):
+            return jsonify({
+                "success": False,
+                "error": "Too many requests. Please wait a moment."
+            }), 429
+
+        data = request.get_json(silent=True) or request.form.to_dict() or {}
+        customer = data.get("customer") or {}
+        items = data.get("items") or []
+        discount_code_input = str(data.get("discount_code") or "").strip().upper()
+
+        # Validate customer
+        name = str(customer.get("name") or data.get("name") or "").strip()
+        email = str(customer.get("email") or data.get("email") or "").strip().lower()
+        phone = str(customer.get("phone") or data.get("phone") or "").strip()
+        city = str(customer.get("city") or data.get("city") or "").strip()
+        address = str(customer.get("address") or data.get("address") or "").strip()
+        notes = str(customer.get("notes") or data.get("notes") or "").strip()
+
+        if not name:
+            return jsonify({"success": False, "error": "Customer name is required."}), 400
+        if not phone or len(phone) < 7:
+            return jsonify({"success": False, "error": "A valid mobile phone number is required for COD delivery confirmation."}), 400
+        if not address:
+            return jsonify({"success": False, "error": "Detailed delivery street address is required for COD dispatch."}), 400
+        if not city:
+            city = "Kathmandu Valley"
+
+        if not items or not isinstance(items, list):
+            return jsonify({"success": False, "error": "Your shopping cart is empty."}), 400
+
+        # SERVER-SIDE PRICE AND ITEM VERIFICATION
+        catalog = {p.get("id"): p for p in get_all_shop_products()}
+        verified_items = []
+        server_subtotal = 0.0
+
+        for itm in items:
+            p_id = itm.get("id")
+            prod = catalog.get(p_id)
+            try:
+                qty = max(1, int(itm.get("quantity") or 1))
+            except (ValueError, TypeError):
+                qty = 1
+
+            if prod:
+                price = float(prod.get("price", 0))
+                item_name = prod.get("name", "Product")
+                item_img = prod.get("image", "")
+            else:
+                price = float(itm.get("price") or 999)
+                item_name = str(itm.get("name") or "Hardware Item")
+                item_img = str(itm.get("image") or "")
+
+            item_line_total = price * qty
+            server_subtotal += item_line_total
+
+            custom_opts = itm.get("custom_options") or {}
+            verified_items.append({
+                "id": p_id or slugify(item_name),
+                "name": item_name,
+                "price": price,
+                "quantity": qty,
+                "image": item_img,
+                "line_total": item_line_total,
+                "custom_options": {
+                    "size": str(custom_opts.get("size", "")),
+                    "surface": str(custom_opts.get("surface", "")),
+                    "stitching": str(custom_opts.get("stitching", "")),
+                    "custom_design_url": str(custom_opts.get("custom_design_url", "")),
+                    "custom_note": str(custom_opts.get("custom_note", "") or itm.get("custom_note", ""))
+                }
+            })
+
+        # SERVER-SIDE DISCOUNT CODE APPLICATION
+        applied_discount_amount = 0.0
+        validated_code = None
+        if discount_code_input:
+            valid, msg, disc_amt, disc_obj = validate_discount_code(discount_code_input, server_subtotal)
+            if valid:
+                applied_discount_amount = disc_amt
+                validated_code = disc_obj.get("code")
+
+        total_amount = max(0.0, server_subtotal - applied_discount_amount)
+
+        # Generate unique order number (e.g. GST-COD-18924)
+        order_num = f"GST-COD-{int(time.time()) % 100000:05d}"
+
+        order_doc = {
+            "order_id": order_num,
+            "created_at": datetime.now(),
+            "customer": {
+                "name": name,
+                "email": email or "not-provided@customer.local",
+                "phone": phone,
+                "city": city,
+                "address": address,
+                "notes": notes
+            },
+            "items": verified_items,
+            "items_count": len(verified_items),
+            "subtotal": server_subtotal,
+            "discount_code": validated_code,
+            "discount_amount": applied_discount_amount,
+            "shipping_fee": 0.0,
+            "total_amount": total_amount,
+            "payment_method": "Cash on Delivery (COD)",
+            "status": "Pending",
+            "ip_address": client_ip
+        }
+
+        # Save to globsoft_db.shop_orders
+        try:
+            db = client["globsoft_db"]
+            db["shop_orders"].insert_one(order_doc)
+            
+            # Increment discount code usage count
+            if validated_code:
+                try:
+                    db["discount_codes"].update_one(
+                        {"code": validated_code},
+                        {"$inc": {"uses_count": 1}}
+                    )
+                except Exception:
+                    pass
+        except Exception as e:
+            app.logger.warning(f"Could not write to shop_orders collection: {e}")
+
+        # Also log to customer_db.customers for CRM integration
+        try:
+            cust_db = client["customer_db"]
+            cust_summary = f"Shop COD Order #{order_num}: {len(verified_items)} item(s) to {city}. Total: रु {total_amount:,.0f}."
+            if notes:
+                cust_summary += f" Notes: {notes}"
+            cust_db["customers"].insert_one({
+                "name": name,
+                "email": email or "N/A",
+                "phone": phone,
+                "company": f"Order #{order_num}",
+                "location": f"{city}, {address}",
+                "source": "Shop COD Order",
+                "type": "shop_order",
+                "service": f"Hardware Shop ({len(verified_items)} items)",
+                "price": str(int(total_amount)),
+                "remark": cust_summary,
+                "order_id": order_num,
+                "status_call": False,
+                "status_sms": False,
+                "status_whatsapp": False,
+                "status_email": False,
+                "ip_address": client_ip,
+                "user": "website_shop",
+                "date_added": datetime.now()
+            })
+        except Exception as e:
+            app.logger.warning(f"Could not write to customer_db: {e}")
+
+        # Send alert email
+        try:
+            items_text_list = "\n".join([
+                f"- {itm['quantity']}x {itm['name']} (रु {itm['price']:,.0f}) {itm['custom_options']['custom_note'] if itm['custom_options'].get('custom_note') else ''}"
+                for itm in verified_items
+            ])
+            email_subj = f"🛍️ New COD Shop Order #{order_num} from {name} (रु {total_amount:,.0f})"
+            email_body = f"""New Cash on Delivery Order Received!
+
+Order ID: #{order_num}
+Customer: {name}
+Phone: {phone}
+Email: {email}
+Delivery Destination: {city} - {address}
+Delivery Instructions: {notes or 'None'}
+
+Ordered Items:
+{items_text_list}
+
+Subtotal: रु {server_subtotal:,.0f}
+Promo Code: {validated_code or 'None'} (- रु {applied_discount_amount:,.0f})
+COD Total to Collect: रु {total_amount:,.0f}
+Payment Method: Cash on Delivery (COD)
+
+Log in to the Globsoft Tech Admin portal to confirm and dispatch:
+https://adminglobsoft.vercel.app/shop/orders
+"""
+            send_admin_alert(email_subj, email_body)
+        except Exception as em_err:
+            app.logger.warning(f"Failed sending shop order notification email: {em_err}")
+
+        # Clean order doc for json return
+        order_return = dict(order_doc)
+        if "_id" in order_return:
+            order_return["_id"] = str(order_return["_id"])
+        order_return["created_at"] = order_doc["created_at"].isoformat()
+
+        return jsonify({
+            "success": True,
+            "order_id": order_num,
+            "total_amount": total_amount,
+            "order": order_return,
+            "message": f"Order #{order_num} placed successfully! Our dispatch team will verify via phone and ship via Cash on Delivery."
+        })
+
+    except Exception as exc:
+        app.logger.exception("Shop order placement error")
+        return jsonify({"success": False, "error": f"Order processing failed: {str(exc)}"}), 500
+
+
+@app.route("/api/shop/orders/<order_id>", methods=['GET'])
+def api_get_shop_order(order_id):
+    """Retrieve order receipt details by order ID."""
+    try:
+        db = client["globsoft_db"]
+        order = db["shop_orders"].find_one({"order_id": order_id})
+        if not order:
+            return jsonify({"success": False, "error": "Order not found"}), 404
+        order["_id"] = str(order["_id"])
+        if isinstance(order.get("created_at"), datetime):
+            order["created_at"] = order["created_at"].isoformat()
+        return jsonify({"success": True, "order": order})
+    except Exception as exc:
+        return jsonify({"success": False, "error": str(exc)}), 500
+
+
+# ==================== ADMIN SHOP PORTALS ====================
+
+@app.route("/shop/orders", methods=['GET'])
 @no_cache
-def manage_products():
-    global _products_cache
+def admin_shop_orders():
+    """View and manage incoming COD shop orders."""
     if not is_admin():
         return redirect("/blogs" if session.get("role") == "author" else "/")
 
-    db = client["globsoft_db"]
-    collection = db["products"]
-    
-    if request.method == 'POST':
-        action = request.form.get("action")
-        
-        if action == "add":
-            product_data = {
-                "id": int(request.form.get("product_id")),
-                "name": request.form.get("name"),
-                "image": request.form.get("image"),
-                "link": request.form.get("link"),
-                "desc": request.form.get("desc"),
-                "order": int(request.form.get("order", 999)),
-                "updated_at": datetime.now()
-            }
-            collection.insert_one(product_data)
-            _products_cache = {"data": None, "timestamp": None}
-            
-            from flask import flash
-            flash('Product added successfully!', 'success')
-        
-        elif action == "edit":
-            product_id = request.form.get("edit_id")
-            collection.update_one(
-                {"_id": ObjectId(product_id)},
-                {"$set": {
-                    "name": request.form.get("name"),
-                    "image": request.form.get("image"),
-                    "link": request.form.get("link"),
-                    "desc": request.form.get("desc"),
-                    "order": int(request.form.get("order", 999)),
-                    "updated_at": datetime.now()
-                }}
-            )
-            _products_cache = {"data": None, "timestamp": None}
-            
-            from flask import flash
-            flash('Product updated successfully!', 'success')
-        
-        elif action == "delete":
-            product_id = request.form.get("delete_id")
-            collection.delete_one({"_id": ObjectId(product_id)})
-            _products_cache = {"data": None, "timestamp": None}
-            
-            from flask import flash
-            flash('Product deleted successfully!', 'success')
-        
-        return redirect('/products-manager')
-    
-    products = list(collection.find().sort("order", 1))
-    return render_template('products_manager.html', products=products)
+    try:
+        db = client["globsoft_db"]
+        orders = list(db["shop_orders"].find().sort("created_at", -1))
+        for o in orders:
+            o["_id"] = str(o["_id"])
+    except Exception as exc:
+        app.logger.warning(f"Error fetching orders: {exc}")
+        orders = []
+
+    total_orders = len(orders)
+    pending_orders = sum(1 for o in orders if o.get("status") == "Pending")
+    active_dispatch = sum(1 for o in orders if o.get("status") in ["Confirmed", "Processing", "Shipped"])
+    total_revenue = sum(float(o.get("total_amount", 0)) for o in orders if o.get("status") != "Cancelled")
+
+    return render_template(
+        "shop_orders.html",
+        orders=orders,
+        total_orders=total_orders,
+        pending_orders=pending_orders,
+        active_dispatch=active_dispatch,
+        total_revenue=total_revenue
+    )
+
+
+@app.route("/shop/orders/<order_id>/status", methods=['POST'])
+@no_cache
+def admin_update_order_status(order_id):
+    """Update milestone status of a COD order."""
+    if not is_admin():
+        return redirect("/")
+
+    new_status = request.form.get("status", "Pending")
+    try:
+        db = client["globsoft_db"]
+        db["shop_orders"].update_one(
+            {"order_id": order_id},
+            {"$set": {"status": new_status, "updated_at": datetime.now()}}
+        )
+        flash(f"Order #{order_id} status updated to {new_status}.", "success")
+    except Exception as exc:
+        flash(f"Could not update order status: {exc}", "error")
+
+    return redirect("/shop/orders")
+
+
+@app.route("/shop/orders/<order_id>/delete", methods=['POST'])
+@no_cache
+def admin_delete_shop_order(order_id):
+    """Delete or archive an order."""
+    if not is_admin():
+        return redirect("/")
+
+    try:
+        db = client["globsoft_db"]
+        db["shop_orders"].delete_one({"order_id": order_id})
+        flash(f"Order #{order_id} deleted successfully.", "success")
+    except Exception as exc:
+        flash(f"Could not delete order: {exc}", "error")
+
+    return redirect("/shop/orders")
+
+
+@app.route("/shop/products", methods=['GET'])
+@app.route("/products-manager", methods=['GET', 'POST'])
+@no_cache
+def admin_shop_products():
+    """Manage hardware catalog products."""
+    if not is_admin():
+        return redirect("/blogs" if session.get("role") == "author" else "/")
+
+    products = get_all_shop_products()
+    return render_template("shop_products.html", products=products)
+
+
+@app.route("/shop/products/add", methods=['POST'])
+@no_cache
+def admin_add_shop_product():
+    """Add a new product to the hardware shop catalog."""
+    if not is_admin():
+        return redirect("/")
+
+    try:
+        p_id = slugify(request.form.get("id") or request.form.get("name"))
+        name = request.form.get("name", "").strip()
+        category = request.form.get("category", "Mouse Pads").strip()
+        price = float(request.form.get("price") or 0)
+        compare_price = float(request.form.get("compare_at_price") or 0) if request.form.get("compare_at_price") else None
+        image = request.form.get("image", "").strip()
+        stock = int(request.form.get("stock") or 50)
+        badge = request.form.get("badge", "").strip()
+        is_customizable = bool(request.form.get("is_customizable"))
+        desc = request.form.get("description", "").strip()
+        specs_raw = request.form.get("specs", "").strip()
+        specs = [s.strip() for s in specs_raw.splitlines() if s.strip()]
+
+        product_doc = {
+            "id": p_id,
+            "name": name,
+            "category": category,
+            "price": price,
+            "compare_at_price": compare_price,
+            "image": image,
+            "stock": stock,
+            "in_stock": stock > 0,
+            "badge": badge,
+            "is_customizable": is_customizable,
+            "description": desc,
+            "specs": specs,
+            "order": 99,
+            "created_at": datetime.now()
+        }
+
+        db = client["globsoft_db"]
+        db["shop_products"].update_one({"id": p_id}, {"$set": product_doc}, upsert=True)
+        flash(f"Product '{name}' saved successfully!", "success")
+    except Exception as exc:
+        flash(f"Error saving product: {exc}", "error")
+
+    return redirect("/shop/products")
+
+
+@app.route("/shop/products/<product_id>/edit", methods=['POST'])
+@no_cache
+def admin_edit_shop_product(product_id):
+    """Edit existing product."""
+    if not is_admin():
+        return redirect("/")
+
+    try:
+        name = request.form.get("name", "").strip()
+        category = request.form.get("category", "Mouse Pads").strip()
+        price = float(request.form.get("price") or 0)
+        compare_price = float(request.form.get("compare_at_price") or 0) if request.form.get("compare_at_price") else None
+        image = request.form.get("image", "").strip()
+        stock = int(request.form.get("stock") or 50)
+        badge = request.form.get("badge", "").strip()
+        is_customizable = bool(request.form.get("is_customizable"))
+        desc = request.form.get("description", "").strip()
+        specs_raw = request.form.get("specs", "").strip()
+        specs = [s.strip() for s in specs_raw.splitlines() if s.strip()]
+
+        update_fields = {
+            "name": name,
+            "category": category,
+            "price": price,
+            "compare_at_price": compare_price,
+            "image": image,
+            "stock": stock,
+            "in_stock": stock > 0,
+            "badge": badge,
+            "is_customizable": is_customizable,
+            "description": desc,
+            "specs": specs,
+            "updated_at": datetime.now()
+        }
+
+        db = client["globsoft_db"]
+        db["shop_products"].update_one({"id": product_id}, {"$set": update_fields})
+        flash(f"Product '{name}' updated successfully!", "success")
+    except Exception as exc:
+        flash(f"Error updating product: {exc}", "error")
+
+    return redirect("/shop/products")
+
+
+@app.route("/shop/products/<product_id>/toggle-stock", methods=['POST'])
+@no_cache
+def admin_toggle_product_stock(product_id):
+    """Toggle in_stock flag for product."""
+    if not is_admin():
+        return redirect("/")
+
+    try:
+        db = client["globsoft_db"]
+        prod = db["shop_products"].find_one({"id": product_id})
+        if prod:
+            curr_stock = prod.get("in_stock", True)
+            db["shop_products"].update_one({"id": product_id}, {"$set": {"in_stock": not curr_stock}})
+            flash(f"Stock status for '{prod.get('name')}' updated.", "success")
+    except Exception as exc:
+        flash(f"Error toggling stock: {exc}", "error")
+
+    return redirect("/shop/products")
+
+
+@app.route("/shop/products/<product_id>/delete", methods=['POST'])
+@no_cache
+def admin_delete_shop_product(product_id):
+    """Delete a product from the shop."""
+    if not is_admin():
+        return redirect("/")
+
+    try:
+        db = client["globsoft_db"]
+        db["shop_products"].delete_one({"id": product_id})
+        flash("Product deleted successfully.", "success")
+    except Exception as exc:
+        flash(f"Error deleting product: {exc}", "error")
+
+    return redirect("/shop/products")
+
+
+@app.route("/shop/discounts", methods=['GET'])
+@no_cache
+def admin_discount_codes():
+    """Manage promo and discount codes."""
+    if not is_admin():
+        return redirect("/blogs" if session.get("role") == "author" else "/")
+
+    discounts = get_all_discount_codes()
+    return render_template("discount_codes.html", discounts=discounts)
+
+
+@app.route("/shop/discounts/add", methods=['POST'])
+@no_cache
+def admin_add_discount_code():
+    """Create a new discount code."""
+    if not is_admin():
+        return redirect("/")
+
+    try:
+        code = request.form.get("code", "").strip().upper()
+        dtype = request.form.get("type", "percentage")
+        val = float(request.form.get("value") or 0)
+        min_order = float(request.form.get("min_order") or 0)
+        max_uses = int(request.form.get("max_uses") or 0)
+        desc = request.form.get("description", "").strip()
+
+        if not code:
+            flash("Coupon code is required.", "error")
+            return redirect("/shop/discounts")
+
+        doc = {
+            "code": code,
+            "type": dtype,
+            "value": val,
+            "min_order": min_order,
+            "max_uses": max_uses,
+            "uses_count": 0,
+            "is_active": True,
+            "description": desc,
+            "created_at": datetime.now()
+        }
+
+        db = client["globsoft_db"]
+        db["discount_codes"].update_one({"code": code}, {"$set": doc}, upsert=True)
+        flash(f"Discount code '{code}' created successfully!", "success")
+    except Exception as exc:
+        flash(f"Error creating discount code: {exc}", "error")
+
+    return redirect("/shop/discounts")
+
+
+@app.route("/shop/discounts/<code>/toggle", methods=['POST'])
+@no_cache
+def admin_toggle_discount_code(code):
+    """Toggle active status of a discount code."""
+    if not is_admin():
+        return redirect("/")
+
+    try:
+        db = client["globsoft_db"]
+        d = db["discount_codes"].find_one({"code": code.upper()})
+        if d:
+            new_active = not d.get("is_active", True)
+            db["discount_codes"].update_one({"code": code.upper()}, {"$set": {"is_active": new_active}})
+            flash(f"Discount code '{code}' is now {'ACTIVE' if new_active else 'DISABLED'}.", "success")
+    except Exception as exc:
+        flash(f"Error updating discount code: {exc}", "error")
+
+    return redirect("/shop/discounts")
+
+
+@app.route("/shop/discounts/<code>/delete", methods=['POST'])
+@no_cache
+def admin_delete_discount_code(code):
+    """Delete a discount code."""
+    if not is_admin():
+        return redirect("/")
+
+    try:
+        db = client["globsoft_db"]
+        db["discount_codes"].delete_one({"code": code.upper()})
+        flash(f"Discount code '{code}' deleted.", "success")
+    except Exception as exc:
+        flash(f"Error deleting code: {exc}", "error")
+
+    return redirect("/shop/discounts")
+
 
 # In app.py — Update the dashboard() route:
 @app.route("/", methods=['GET', 'POST'])
@@ -3655,6 +4490,12 @@ def generate_sitemap():
     <priority>1.0</priority>
   </url>""",
         f"""  <url>
+    <loc>{site_base}/shop</loc>
+    <lastmod>{now_iso}</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>0.95</priority>
+  </url>""",
+        f"""  <url>
     <loc>{site_base}/blog</loc>
     <lastmod>{now_iso}</lastmod>
     <changefreq>daily</changefreq>
@@ -3689,6 +4530,27 @@ def get_admin_notifications(limit=60):
     try:
         cust_db = client["customer_db"]
         glob_db = client["globsoft_db"]
+
+        # 0. Hardware Shop COD Orders
+        try:
+            shop_orders = list(glob_db["shop_orders"].find().sort("created_at", -1).limit(limit))
+            for so in shop_orders:
+                cust_info = so.get("customer") or {}
+                notifications.append({
+                    "id": str(so.get("_id")),
+                    "type": "shop_order",
+                    "badge": f"COD #{so.get('order_id')}",
+                    "icon": "fa-solid fa-cart-flatbed",
+                    "color": "#ffc876",
+                    "title": f"Hardware Order: रु {so.get('total_amount', 0):,.0f} (COD)",
+                    "description": f"{cust_info.get('name', 'Customer')} ({cust_info.get('phone', '')}) ordered {len(so.get('items', []))} item(s) to {cust_info.get('city', '')}.",
+                    "timestamp": so.get("created_at") or datetime.utcnow(),
+                    "link": "/shop/orders",
+                })
+        except Exception:
+            pass
+
+
 
         # 1. Orders
         orders = list(cust_db["customers"].find({

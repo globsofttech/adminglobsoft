@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="shortcut icon" type="image/svg+xml" href="{{ url_for('static', filename='images/globsoft.svg') }}">
+    <title>Discount &amp; Promo Codes - Globsoft Tech Admin</title>
+
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/admin.css') }}">
+    <style>
+        .shop-page-wrapper {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        .discount-table-card {
+            background: var(--admin-panel, #111426);
+            border: 1px solid var(--admin-line, rgba(166,177,221,.14));
+            border-radius: 16px;
+            overflow: hidden;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.25);
+        }
+        .discount-table {
+            width: 100%;
+            border-collapse: collapse;
+            color: var(--admin-text, #f8f9ff);
+        }
+        .discount-table th {
+            background: rgba(0,0,0,0.2);
+            padding: 14px 18px;
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: .08em;
+            color: var(--admin-muted, #8e94b3);
+            border-bottom: 1px solid var(--admin-line, rgba(166,177,221,.14));
+        }
+        .discount-table td {
+            padding: 16px 18px;
+            font-size: 0.85rem;
+            border-bottom: 1px solid rgba(166,177,221,.08);
+            vertical-align: middle;
+        }
+        .code-pill {
+            display: inline-block;
+            font-family: monospace;
+            font-size: 0.95rem;
+            font-weight: 700;
+            padding: 4px 10px;
+            border-radius: 6px;
+            background: rgba(121, 255, 247, 0.12);
+            color: var(--admin-cyan, #79fff7);
+            border: 1px dashed var(--admin-cyan, #79fff7);
+            letter-spacing: .1em;
+        }
+        .form-control, .form-select {
+            background: var(--admin-panel-2, #181c32) !important;
+            border: 1px solid var(--admin-line, rgba(166,177,221,.2)) !important;
+            color: var(--admin-text, #f8f9ff) !important;
+            border-radius: 10px;
+        }
+        .modal-content {
+            background: var(--admin-panel, #111426);
+            color: var(--admin-text, #f8f9ff);
+            border: 1px solid var(--admin-line, rgba(166,177,221,.2));
+            border-radius: 18px;
+        }
+        .modal-header, .modal-footer {
+            border-color: var(--admin-line, rgba(166,177,221,.14));
+        }
+    </style>
+</head>
+<body class="admin-page">
+    {% include '_admin_shell_start.html' %}
+
+    <div class="shop-page-wrapper">
+        <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-3">
+            <div>
+                <p class="eyebrow" style="color:var(--admin-cyan); font-size:.75rem; text-transform:uppercase; letter-spacing:.15em; margin-bottom:4px;">Marketing &amp; Promotions</p>
+                <h1 style="font-size:1.75rem; font-weight:700; margin:0;">🏷️ Discount &amp; Promo Codes</h1>
+                <p style="color:var(--admin-muted); font-size:.85rem; margin-top:4px;">
+                    Create and manage discount coupons for your hardware shop (percentage % off or fixed cash deduction).
+                </p>
+            </div>
+            <div class="d-flex gap-2">
+                <a href="/shop/orders" class="btn btn-outline-info btn-sm px-3 py-2" style="border-radius:8px;">
+                    <i class="fa-solid fa-cart-shopping me-1"></i> Orders
+                </a>
+                <button type="button" class="btn btn-primary btn-sm px-3 py-2" style="border-radius:8px; background:linear-gradient(135deg, var(--admin-cyan), var(--admin-purple)); border:none; color:#0b0f19; font-weight:700;" onclick="openAddDiscountModal()">
+                    <i class="fa-solid fa-plus me-1"></i> Create Discount Code
+                </button>
+            </div>
+        </div>
+
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="flash {{ category }} mb-3">{{ message }}</div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+
+        <!-- Discount Codes Table -->
+        <div class="discount-table-card">
+            <div class="table-responsive">
+                <table class="discount-table">
+                    <thead>
+                        <tr>
+                            <th>Coupon Code</th>
+                            <th>Discount Benefit</th>
+                            <th>Min. Order</th>
+                            <th>Usage / Limit</th>
+                            <th>Status</th>
+                            <th>Description</th>
+                            <th style="text-align:right;">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% if discounts and discounts|length > 0 %}
+                            {% for d in discounts %}
+                            <tr>
+                                <td>
+                                    <span class="code-pill">{{ d.code }}</span>
+                                </td>
+                                <td>
+                                    {% if d.type == 'percentage' %}
+                                        <strong style="color:#7adb78; font-size:1.05rem;">{{ d.value }}% OFF</strong>
+                                    {% else %}
+                                        <strong style="color:#7adb78; font-size:1.05rem;">रु {{ "{:,.0f}".format(d.value) }} OFF</strong>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if d.min_order and d.min_order > 0 %}
+                                        रु {{ "{:,.0f}".format(d.min_order) }}
+                                    {% else %}
+                                        <span class="text-muted">No Minimum</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <strong>{{ d.uses_count or 0 }}</strong>
+                                    {% if d.max_uses and d.max_uses > 0 %}
+                                        / {{ d.max_uses }} uses
+                                    {% else %}
+                                        / &infin; (Unlimited)
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if d.is_active %}
+                                        <span class="badge" style="background:rgba(122,219,120,0.15); color:#7adb78; border:1px solid rgba(122,219,120,0.3); padding:5px 8px;">ACTIVE</span>
+                                    {% else %}
+                                        <span class="badge" style="background:rgba(255,107,107,0.15); color:#ff6b6b; border:1px solid rgba(255,107,107,0.3); padding:5px 8px;">DISABLED</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <small style="color:var(--admin-muted);">{{ d.description or 'No notes' }}</small>
+                                </td>
+                                <td style="text-align:right; white-space:nowrap;">
+                                    <form method="POST" action="/shop/discounts/{{ d.code }}/toggle" class="d-inline">
+                                        <button type="submit" class="btn btn-outline-warning btn-sm me-1" title="Toggle Active">
+                                            {% if d.is_active %}Deactivate{% else %}Activate{% endif %}
+                                        </button>
+                                    </form>
+                                    <form method="POST" action="/shop/discounts/{{ d.code }}/delete" class="d-inline" onsubmit="return confirm('Delete code {{ d.code }}?');">
+                                        <button type="submit" class="btn btn-outline-danger btn-sm" title="Delete">
+                                            <i class="fa-solid fa-trash"></i>
+                                        </button>
+                                    </form>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        {% else %}
+                            <tr>
+                                <td colspan="7" style="text-align:center; padding:50px 20px; color:var(--admin-muted);">
+                                    <i class="fa-solid fa-ticket mb-2" style="font-size:2.5rem; color:var(--admin-cyan);"></i>
+                                    <h5>No custom discount codes yet</h5>
+                                    <p style="font-size:0.85rem;">Click "Create Discount Code" to add special promo campaigns.</p>
+                                </td>
+                            </tr>
+                        {% endif %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add Discount Modal -->
+    <div class="modal fade" id="discountModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <form method="POST" action="/shop/discounts/add">
+                    <div class="modal-header">
+                        <h5 class="modal-title" style="color:var(--admin-cyan);"><i class="fa-solid fa-plus me-1"></i> Create Discount Code</h5>
+                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="mb-3">
+                            <label class="form-label" style="font-size:0.8rem; font-weight:600;">Promo Code (All CAPS) *</label>
+                            <input type="text" name="code" class="form-control" required placeholder="e.g. SUMMER15, SPECIAL500" style="text-transform:uppercase;">
+                        </div>
+                        <div class="row g-2 mb-3">
+                            <div class="col-6">
+                                <label class="form-label" style="font-size:0.8rem; font-weight:600;">Discount Type *</label>
+                                <select name="type" class="form-select" required id="discountTypeSelect" onchange="updateDiscountLabel()">
+                                    <option value="percentage">Percentage (% off)</option>
+                                    <option value="fixed">Fixed Cash Amount (रु off)</option>
+                                </select>
+                            </div>
+                            <div class="col-6">
+                                <label class="form-label" id="discountValueLabel" style="font-size:0.8rem; font-weight:600;">Percentage Value (%) *</label>
+                                <input type="number" name="value" class="form-control" required min="1" step="any" placeholder="10">
+                            </div>
+                        </div>
+                        <div class="row g-2 mb-3">
+                            <div class="col-6">
+                                <label class="form-label" style="font-size:0.8rem; font-weight:600;">Min. Order Amount (रु)</label>
+                                <input type="number" name="min_order" class="form-control" min="0" value="0" placeholder="0">
+                            </div>
+                            <div class="col-6">
+                                <label class="form-label" style="font-size:0.8rem; font-weight:600;">Max Uses Limit</label>
+                                <input type="number" name="max_uses" class="form-control" min="0" value="0" placeholder="0 (unlimited)">
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label" style="font-size:0.8rem; font-weight:600;">Description / Campaign Note</label>
+                            <input type="text" name="description" class="form-control" placeholder="e.g. 10% launch discount for keyboard and mouse customers">
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancel</button>
+                        <button type="submit" class="btn btn-primary btn-sm" style="background:linear-gradient(135deg, var(--admin-cyan), var(--admin-purple)); border:none; color:#0b0f19; font-weight:700;">
+                            Create Code
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        function openAddDiscountModal() {
+            const modal = new bootstrap.Modal(document.getElementById('discountModal'));
+            modal.show();
+        }
+
+        function updateDiscountLabel() {
+            const type = document.getElementById('discountTypeSelect').value;
+            const label = document.getElementById('discountValueLabel');
+            if (type === 'percentage') {
+                label.textContent = 'Percentage Value (%) *';
+            } else {
+                label.textContent = 'Flat Discount (रु) *';
+            }
+        }
+    </script>
+
+    {% include '_admin_shell_end.html' %}
+</body>
+</html>

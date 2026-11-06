@@ -1,0 +1,485 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="shortcut icon" type="image/svg+xml" href="{{ url_for('static', filename='images/globsoft.svg') }}">
+    <title>Shop COD Orders - Globsoft Tech Admin</title>
+
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/admin.css') }}">
+    <style>
+        .shop-page-wrapper {
+            max-width: 1300px;
+            margin: 0 auto;
+        }
+        .stats-summary {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 16px;
+            margin-bottom: 24px;
+        }
+        .stat-card {
+            background: var(--admin-panel, #111426);
+            border: 1px solid var(--admin-line, rgba(166,177,221,.14));
+            border-radius: 14px;
+            padding: 20px;
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+        .stat-icon {
+            width: 48px;
+            height: 48px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.3rem;
+        }
+        .stat-info h3 {
+            margin: 0;
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--admin-text, #f8f9ff);
+        }
+        .stat-info span {
+            color: var(--admin-muted, #8e94b3);
+            font-size: 0.78rem;
+            text-transform: uppercase;
+            letter-spacing: .08em;
+        }
+        .orders-table-card {
+            background: var(--admin-panel, #111426);
+            border: 1px solid var(--admin-line, rgba(166,177,221,.14));
+            border-radius: 16px;
+            overflow: hidden;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.25);
+        }
+        .filter-toolbar {
+            padding: 18px 22px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 14px;
+            align-items: center;
+            justify-content: space-between;
+            border-bottom: 1px solid var(--admin-line, rgba(166,177,221,.14));
+        }
+        .filter-toolbar input, .filter-toolbar select {
+            background: var(--admin-panel-2, #181c32);
+            border: 1px solid var(--admin-line, rgba(166,177,221,.14));
+            color: var(--admin-text, #f8f9ff);
+            border-radius: 8px;
+            padding: 9px 14px;
+            font-size: 0.85rem;
+        }
+        .status-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            padding: 5px 10px;
+            border-radius: 8px;
+            font-size: 0.73rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: .05em;
+        }
+        .status-Pending { background: rgba(255, 193, 7, 0.15); color: #ffc107; border: 1px solid rgba(255, 193, 7, 0.3); }
+        .status-Confirmed { background: rgba(13, 202, 240, 0.15); color: #0dcaf0; border: 1px solid rgba(13, 202, 240, 0.3); }
+        .status-Processing { background: rgba(155, 115, 255, 0.15); color: #9b73ff; border: 1px solid rgba(155, 115, 255, 0.3); }
+        .status-Shipped { background: rgba(121, 255, 247, 0.15); color: #79fff7; border: 1px solid rgba(121, 255, 247, 0.3); }
+        .status-Delivered { background: rgba(122, 219, 120, 0.15); color: #7adb78; border: 1px solid rgba(122, 219, 120, 0.3); }
+        .status-Cancelled { background: rgba(255, 107, 107, 0.15); color: #ff6b6b; border: 1px solid rgba(255, 107, 107, 0.3); }
+
+        .orders-table {
+            width: 100%;
+            border-collapse: collapse;
+            color: var(--admin-text, #f8f9ff);
+        }
+        .orders-table th {
+            background: rgba(0,0,0,0.2);
+            padding: 13px 18px;
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: .08em;
+            color: var(--admin-muted, #8e94b3);
+            border-bottom: 1px solid var(--admin-line, rgba(166,177,221,.14));
+        }
+        .orders-table td {
+            padding: 14px 18px;
+            font-size: 0.84rem;
+            border-bottom: 1px solid rgba(166,177,221,.08);
+            vertical-align: middle;
+        }
+        .orders-table tr:hover td {
+            background: rgba(121, 255, 247, 0.03);
+        }
+        .item-pill {
+            display: inline-block;
+            background: rgba(255,255,255,0.06);
+            padding: 3px 8px;
+            border-radius: 6px;
+            font-size: 0.74rem;
+            margin: 2px;
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+        .custom-note-tag {
+            color: var(--admin-cyan, #79fff7);
+            font-size: 0.72rem;
+            display: block;
+            margin-top: 2px;
+        }
+        .action-btn {
+            border: none;
+            background: transparent;
+            padding: 6px 10px;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: .2s;
+            font-size: 0.82rem;
+        }
+        .action-btn.view { color: var(--admin-cyan, #79fff7); background: rgba(121, 255, 247, 0.1); }
+        .action-btn.view:hover { background: rgba(121, 255, 247, 0.2); }
+        .action-btn.delete { color: #ff6b6b; background: rgba(255, 107, 107, 0.1); margin-left: 5px; }
+        .action-btn.delete:hover { background: rgba(255, 107, 107, 0.2); }
+
+        /* Modal styling */
+        .modal-content {
+            background: var(--admin-panel, #111426);
+            color: var(--admin-text, #f8f9ff);
+            border: 1px solid var(--admin-line, rgba(166,177,221,.2));
+            border-radius: 18px;
+        }
+        .modal-header, .modal-footer {
+            border-color: var(--admin-line, rgba(166,177,221,.14));
+        }
+        .modal-title {
+            color: var(--admin-cyan, #79fff7);
+            font-weight: 700;
+        }
+    </style>
+</head>
+<body class="admin-page">
+    {% include '_admin_shell_start.html' %}
+
+    <div class="shop-page-wrapper">
+        <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-3">
+            <div>
+                <p class="eyebrow" style="color:var(--admin-cyan); font-size:.75rem; text-transform:uppercase; letter-spacing:.15em; margin-bottom:4px;">E-Commerce &amp; Dispatch</p>
+                <h1 style="font-size:1.75rem; font-weight:700; margin:0;">🛍️ Cash on Delivery (COD) Orders</h1>
+                <p style="color:var(--admin-muted); font-size:.85rem; margin-top:4px;">
+                    Review incoming hardware orders, customize orders, update delivery milestones, and coordinate dispatch.
+                </p>
+            </div>
+            <div class="d-flex gap-2">
+                <a href="/shop/products" class="btn btn-outline-info btn-sm px-3 py-2" style="border-radius:8px;">
+                    <i class="fa-solid fa-box-open me-1"></i> Products Manager
+                </a>
+                <a href="/shop/discounts" class="btn btn-outline-warning btn-sm px-3 py-2" style="border-radius:8px;">
+                    <i class="fa-solid fa-ticket me-1"></i> Discount Codes
+                </a>
+            </div>
+        </div>
+
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="flash {{ category }} mb-3">{{ message }}</div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+
+        <!-- Stats Bar -->
+        <div class="stats-summary">
+            <div class="stat-card">
+                <div class="stat-icon" style="background: rgba(121, 255, 247, 0.12); color: var(--admin-cyan);">
+                    <i class="fa-solid fa-cart-flatbed"></i>
+                </div>
+                <div class="stat-info">
+                    <h3>{{ total_orders }}</h3>
+                    <span>Total Orders</span>
+                </div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon" style="background: rgba(255, 193, 7, 0.12); color: #ffc107;">
+                    <i class="fa-solid fa-clock-rotate-left"></i>
+                </div>
+                <div class="stat-info">
+                    <h3>{{ pending_orders }}</h3>
+                    <span>Pending Verification</span>
+                </div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon" style="background: rgba(122, 219, 120, 0.12); color: #7adb78;">
+                    <i class="fa-solid fa-truck-fast"></i>
+                </div>
+                <div class="stat-info">
+                    <h3>{{ active_dispatch }}</h3>
+                    <span>Confirmed / Shipped</span>
+                </div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon" style="background: rgba(155, 115, 255, 0.12); color: #9b73ff;">
+                    <i class="fa-solid fa-money-bill-wave"></i>
+                </div>
+                <div class="stat-info">
+                    <h3>रु {{ "{:,.0f}".format(total_revenue) }}</h3>
+                    <span>Total COD Volume</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Orders Table Card -->
+        <div class="orders-table-card">
+            <div class="filter-toolbar">
+                <div class="d-flex gap-2 flex-grow-1" style="max-width: 480px;">
+                    <input type="text" id="orderSearch" class="form-control" placeholder="Search by Order ID, Name, Phone, City..." onkeyup="filterOrders()">
+                </div>
+                <div class="d-flex gap-2">
+                    <select id="statusFilter" class="form-select" onchange="filterOrders()">
+                        <option value="">All Statuses</option>
+                        <option value="Pending">Pending Verification</option>
+                        <option value="Confirmed">Confirmed</option>
+                        <option value="Processing">Processing (Printing)</option>
+                        <option value="Shipped">Out for Delivery</option>
+                        <option value="Delivered">Delivered</option>
+                        <option value="Cancelled">Cancelled</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="table-responsive">
+                <table class="orders-table" id="ordersTable">
+                    <thead>
+                        <tr>
+                            <th>Order ID</th>
+                            <th>Date</th>
+                            <th>Customer &amp; Contact</th>
+                            <th>Destination</th>
+                            <th>Items &amp; Customization</th>
+                            <th>Total (COD)</th>
+                            <th>Status</th>
+                            <th style="text-align:right;">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% if orders and orders|length > 0 %}
+                            {% for order in orders %}
+                            <tr class="order-row" data-status="{{ order.status }}" data-search="{{ order.order_id }} {{ order.customer.name }} {{ order.customer.phone }} {{ order.customer.city }} {{ order.customer.address }}">
+                                <td>
+                                    <strong style="color:var(--admin-cyan);">#{{ order.order_id }}</strong>
+                                    <span class="d-block" style="font-size:0.7rem; color:var(--admin-muted);">
+                                        <i class="fa-solid fa-wallet text-warning"></i> COD
+                                    </span>
+                                </td>
+                                <td>
+                                    <span style="font-size:0.78rem;">{{ order.created_at.strftime('%Y-%m-%d') if order.created_at else 'Recent' }}</span>
+                                    <span class="d-block" style="font-size:0.7rem; color:var(--admin-muted);">{{ order.created_at.strftime('%H:%M') if order.created_at else '' }}</span>
+                                </td>
+                                <td>
+                                    <strong>{{ order.customer.name }}</strong>
+                                    <div style="font-size:0.78rem;">
+                                        <a href="tel:{{ order.customer.phone }}" style="color:#ff98e2; text-decoration:none;">
+                                            <i class="fa-solid fa-phone me-1"></i>{{ order.customer.phone }}
+                                        </a>
+                                    </div>
+                                    <div style="font-size:0.72rem; color:var(--admin-muted);">
+                                        {{ order.customer.email }}
+                                    </div>
+                                </td>
+                                <td>
+                                    <strong>{{ order.customer.city }}</strong>
+                                    <div style="font-size:0.75rem; color:var(--admin-muted); max-width:180px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;" title="{{ order.customer.address }}">
+                                        {{ order.customer.address }}
+                                    </div>
+                                </td>
+                                <td>
+                                    {% for item in order.items %}
+                                    <span class="item-pill">
+                                        {{ item.quantity }}x {{ item.name }}
+                                        {% if item.custom_options and (item.custom_options.custom_note or item.custom_options.custom_design_url or item.custom_options.size) %}
+                                            <i class="fa-solid fa-palette text-info ms-1" title="Has custom requirements"></i>
+                                        {% endif %}
+                                    </span>
+                                    {% endfor %}
+                                    {% if order.discount_code %}
+                                    <span class="d-block text-success" style="font-size:0.72rem;">
+                                        <i class="fa-solid fa-tag me-1"></i>Promo: {{ order.discount_code }} (-रु {{ "{:,.0f}".format(order.discount_amount) }})
+                                    </span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <strong style="font-size:0.95rem; color:#7adb78;">रु {{ "{:,.0f}".format(order.total_amount) }}</strong>
+                                    <span class="d-block" style="font-size:0.68rem; color:var(--admin-muted);">Free Shipping</span>
+                                </td>
+                                <td>
+                                    <form method="POST" action="/shop/orders/{{ order.order_id }}/status" class="d-inline">
+                                        <select name="status" class="status-badge status-{{ order.status }}" onchange="this.form.submit()" style="cursor:pointer; border-radius:6px; outline:none;">
+                                            <option value="Pending" {% if order.status == 'Pending' %}selected{% endif %}>Pending</option>
+                                            <option value="Confirmed" {% if order.status == 'Confirmed' %}selected{% endif %}>Confirmed</option>
+                                            <option value="Processing" {% if order.status == 'Processing' %}selected{% endif %}>Processing</option>
+                                            <option value="Shipped" {% if order.status == 'Shipped' %}selected{% endif %}>Shipped</option>
+                                            <option value="Delivered" {% if order.status == 'Delivered' %}selected{% endif %}>Delivered</option>
+                                            <option value="Cancelled" {% if order.status == 'Cancelled' %}selected{% endif %}>Cancelled</option>
+                                        </select>
+                                    </form>
+                                </td>
+                                <td style="text-align:right; white-space:nowrap;">
+                                    <button type="button" class="action-btn view" onclick='viewOrder({{ order | tojson | safe }})' title="View Full Details">
+                                        <i class="fa-solid fa-eye me-1"></i>View
+                                    </button>
+                                    <form method="POST" action="/shop/orders/{{ order.order_id }}/delete" class="d-inline" onsubmit="return confirm('Delete order #{{ order.order_id }}?');">
+                                        <button type="submit" class="action-btn delete" title="Delete Order">
+                                            <i class="fa-solid fa-trash"></i>
+                                        </button>
+                                    </form>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        {% else %}
+                            <tr>
+                                <td colspan="8" style="text-align:center; padding:50px 20px; color:var(--admin-muted);">
+                                    <i class="fa-solid fa-box-open mb-2" style="font-size:2.5rem; color:var(--admin-cyan);"></i>
+                                    <h5>No COD orders yet</h5>
+                                    <p style="font-size:0.85rem;">When customers purchase gear through your website shop, their COD orders will arrive here in real time.</p>
+                                </td>
+                            </tr>
+                        {% endif %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Order Detail Modal -->
+    <div class="modal fade" id="orderModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-lg modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="modalOrderTitle">Order Details</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body" id="modalOrderBody">
+                    <!-- Populated dynamically by JS -->
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Close</button>
+                    <button type="button" class="btn btn-outline-info btn-sm" onclick="window.print()"><i class="fa-solid fa-print me-1"></i> Print Invoice</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        function filterOrders() {
+            const query = document.getElementById('orderSearch').value.toLowerCase().trim();
+            const status = document.getElementById('statusFilter').value;
+            const rows = document.querySelectorAll('.order-row');
+
+            rows.forEach(row => {
+                const rowStatus = row.getAttribute('data-status');
+                const rowSearch = row.getAttribute('data-search').toLowerCase();
+
+                const matchesStatus = !status || rowStatus === status;
+                const matchesQuery = !query || rowSearch.includes(query);
+
+                if (matchesStatus && matchesQuery) {
+                    row.style.display = '';
+                } else {
+                    row.style.display = 'none';
+                }
+            });
+        }
+
+        function viewOrder(order) {
+            document.getElementById('modalOrderTitle').innerHTML = `<i class="fa-solid fa-receipt me-2"></i>Order #${order.order_id} <span class="status-badge status-${order.status} ms-2">${order.status}</span>`;
+            
+            let itemsHtml = '';
+            if (order.items && order.items.length) {
+                itemsHtml = order.items.map(item => `
+                    <div class="d-flex align-items-center justify-content-between p-2 mb-2" style="background:rgba(255,255,255,0.04); border-radius:10px; border:1px solid rgba(255,255,255,0.08);">
+                        <div class="d-flex align-items-center gap-3">
+                            ${item.image ? `<img src="${item.image}" alt="" style="width:48px; height:48px; object-fit:cover; border-radius:8px;">` : ''}
+                            <div>
+                                <strong style="font-size:0.9rem;">${item.name}</strong>
+                                <div style="font-size:0.75rem; color:var(--admin-muted);">
+                                    Quantity: <strong>${item.quantity}</strong> × रु ${Number(item.price).toLocaleString()}
+                                </div>
+                                ${item.custom_options ? `
+                                    <div class="mt-1 p-1 px-2" style="background:rgba(121,255,247,0.08); border-left:3px solid var(--admin-cyan); border-radius:4px; font-size:0.74rem;">
+                                        ${item.custom_options.size ? `<div><strong>Size:</strong> ${item.custom_options.size}</div>` : ''}
+                                        ${item.custom_options.surface ? `<div><strong>Surface:</strong> ${item.custom_options.surface}</div>` : ''}
+                                        ${item.custom_options.stitching ? `<div><strong>Stitching:</strong> ${item.custom_options.stitching}</div>` : ''}
+                                        ${item.custom_options.custom_design_url ? `<div><strong>Design URL:</strong> <a href="${item.custom_options.custom_design_url}" target="_blank" style="color:var(--admin-cyan); word-break:break-all;">${item.custom_options.custom_design_url}</a></div>` : ''}
+                                        ${item.custom_options.custom_note ? `<div><strong>Custom Instructions:</strong> ${item.custom_options.custom_note}</div>` : ''}
+                                    </div>
+                                ` : ''}
+                            </div>
+                        </div>
+                        <div class="text-end">
+                            <strong style="color:#7adb78;">रु ${(Number(item.price) * Number(item.quantity)).toLocaleString()}</strong>
+                        </div>
+                    </div>
+                `).join('');
+            }
+
+            const bodyHtml = `
+                <div class="row g-3 mb-3">
+                    <div class="col-md-6">
+                        <div class="p-3" style="background:rgba(255,255,255,0.03); border-radius:10px;">
+                            <h6 style="color:var(--admin-cyan); font-size:0.8rem; text-transform:uppercase;">Customer Details</h6>
+                            <p class="mb-1"><strong>Name:</strong> ${order.customer.name || 'N/A'}</p>
+                            <p class="mb-1"><strong>Phone:</strong> <a href="tel:${order.customer.phone}" style="color:#ff98e2;">${order.customer.phone || 'N/A'}</a></p>
+                            <p class="mb-1"><strong>Email:</strong> ${order.customer.email || 'N/A'}</p>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="p-3" style="background:rgba(255,255,255,0.03); border-radius:10px;">
+                            <h6 style="color:var(--admin-cyan); font-size:0.8rem; text-transform:uppercase;">Delivery Destination</h6>
+                            <p class="mb-1"><strong>City / Region:</strong> ${order.customer.city || 'N/A'}</p>
+                            <p class="mb-1"><strong>Address:</strong> ${order.customer.address || 'N/A'}</p>
+                            <p class="mb-0"><strong>Delivery Notes:</strong> ${order.customer.notes || 'None'}</p>
+                        </div>
+                    </div>
+                </div>
+
+                <h6 style="color:var(--admin-cyan); font-size:0.8rem; text-transform:uppercase; margin-bottom:10px;">Ordered Items</h6>
+                ${itemsHtml}
+
+                <div class="mt-3 p-3" style="background:rgba(255,255,255,0.03); border-radius:10px;">
+                    <div class="d-flex justify-content-between mb-1" style="font-size:0.85rem;">
+                        <span>Subtotal:</span>
+                        <strong>रु ${Number(order.subtotal || order.total_amount).toLocaleString()}</strong>
+                    </div>
+                    ${order.discount_code ? `
+                    <div class="d-flex justify-content-between mb-1 text-success" style="font-size:0.85rem;">
+                        <span>Promo Code (${order.discount_code}):</span>
+                        <strong>- रु ${Number(order.discount_amount || 0).toLocaleString()}</strong>
+                    </div>
+                    ` : ''}
+                    <div class="d-flex justify-content-between mb-2 text-info" style="font-size:0.85rem;">
+                        <span>Shipping & Delivery (COD):</span>
+                        <strong>FREE</strong>
+                    </div>
+                    <hr style="border-color:rgba(255,255,255,0.1); margin:8px 0;">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <span style="font-size:1.1rem; font-weight:700;">Cash to Collect on Delivery:</span>
+                        <span style="font-size:1.3rem; font-weight:700; color:#7adb78;">रु ${Number(order.total_amount).toLocaleString()}</span>
+                    </div>
+                    <div class="mt-2 text-warning" style="font-size:0.75rem;">
+                        <i class="fa-solid fa-circle-info me-1"></i>Payment Mode: Cash on Delivery (COD). Courier will collect exact cash upon hand-off.
+                    </div>
+                </div>
+            `;
+
+            document.getElementById('modalOrderBody').innerHTML = bodyHtml;
+            const modal = new bootstrap.Modal(document.getElementById('orderModal'));
+            modal.show();
+        }
+    </script>
+
+    {% include '_admin_shell_end.html' %}
+</body>
+</html>

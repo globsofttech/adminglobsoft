@@ -1,0 +1,337 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="shortcut icon" type="image/svg+xml" href="{{ url_for('static', filename='images/globsoft.svg') }}">
+    <title>Shop Products Management - Globsoft Tech Admin</title>
+
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/admin.css') }}">
+    <style>
+        .shop-page-wrapper {
+            max-width: 1300px;
+            margin: 0 auto;
+        }
+        .product-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+            gap: 20px;
+        }
+        .product-admin-card {
+            background: var(--admin-panel, #111426);
+            border: 1px solid var(--admin-line, rgba(166,177,221,.14));
+            border-radius: 16px;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            transition: transform .2s, border-color .2s;
+        }
+        .product-admin-card:hover {
+            border-color: var(--admin-cyan, #79fff7);
+            transform: translateY(-2px);
+        }
+        .product-card-img {
+            width: 100%;
+            height: 180px;
+            object-fit: cover;
+            background: #0b0f19;
+            border-bottom: 1px solid var(--admin-line, rgba(166,177,221,.14));
+        }
+        .product-card-body {
+            padding: 18px;
+            display: flex;
+            flex-direction: column;
+            flex-grow: 1;
+        }
+        .product-badge {
+            display: inline-block;
+            font-size: 0.68rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            padding: 3px 8px;
+            border-radius: 6px;
+            margin-right: 6px;
+        }
+        .badge-cat { background: rgba(121, 255, 247, 0.12); color: var(--admin-cyan, #79fff7); border: 1px solid rgba(121, 255, 247, 0.25); }
+        .badge-custom { background: rgba(155, 115, 255, 0.15); color: #9b73ff; border: 1px solid rgba(155, 115, 255, 0.3); }
+        .badge-outstock { background: rgba(255, 107, 107, 0.15); color: #ff6b6b; border: 1px solid rgba(255, 107, 107, 0.3); }
+
+        .form-control, .form-select {
+            background: var(--admin-panel-2, #181c32) !important;
+            border: 1px solid var(--admin-line, rgba(166,177,221,.2)) !important;
+            color: var(--admin-text, #f8f9ff) !important;
+            border-radius: 10px;
+        }
+        .modal-content {
+            background: var(--admin-panel, #111426);
+            color: var(--admin-text, #f8f9ff);
+            border: 1px solid var(--admin-line, rgba(166,177,221,.2));
+            border-radius: 18px;
+        }
+        .modal-header, .modal-footer {
+            border-color: var(--admin-line, rgba(166,177,221,.14));
+        }
+    </style>
+</head>
+<body class="admin-page">
+    {% include '_admin_shell_start.html' %}
+
+    <div class="shop-page-wrapper">
+        <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-3">
+            <div>
+                <p class="eyebrow" style="color:var(--admin-cyan); font-size:.75rem; text-transform:uppercase; letter-spacing:.15em; margin-bottom:4px;">Catalog Management</p>
+                <h1 style="font-size:1.75rem; font-weight:700; margin:0;">📦 Shop Products Catalog</h1>
+                <p style="color:var(--admin-muted); font-size:.85rem; margin-top:4px;">
+                    Add and customize physical hardware products: custom mouse pads, mice, keyboards, and accessories.
+                </p>
+            </div>
+            <div class="d-flex gap-2">
+                <a href="/shop/orders" class="btn btn-outline-info btn-sm px-3 py-2" style="border-radius:8px;">
+                    <i class="fa-solid fa-cart-shopping me-1"></i> View Orders
+                </a>
+                <button type="button" class="btn btn-primary btn-sm px-3 py-2" style="border-radius:8px; background:linear-gradient(135deg, var(--admin-cyan), var(--admin-purple)); border:none; color:#0b0f19; font-weight:700;" onclick="openAddModal()">
+                    <i class="fa-solid fa-plus me-1"></i> Add New Product
+                </button>
+            </div>
+        </div>
+
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="flash {{ category }} mb-3">{{ message }}</div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+
+        <!-- Filter Bar -->
+        <div class="p-3 mb-4 d-flex flex-wrap gap-3 align-items-center justify-content-between" style="background:var(--admin-panel); border:1px solid var(--admin-line); border-radius:14px;">
+            <div class="d-flex gap-2 flex-grow-1" style="max-width:400px;">
+                <input type="text" id="prodSearch" class="form-control" placeholder="Search products by name or category..." onkeyup="filterProducts()">
+            </div>
+            <div class="d-flex gap-2">
+                <select id="catFilter" class="form-select" onchange="filterProducts()">
+                    <option value="">All Categories</option>
+                    <option value="Mouse Pads">Mouse Pads</option>
+                    <option value="Mice">Mice</option>
+                    <option value="Keyboards">Keyboards</option>
+                    <option value="Accessories">Accessories</option>
+                </select>
+            </div>
+        </div>
+
+        <!-- Products Grid -->
+        <div class="product-grid" id="productGrid">
+            {% for p in products %}
+            <div class="product-admin-card product-item" data-category="{{ p.category }}" data-name="{{ p.name.lower() }} {{ p.id.lower() }}">
+                <img src="{{ p.image }}" alt="{{ p.name }}" class="product-card-img" onerror="this.src='https://images.unsplash.com/photo-1616440347437-b1c73416efc2?auto=format&fit=crop&w=800&q=80'">
+                <div class="product-card-body">
+                    <div class="d-flex align-items-center mb-2 flex-wrap gap-1">
+                        <span class="product-badge badge-cat">{{ p.category }}</span>
+                        {% if p.is_customizable %}
+                            <span class="product-badge badge-custom"><i class="fa-solid fa-wand-magic-sparkles me-1"></i>Customizable</span>
+                        {% endif %}
+                        {% if not p.in_stock or (p.stock is defined and p.stock <= 0) %}
+                            <span class="product-badge badge-outstock">Out of Stock</span>
+                        {% else %}
+                            <span class="product-badge" style="background:rgba(122,219,120,0.15); color:#7adb78;">In Stock ({{ p.stock }})</span>
+                        {% endif %}
+                    </div>
+
+                    <h4 style="font-size:1.05rem; font-weight:700; color:var(--admin-text); margin-bottom:6px;">{{ p.name }}</h4>
+                    <p style="font-size:0.8rem; color:var(--admin-muted); line-height:1.4; flex-grow:1; margin-bottom:12px;">
+                        {{ p.description[:110] }}{% if p.description|length > 110 %}...{% endif %}
+                    </p>
+
+                    <div class="d-flex align-items-baseline gap-2 mb-3">
+                        <strong style="font-size:1.2rem; color:#7adb78;">रु {{ "{:,.0f}".format(p.price) }}</strong>
+                        {% if p.compare_at_price and p.compare_at_price > p.price %}
+                            <span style="font-size:0.85rem; color:var(--admin-muted); text-decoration:line-through;">रु {{ "{:,.0f}".format(p.compare_at_price) }}</span>
+                            <span style="font-size:0.75rem; color:#ff98e2; font-weight:700;">
+                                {{ "{:,.0f}".format(((p.compare_at_price - p.price) / p.compare_at_price) * 100) }}% OFF
+                            </span>
+                        {% endif %}
+                    </div>
+
+                    <div class="d-flex gap-2 pt-2 border-top border-secondary-subtle">
+                        <button type="button" class="btn btn-outline-info btn-sm flex-grow-1" onclick='openEditModal({{ p | tojson | safe }})'>
+                            <i class="fa-solid fa-pen-to-square me-1"></i> Edit
+                        </button>
+                        <form method="POST" action="/shop/products/{{ p.id }}/toggle-stock" class="d-inline">
+                            <button type="submit" class="btn btn-outline-warning btn-sm" title="Toggle Stock Status">
+                                <i class="fa-solid fa-box-archive"></i>
+                            </button>
+                        </form>
+                        <form method="POST" action="/shop/products/{{ p.id }}/delete" class="d-inline" onsubmit="return confirm('Delete product {{ p.name }}?');">
+                            <button type="submit" class="btn btn-outline-danger btn-sm" title="Delete">
+                                <i class="fa-solid fa-trash"></i>
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+
+    <!-- Product Modal (Add / Edit) -->
+    <div class="modal fade" id="productModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-lg modal-dialog-centered">
+            <div class="modal-content">
+                <form id="productForm" method="POST" action="/shop/products/add">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="productModalTitle">Add New Product</h5>
+                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                        <input type="hidden" name="is_edit" id="isEdit" value="0">
+                        <input type="hidden" name="original_id" id="originalId" value="">
+
+                        <div class="row g-3">
+                            <div class="col-md-8">
+                                <label class="form-label" style="font-size:0.8rem; font-weight:600;">Product Name *</label>
+                                <input type="text" name="name" id="prodName" class="form-control" required placeholder="e.g. Custom Desk Mat & Mouse Pad">
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label" style="font-size:0.8rem; font-weight:600;">Product ID / Slug *</label>
+                                <input type="text" name="id" id="prodId" class="form-control" required placeholder="e.g. custom-mouse-pad-xxl">
+                            </div>
+
+                            <div class="col-md-4">
+                                <label class="form-label" style="font-size:0.8rem; font-weight:600;">Category *</label>
+                                <select name="category" id="prodCategory" class="form-select" required>
+                                    <option value="Mouse Pads">Mouse Pads</option>
+                                    <option value="Mice">Mice</option>
+                                    <option value="Keyboards">Keyboards</option>
+                                    <option value="Accessories">Accessories</option>
+                                    <option value="Audio & Other">Audio & Other</option>
+                                </select>
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label" style="font-size:0.8rem; font-weight:600;">Price (रु) *</label>
+                                <input type="number" name="price" id="prodPrice" class="form-control" required min="1" step="any" placeholder="999">
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label" style="font-size:0.8rem; font-weight:600;">Original / Compare Price (रु)</label>
+                                <input type="number" name="compare_at_price" id="prodComparePrice" class="form-control" min="0" step="any" placeholder="1499">
+                            </div>
+
+                            <div class="col-md-8">
+                                <label class="form-label" style="font-size:0.8rem; font-weight:600;">Image URL *</label>
+                                <input type="url" name="image" id="prodImage" class="form-control" required placeholder="https://images.unsplash.com/photo-...">
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label" style="font-size:0.8rem; font-weight:600;">Stock Quantity</label>
+                                <input type="number" name="stock" id="prodStock" class="form-control" value="50" min="0">
+                            </div>
+
+                            <div class="col-md-6">
+                                <label class="form-label" style="font-size:0.8rem; font-weight:600;">Promotional Badge</label>
+                                <input type="text" name="badge" id="prodBadge" class="form-control" placeholder="e.g. Best Seller, Top Rated, New">
+                            </div>
+                            <div class="col-md-6 d-flex align-items-center pt-3">
+                                <div class="form-check form-switch">
+                                    <input class="form-check-input" type="checkbox" name="is_customizable" id="prodCustomizable" value="1">
+                                    <label class="form-check-label" for="prodCustomizable" style="font-size:0.85rem; font-weight:600;">
+                                        Allow Customer Customization (Custom Print / Design Notes)
+                                    </label>
+                                </div>
+                            </div>
+
+                            <div class="col-12">
+                                <label class="form-label" style="font-size:0.8rem; font-weight:600;">Description *</label>
+                                <textarea name="description" id="prodDesc" class="form-control" rows="3" required placeholder="Detailed product specifications, materials, and features..."></textarea>
+                            </div>
+
+                            <div class="col-12">
+                                <label class="form-label" style="font-size:0.8rem; font-weight:600;">Specifications (One per line)</label>
+                                <textarea name="specs" id="prodSpecs" class="form-control" rows="4" placeholder="Dimensions: 900 x 400 x 4mm&#10;Material: High-density micro-weave cloth&#10;Anti-fray stitched border"></textarea>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancel</button>
+                        <button type="submit" class="btn btn-primary btn-sm" style="background:linear-gradient(135deg, var(--admin-cyan), var(--admin-purple)); border:none; color:#0b0f19; font-weight:700;">
+                            Save Product
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        function filterProducts() {
+            const query = document.getElementById('prodSearch').value.toLowerCase().trim();
+            const cat = document.getElementById('catFilter').value;
+            const items = document.querySelectorAll('.product-item');
+
+            items.forEach(item => {
+                const itemCat = item.getAttribute('data-category');
+                const itemName = item.getAttribute('data-name');
+                const matchesCat = !cat || itemCat === cat;
+                const matchesQuery = !query || itemName.includes(query);
+
+                if (matchesCat && matchesQuery) {
+                    item.style.display = '';
+                } else {
+                    item.style.display = 'none';
+                }
+            });
+        }
+
+        function openAddModal() {
+            document.getElementById('productForm').action = '/shop/products/add';
+            document.getElementById('productModalTitle').textContent = 'Add New Product';
+            document.getElementById('isEdit').value = '0';
+            document.getElementById('originalId').value = '';
+            document.getElementById('prodName').value = '';
+            document.getElementById('prodId').value = '';
+            document.getElementById('prodId').readOnly = false;
+            document.getElementById('prodCategory').value = 'Mouse Pads';
+            document.getElementById('prodPrice').value = '';
+            document.getElementById('prodComparePrice').value = '';
+            document.getElementById('prodImage').value = '';
+            document.getElementById('prodStock').value = '50';
+            document.getElementById('prodBadge').value = '';
+            document.getElementById('prodCustomizable').checked = false;
+            document.getElementById('prodDesc').value = '';
+            document.getElementById('prodSpecs').value = '';
+
+            const modal = new bootstrap.Modal(document.getElementById('productModal'));
+            modal.show();
+        }
+
+        function openEditModal(prod) {
+            document.getElementById('productForm').action = '/shop/products/' + prod.id + '/edit';
+            document.getElementById('productModalTitle').textContent = 'Edit Product: ' + prod.name;
+            document.getElementById('isEdit').value = '1';
+            document.getElementById('originalId').value = prod.id;
+            document.getElementById('prodName').value = prod.name || '';
+            document.getElementById('prodId').value = prod.id || '';
+            document.getElementById('prodId').readOnly = true;
+            document.getElementById('prodCategory').value = prod.category || 'Mouse Pads';
+            document.getElementById('prodPrice').value = prod.price || '';
+            document.getElementById('prodComparePrice').value = prod.compare_at_price || '';
+            document.getElementById('prodImage').value = prod.image || '';
+            document.getElementById('prodStock').value = prod.stock !== undefined ? prod.stock : 50;
+            document.getElementById('prodBadge').value = prod.badge || '';
+            document.getElementById('prodCustomizable').checked = !!prod.is_customizable;
+            document.getElementById('prodDesc').value = prod.description || '';
+            
+            if (Array.isArray(prod.specs)) {
+                document.getElementById('prodSpecs').value = prod.specs.join('\n');
+            } else {
+                document.getElementById('prodSpecs').value = prod.specs || '';
+            }
+
+            const modal = new bootstrap.Modal(document.getElementById('productModal'));
+            modal.show();
+        }
+    </script>
+
+    {% include '_admin_shell_end.html' %}
+</body>
+</html>
